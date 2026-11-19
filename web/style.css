@@ -8,6 +8,46 @@
   --site-border: #e3dac7;
   --site-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
   --site-radius: 16px;
+  --wn-paper: #f6f1e7;
+  --wn-sheet: #fffdf7;
+  --wn-well: #f2ede1;
+  --wn-ink: #26362e;
+  --wn-ink-2: #5f6e64;
+  --wn-accent: #2f6d5a;
+  --wn-accent-press: #255a4a;
+  --wn-accent-soft: #e8f0ea;
+  --wn-on-accent: #f8f5ec;
+  --wn-line: #95876d;
+  --wn-hairline: #e3dac7;
+  --wn-time: #7d5a33;
+  --wn-time-soft: #f3e7d4;
+  --wn-alert: #8c3b2e;
+  --wn-alert-soft: #f6e3dc;
+  --wn-focus: #26362e;
+  --wn-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --wn-r1: 6px;
+  --wn-r2: 14px;
+  --wn-r3: 22px;
+  --wn-rpill: 999px;
+  --wn-s1: 0.25rem;
+  --wn-s2: 0.5rem;
+  --wn-s3: 0.75rem;
+  --wn-s4: 1rem;
+  --wn-s5: 1.25rem;
+  --wn-s6: 1.5rem;
+  --wn-s7: 2rem;
+  --wn-s8: 3rem;
+  --wn-s9: 4rem;
+  --wn-t1: 700 2rem/1.25;
+  --wn-t2: 600 1.375rem/1.364;
+  --wn-t3: 500 1.1875rem/1.579;
+  --wn-t4: 400 1rem/1.625;
+  --wn-t5: 400 0.875rem/1.571;
+  --wn-t6: 500 0.75rem/1.5;
+  --wn-m1: 120ms;
+  --wn-m2: 180ms;
+  --wn-m3: 240ms;
+  --wn-m4: 1600ms;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -19,6 +59,22 @@
     --site-surface: #212c25;
     --site-muted: #9aa89d;
     --site-border: #33413a;
+    --wn-paper: #18211c;
+    --wn-sheet: #212c25;
+    --wn-well: #141b17;
+    --wn-ink: #e9e4d6;
+    --wn-ink-2: #9aa89d;
+    --wn-accent: #7fc4a8;
+    --wn-accent-press: #6bb094;
+    --wn-accent-soft: #26362f;
+    --wn-on-accent: #12241c;
+    --wn-line: #64796c;
+    --wn-hairline: #33413a;
+    --wn-time: #d9b483;
+    --wn-time-soft: #2e2a21;
+    --wn-alert: #e8a58f;
+    --wn-alert-soft: #33241f;
+    --wn-focus: #e9e4d6;
   }
 }
 
