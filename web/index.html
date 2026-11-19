@@ -1,0 +1,59 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WhyNot · 此刻</title>
+  <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+  <meta name="theme-color" content="#f6f1e7">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="brand">
+      <h1>WhyNot</h1>
+      <p class="tagline">选一件现在就能开始的小事</p>
+    </header>
+
+    <section class="picker" aria-label="此刻的条件">
+      <fieldset>
+        <legend>我有多久</legend>
+        <div class="chips">
+          <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
+          <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
+          <input type="radio" name="budget" id="b10" value="10" checked><label for="b10">10 分钟</label>
+          <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>现在的精力</legend>
+        <div class="chips">
+          <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
+          <input type="radio" name="energy" id="esteady" value="steady" checked><label for="esteady">还可以</label>
+          <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>我在哪儿<span class="optional">可跳过</span></legend>
+        <div class="chips">
+          <input type="radio" name="scene" id="snone" value="" checked><label for="snone">跳过</label>
+          <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
+          <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
+          <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">在路上</label>
+          <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家／宿舍</label>
+        </div>
+      </fieldset>
+    </section>
+
+    <button id="ask" class="primary" type="button">给我一个建议</button>
+
+    <section id="result" aria-live="polite"></section>
+
+    <footer class="foot">随时可以停下。什么都不做，也是一个选项。</footer>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
