@@ -8,7 +8,7 @@ const BUDGET_SET = new Set(BUDGETS);
 // session travels as a bearer token in this custom header instead.
 const SESSION_HEADER = 'x-whynot-session';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
-const CARD_COLUMNS = 'id,scene,energy,budget,title,first_step,detail,minutes,created_at,preference,completed';
+const CARD_COLUMNS = 'id,scene,energy,budget,category,title,first_step,detail,minutes,created_at,preference,completed';
 
 // Dependency injection is only for local tests. index.ts retains Deno.serve.
 // Ownership comes from the HttpOnly session cookie, never from client JSON.
@@ -76,6 +76,7 @@ export function application({ db, BackendError, env }) {
   function asCard(row) {
     return {
       id: row.id, scene: row.scene, energy: row.energy, budget: row.budget,
+      category: row.category ?? null,
       title: row.title, first_step: row.first_step, detail: row.detail,
       minutes: row.minutes, created: row.created_at,
       preference: row.preference ?? null, completed: Boolean(row.completed),

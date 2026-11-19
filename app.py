@@ -51,7 +51,7 @@ def initialize(path):
 
 
 def as_card(row):
-    return {key: row[key] for key in ("id", "scene", "energy", "budget", "title", "first_step",
+    return {key: row[key] for key in ("id", "scene", "energy", "budget", "category", "title", "first_step",
                                        "detail", "minutes", "created", "preference", "completed")}
 
 

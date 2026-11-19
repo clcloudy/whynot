@@ -47,6 +47,9 @@ check('耗时不超过 3 分钟', first.data?.minutes >= 1 && first.data?.minute
 check('含第一步', typeof first.data?.first_step === 'string' && first.data.first_step.length > 0);
 check('场景为空', first.data?.scene === null);
 check('初始无反馈', first.data?.preference === null && first.data?.completed === false);
+const CATEGORIES = ['rest', 'observe', 'listen', 'tidy', 'explore'];
+check('推荐响应含 category', typeof first.data?.category === 'string' && first.data.category.length > 0);
+check('category 属于 5 类集合', CATEGORIES.includes(first.data?.category));
 
 console.log('换一个');
 const second = await a.call('POST', '/api/recommendations', { budget: 3, energy: 'low' });
@@ -91,7 +94,8 @@ for (const scene of [null, 'waiting', 'desk', 'outside', 'home']) {
       const body = { budget, energy, ...(scene ? { scene } : {}) };
       const result = await a.call('POST', '/api/recommendations', body);
       combos++;
-      if (result.status !== 201 || result.data.minutes > budget || result.data.minutes < 1) {
+      if (result.status !== 201 || result.data.minutes > budget || result.data.minutes < 1
+        || !CATEGORIES.includes(result.data.category)) {
         comboFailures.push(JSON.stringify(body));
         continue;
       }
