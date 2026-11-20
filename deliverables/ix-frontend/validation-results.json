@@ -1,0 +1,56 @@
+{
+  "phase": "互动功能前端接入",
+  "date": "2026-11-20",
+  "gitBaseline": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "localEntry": "http://127.0.0.1:8765/",
+  "node": "v24.16.0",
+  "fixture": "dev/server.mjs 内存 PostgreSQL（PGlite）+ 实际 functions 路由；假模型 dev/fake-model.mjs 监听 8766；不配置真实密钥",
+  "apiSuites": [
+    { "script": "dev/acceptance.mjs", "passed": 42, "failed": 0, "scope": "会话、60 种条件组合、category、换一个无反馈、归属、幂等、非法输入" },
+    { "script": "dev/acceptance-model.mjs", "passed": 11, "failed": 0, "scope": "有效输出、无效结构/非 JSON、上游错误、401 不重试、5xx 有界重试、7 秒×2 超时兜底、无密钥兜底" },
+    { "script": "dev/acceptance-interactions.mjs", "passed": 112, "failed": 0, "scope": "开场权重与降权、两轮版本推进、换一个 replaces、结束 204、幂等重发、归属、错误码" },
+    { "script": "dev/acceptance-photos.mjs", "passed": 46, "failed": 0, "scope": "看图资格门控、上传校验、识图轮次、歧义澄清、过期清理、并发、超时、抽样频率" },
+    { "script": "dev/acceptance-memories.mjs", "passed": 63, "failed": 0, "scope": "候选确认/修改/跳过、记忆列表/编辑/删除、版本冲突、过期、回忆注入" }
+  ],
+  "uiGroups": [
+    { "group": "state", "passed": 32, "failed": 0 },
+    { "group": "timing", "passed": 12, "failed": 0 },
+    { "group": "layout", "passed": 20, "failed": 0 },
+    { "group": "b4", "passed": 48, "failed": 0 },
+    { "group": "ix", "passed": 29, "failed": 0, "scope": "开场卡控件、发送防双击、两轮版本、模型不可用保留与重试复用 UUID、换卡迟到响应隔离、结束 204 与重新开始、micro 反馈保留互动状态、候选三键与版本/过期、设置记忆列表/编辑冲突保留草稿/删除二次确认/空态与错误态" }
+  ],
+  "totals": { "apiPassed": 274, "uiPassed": 141, "allPassed": 415, "failed": 0 },
+  "manualBrowserOps": [
+    "看图黄金路径：上传真实 PNG → 词卡（英文/音标/释义/练习）→ 文本练习轮，版本推进且词保留",
+    "看图歧义：AI 先问哪一样 → 文本澄清复用原图 → 词卡；重拍入口在识别前保留",
+    "看图客户端校验：非图片类型与超 4MiB 均被拒并留在原卡",
+    "看图失败重试：模型 5xx → 失败消息保留图片与重试键 → 恢复后重试复用同一请求 UUID 回到词卡",
+    "看图换一个：换出非看图卡（新 ID、空消息）",
+    "记忆演示：聊天触发候选 → 保存回执 → 设置列表可见 → 内联编辑升版本 → 二次确认删除 → 空态引导",
+    "结束互动：DELETE 204 → 收起输入、保留消息、提供重新开始/换一个",
+    "移动 375px iframe：聊聊与看图卡均无横向溢出，按钮热区≥44px，发送 48px、拍照 56px，词卡不溢出"
+  ],
+  "method": {
+    "api": "Node 脚本经实际 /functions/v1/app 入口验证成功与失败路径",
+    "ui": "浏览器内 import('/__local/acceptance-ui.mjs') 分组运行于 390px iframe；超时分组后台保存 Promise 结果再读取",
+    "manual": "browser-use 真实点击/输入/上传；隐藏文件输入经 DataTransfer 触发其真实 change 处理；移动宽度用真实 iframe 几何测量",
+    "console": "主页控制台仅余一条故意触发的 503（模型不可用测试），无应用脚本异常"
+  },
+  "limitations": [
+    "内嵌浏览器视口隐藏，take_screenshot 不可用，本阶段未产出截图证据；移动布局以 iframe 真实几何断言代替目视截图",
+    "假模型输出为固定桩，不等于真实视觉/语言模型识别质量",
+    "原生分享/剪贴板/系统主题分支沿用桩函数与 CSS 媒体模拟",
+    "acceptance.mjs 的内置兜底断言扫描历史 DB 行，须在全新启动的服务上首跑；与互动套件共用长生命周期服务会因历史行污染而误报"
+  ],
+  "size": { "fullGzip": 23943, "fullBudget": 16384, "fullOver": 7559, "coreFourGzip": 21638, "coreBudget": 14336, "coreOver": 7302, "raw": 87590 },
+  "unverified": [
+    "原始体积单项与核心总量、全量 gzip 超限",
+    "真实手机、有声屏幕阅读器、真实 OS 配色/首帧录像",
+    "真实视觉模型识别（acceptance-vision-real.mjs 需真实密钥与照片）",
+    "真实原生分享/剪贴板权限、移动安装外壳/安全区",
+    "节流性能、Core Web Vitals",
+    "Qoder Sites 云端部署、公网链接与另一设备最终验收（需另行授权）",
+    "选正反方辩论模式（计划列为后续增量，需后端契约，未交付）"
+  ],
+  "privacy": "本文件与日志不保存匿名 token、密钥、用户原文或模型原始响应"
+}

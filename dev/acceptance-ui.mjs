@@ -122,11 +122,17 @@ export default async function run(group = 'state') {
     await feedback('dislike');
     check('重复401恢复有上限且回滚', replay === 2 && sessions === 1 && state().card.preference === 'like' && d.getElementById('feedback-status').textContent.includes('会话过期'));
 
-    for (const [code, http] of [['STORAGE_UNAVAILABLE', 503], ['unique_violation', 409]]) {
+    {
       const times = [];
-      w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) { times.push(performance.now()); return Promise.resolve(response(code, http)); } return native(url, init); };
+      w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) { times.push(performance.now()); return Promise.resolve(response('STORAGE_UNAVAILABLE', 503)); } return native(url, init); };
       await feedback('dislike');
-      check(`${http}只重试一次且退避800ms`, times.length === 2 && times[1] - times[0] >= 790 && d.getElementById('feedback-status').textContent.includes('现在有点忙'));
+      check('503只重试一次且退避800ms', times.length === 2 && times[1] - times[0] >= 790 && d.getElementById('feedback-status').textContent.includes('现在有点忙'));
+    }
+    {
+      let calls = 0;
+      w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) { calls++; return Promise.resolve(response('VERSION_CONFLICT', 409)); } return native(url, init); };
+      await feedback('dislike');
+      check('409保留服务端错误码不自动重试', calls === 1 && d.getElementById('feedback-status').textContent.includes('别处更新'));
     }
     let invalid = 0;
     w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) { invalid++; return Promise.resolve(response('INVALID_FEEDBACK')); } return native(url, init); };
@@ -286,7 +292,7 @@ export default async function run(group = 'state') {
     const setNav = (name, value) => Object.defineProperty(w.navigator, name, { configurable: true, value });
     const command = d.execCommand;
     let shares = 0, copies = 0, legacy = 0, payload = '', network = 0;
-    w.fetch = (url, init) => { network++; return native(url, init); };
+    w.fetch = (url, init) => { if (!String(url).includes('/api/memories')) network++; return native(url, init); };
     setNav('share', async value => { shares++; payload = value.text; });
     setNav('clipboard', { writeText: async text => { copies++; payload = text; } });
     const originalTitle = state().card.title;
@@ -357,6 +363,187 @@ export default async function run(group = 'state') {
       image.close();
     }
     check('文档关联manifest及Apple图标', d.querySelector('link[rel="manifest"]').getAttribute('href') === '/manifest.webmanifest' && d.querySelector('link[rel="apple-touch-icon"]').getAttribute('sizes') === '180x180');
+  }
+  if (group === 'ix') {
+    const until = async fn => { for (let i = 0; i < 800 && !fn(); i++) await pause(10); };
+    const ixOf = () => w.eval('state.ix');
+    const setDraft = text => {
+      const input = d.querySelector('[data-focus="turn-input"]');
+      input.value = text;
+      input.dispatchEvent(new w.Event('input'));
+    };
+    const setEnv = (name, value) => native('/__local/env', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, value }),
+    });
+    await setEnv('MODEL_API_KEY', 'fake-local-key');
+    await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/valid');
+    const openMode = async modes => {
+      for (let i = 0; i < 40; i++) {
+        await w.startInteraction();
+        const ix = ixOf();
+        if (ix && modes.includes(ix.mode)) return ix;
+      }
+      return null;
+    };
+    let ix = await openMode(['chat', 'discuss']);
+    check('开场生成可聊互动卡', !!ix && !!d.querySelector('[data-focus="turn-input"]') && !!d.querySelector('[data-focus="send"]') && !!d.querySelector('[data-focus="end"]'));
+
+    let gate = deferred(), turnCalls = 0;
+    w.fetch = async (url, init) => {
+      if (String(url).endsWith('/turns')) { turnCalls++; const r = await native(url, init); await gate.promise; return r; }
+      return native(url, init);
+    };
+    setDraft('第一轮的话');
+    const firstSend = w.sendTurn();
+    await w.sendTurn();
+    check('发送中防双击', turnCalls === 1 && ix.messages.length === 1 && ix.sending && d.querySelector('[data-focus="send"]').disabled, JSON.stringify({ turnCalls, msgs: ix.messages.length, sending: ix.sending }));
+    gate.resolve(); await firstSend;
+    check('第一轮回复上卡且版本推进', ix.messages.length === 2 && ix.messages[1].role === 'ai' && ix.version === 2 && d.querySelectorAll('.msg').length === 2);
+
+    const bodies = [];
+    w.fetch = (url, init) => { if (String(url).endsWith('/turns')) bodies.push(JSON.parse(init.body)); return native(url, init); };
+    setDraft('第二轮的话');
+    await w.sendTurn();
+    check('第二轮使用第一次回复的版本', bodies[0].version === 2 && ix.version === 3 && ix.messages.length === 4);
+
+    let failOnce = true;
+    const retryBodies = [];
+    w.fetch = (url, init) => {
+      if (String(url).endsWith('/turns')) {
+        retryBodies.push(JSON.parse(init.body));
+        if (failOnce) { failOnce = false; return Promise.resolve(response('MODEL_UNAVAILABLE', 503)); }
+      }
+      return native(url, init);
+    };
+    setDraft('会失败的一句');
+    await w.sendTurn();
+    check('模型不可用保留消息与重试入口', ix.messages.at(-1).status === 'failed' && ix.messages.at(-1).text === '会失败的一句' && !!d.querySelector('.msg-retry'));
+    const failedId = retryBodies[0].request_id, failedVersion = retryBodies[0].version;
+    click(`[data-focus="retry-${failedId}"]`);
+    await until(() => !ix.sending);
+    check('重试复用同一UUID版本与内容', retryBodies[1].request_id === failedId && retryBodies[1].version === failedVersion && retryBodies[1].text === '会失败的一句' && ix.messages.at(-1).status === 'sent');
+
+    gate = deferred();
+    w.fetch = async (url, init) => { const r = await native(url, init); if (String(url).endsWith('/turns')) await gate.promise; return r; };
+    setDraft('迟到的一句');
+    const late = w.sendTurn();
+    const oldId = ix.id;
+    await w.startInteraction(w.conditions(), { replaces: oldId });
+    const fresh = ixOf();
+    gate.resolve(); await late;
+    check('换卡后迟到响应不污染新卡', fresh.id !== oldId && fresh.messages.length === 0 && ixOf() === fresh);
+
+    w.fetch = native;
+    ix = await openMode(['chat', 'discuss']);
+    click('[data-focus="end"]');
+    await until(() => !ix.ending);
+    check('结束204收起输入并提供重新开始', ix.status === 'closed' && !d.querySelector('[data-focus="turn-input"]') && !!d.querySelector('[data-focus="restart"]'));
+    click('[data-focus="restart"]');
+    await until(() => !w.eval('state.busy'));
+    const restarted = ixOf();
+    check('重新开始使用新互动ID且无旧消息', restarted.id !== ix.id && restarted.messages.length === 0);
+
+    const micro = await openMode(['micro']);
+    check('抽到小行动卡', !!micro && !!d.querySelector('[data-focus="like"]'));
+    await w.sendFeedback('like');
+    check('小行动反馈绑定本卡且保留互动状态', w.eval('state.card.preference') === 'like' && ixOf() === micro && micro.version === 1);
+    await w.sendFeedback('completed');
+    check('小行动完成态沿用分享行', w.eval('state.card.completed') && !!d.querySelector('.done-row'));
+
+    ix = await openMode(['chat', 'discuss']);
+    const candidate = { id: '11111111-1111-4111-8111-111111111111', text: '最近在练吉他', kind: 'status', topic: '近况', version: 1 };
+    const confirmBodies = [];
+    let candidateExpiredOnce = false;
+    w.fetch = (url, init) => {
+      const u = String(url);
+      if (u.endsWith('/turns')) return Promise.resolve(w.Response.json({ id: 't1', reply: '看到了，确认一下要不要保存这句话。', version: ix.version + 1, candidate }));
+      if (u.endsWith('/memories')) {
+        const payload = JSON.parse(init.body);
+        confirmBodies.push(payload);
+        if (candidateExpiredOnce) { candidateExpiredOnce = false; return Promise.resolve(response('CANDIDATE_EXPIRED', 409)); }
+        if (payload.action === 'skip') return Promise.resolve(w.Response.json({ skipped: true }));
+        return Promise.resolve(w.Response.json({ id: 'm1', kind: 'status', topic: '近况', text: payload.text ?? candidate.text, version: 1, confirmed_at: new Date().toISOString(), expires_at: new Date().toISOString() }, { status: 201 }));
+      }
+      return native(url, init);
+    };
+    setDraft('帮我记住我最近在练吉他');
+    await w.sendTurn();
+    check('候选原文与三键出现', d.querySelector('.candidate-text')?.textContent.includes('最近在练吉他') && !!d.querySelector('[data-focus="cand-save"]') && !!d.querySelector('[data-focus="cand-edit"]') && !!d.querySelector('[data-focus="cand-skip"]'));
+    click('[data-focus="cand-save"]');
+    await until(() => !ix.candidate.saving);
+    check('确认使用候选自身版本并显示回执', confirmBodies[0].candidate_id === candidate.id && confirmBodies[0].version === 1 && confirmBodies[0].action === 'confirm' && d.querySelector('.candidate-note').textContent.includes('已保存'));
+
+    setDraft('帮我记住下周三交论文');
+    await w.sendTurn();
+    click('[data-focus="cand-edit"]');
+    const candInput = d.querySelector('[data-focus="cand-input"]');
+    candInput.value = '下周三交论文（改）';
+    candInput.dispatchEvent(new w.Event('input'));
+    click('[data-focus="cand-save"]');
+    await until(() => !ix.candidate.saving);
+    check('改一下再保存提交修改文本', confirmBodies.at(-1).text === '下周三交论文（改）' && ix.candidate.status === 'saved');
+
+    setDraft('帮我记住另一句');
+    await w.sendTurn();
+    click('[data-focus="cand-skip"]');
+    await until(() => !ix.candidate.saving);
+    check('跳过收起确认按钮', ix.candidate.status === 'skipped' && !d.querySelector('[data-focus="cand-save"]'));
+
+    setDraft('帮我记住会过期的一句');
+    await w.sendTurn();
+    candidateExpiredOnce = true;
+    click('[data-focus="cand-save"]');
+    await until(() => !ix.candidate.saving);
+    check('候选过期收起按钮并提示', ix.candidate.status === 'expired' && !d.querySelector('[data-focus="cand-save"]') && d.querySelector('.candidate-note').textContent.includes('超时'));
+
+    const memItems = [
+      { id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', kind: 'status', topic: '近况', text: '最近在练吉他', version: 1, confirmed_at: new Date().toISOString(), expires_at: new Date().toISOString() },
+      { id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb', kind: 'status', topic: '近况', text: '下周三交论文', version: 1, confirmed_at: new Date().toISOString(), expires_at: new Date().toISOString() },
+    ];
+    const patchBodies = [], deleteCalls = [];
+    let conflictOnce = true;
+    w.fetch = (url, init) => {
+      const u = String(url);
+      if (u.includes('/api/memories?')) return Promise.resolve(w.Response.json({ memories: memItems, total: memItems.length, offset: 0, limit: 20 }));
+      if (u.includes('/api/memories/') && init?.method === 'PATCH') {
+        const payload = JSON.parse(init.body);
+        patchBodies.push(payload);
+        if (conflictOnce) { conflictOnce = false; memItems[0].version = 2; memItems[0].text = '别处改过的文本'; return Promise.resolve(response('VERSION_CONFLICT', 409)); }
+        return Promise.resolve(w.Response.json({ ...memItems[0], text: payload.text, version: payload.version + 1 }));
+      }
+      if (u.includes('/api/memories/') && init?.method === 'DELETE') { deleteCalls.push(u); return Promise.resolve(new w.Response(null, { status: 204 })); }
+      return native(url, init);
+    };
+    click('#settings-toggle');
+    await until(() => w.eval('mem.status') !== 'loading');
+    check('设置打开加载记忆列表', d.querySelectorAll('.mem-item').length === 2);
+    click(`[data-focus="mem-edit-${memItems[0].id}"]`);
+    const memInput = d.querySelector(`[data-focus="mem-input-${memItems[0].id}"]`);
+    memInput.value = '我在练吉他';
+    memInput.dispatchEvent(new w.Event('input'));
+    click(`[data-focus="mem-save-${memItems[0].id}"]`);
+    await until(() => !w.eval('mem.busy') && w.eval('mem.status') !== 'loading');
+    check('版本冲突刷新列表保留待修改文本', patchBodies.length === 1 && w.eval('mem.editing') === memItems[0].id && w.eval('mem.editDraft') === '我在练吉他' && d.querySelector('.mem-note').textContent.includes('别处'));
+    click(`[data-focus="mem-save-${memItems[0].id}"]`);
+    await until(() => !w.eval('mem.busy'));
+    check('冲突后按新版本保存成功', patchBodies[1].version === 2 && w.eval('mem.editing') === null && d.querySelector('.mem-text').textContent === '我在练吉他');
+    click(`[data-focus="mem-delete-${memItems[1].id}"]`);
+    check('删除需二次确认', !!d.querySelector(`[data-focus="mem-confirm-${memItems[1].id}"]`) && deleteCalls.length === 0);
+    click(`[data-focus="mem-confirm-${memItems[1].id}"]`);
+    await until(() => !w.eval('mem.busy'));
+    check('删除204移除条目', deleteCalls.length === 1 && d.querySelectorAll('.mem-item').length === 1);
+    w.fetch = (url, init) => String(url).includes('/api/memories?') ? Promise.resolve(w.Response.json({ memories: [], total: 0, offset: 0, limit: 20 })) : native(url, init);
+    click('[data-focus="mem-refresh"]');
+    await until(() => w.eval('mem.status') !== 'loading');
+    check('空列表有引导文案', d.querySelector('.mem-empty').textContent.includes('还没有保存过'));
+    w.fetch = (url, init) => String(url).includes('/api/memories?') ? Promise.resolve(response('STORAGE_UNAVAILABLE', 503)) : native(url, init);
+    click('[data-focus="mem-refresh"]');
+    await until(() => w.eval('mem.status') !== 'loading');
+    check('加载失败区别于空列表', d.querySelector('.mem-empty').textContent.includes('没能读到'));
+    click('#settings-toggle');
+    w.fetch = native;
+    await setEnv('MODEL_API_KEY', null);
+    await setEnv('MODEL_ENDPOINT', null);
   }
   w.fetch = native;
   check('无脚本异常', errors.length === 0, errors.join(';'));

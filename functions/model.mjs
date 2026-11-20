@@ -1,8 +1,8 @@
 // Server-only model call. Never log the key, the prompt context or raw responses.
 
-const ENDPOINT = 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions';
-const MODEL = 'qwen-flash';
-const VISION_MODEL = 'qwen-vl-flash';
+const ENDPOINT = 'https://api.deepseek.com/chat/completions';
+const MODEL = 'deepseek-flash';
+const VISION_MODEL = 'deepseek-flash';
 const TIMEOUT_MS = 7000;
 const MAX_ATTEMPTS = 2;
 
@@ -45,14 +45,15 @@ export function validateCard(raw, budget, energy) {
   return { action: 'model', title, first, detail, minutes: raw.minutes, category: raw.category };
 }
 
-async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, model = MODEL, jsonMode = true }) {
+async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, model = MODEL }) {
   if (!apiKey) return null;
   const body = JSON.stringify({
     model,
     messages,
+    thinking: { type: 'disabled' },
     temperature: 0.9,
     max_tokens: maxTokens,
-    ...(jsonMode ? { response_format: { type: 'json_object' } } : {}),
+    response_format: { type: 'json_object' },
   });
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
     try {
@@ -195,11 +196,11 @@ export async function generateReply({ apiKey, mode, opening, history, text, budg
   if (allowCandidate && mode === 'chat') lines.push(CANDIDATE_LINES);
   const messages = [
     { role: 'system', content: [system, ...lines].join('\n') },
-    { role: 'assistant', content: [opening.title, opening.first_step, opening.detail].join('\n') },
+    { role: 'assistant', content: JSON.stringify({ text: [opening.title, opening.first_step, opening.detail].join('\n') }) },
   ];
   for (const turn of history) {
     messages.push({ role: 'user', content: turn.user_text || '（已发送图片）' });
-    messages.push({ role: 'assistant', content: turn.reply_text });
+    messages.push({ role: 'assistant', content: JSON.stringify({ text: turn.reply_text }) });
   }
   messages.push({ role: 'user', content: text });
   const parsed = await chatJSON({ apiKey, messages, maxTokens: 300, endpoint });
@@ -245,6 +246,6 @@ export async function generateVisionWord({ apiKey, mime, base64, hint = null, en
       ],
     },
   ];
-  const parsed = await chatJSON({ apiKey, messages, maxTokens: 400, endpoint, model: VISION_MODEL, jsonMode: false });
+  const parsed = await chatJSON({ apiKey, messages, maxTokens: 400, endpoint, model: VISION_MODEL });
   return parsed ? validateVision(parsed) : null;
 }

@@ -1,10 +1,10 @@
-// Local fixture server: serves web/ and runs the real application routes with
-// a fresh PostgreSQL schema. Defaults to the embedded PostgreSQL engine.
 import { createServer } from 'node:http';
+import { mkdirSync, realpathSync } from 'node:fs';
+import { createServer as createLockServer } from 'node:net';
 import { readFile, readdir } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { createRequire } from 'node:module';
 import { PGlite } from '@electric-sql/pglite';
 import { application } from '../functions/routes.mjs';
@@ -14,6 +14,10 @@ import { createImageValidator } from '../functions/images.mjs';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const WEB = join(ROOT, 'web');
+const localMode = process.argv.includes('--local');
+const port = Number(process.argv.slice(2).find(arg => arg !== '--local') || (localMode ? 8787 : 8765));
+const origin = `http://127.0.0.1:${port}`;
+const dataDir = resolve(process.env.WHYNOT_DATA_DIR || join(ROOT, '.local', 'data'));
 const ASSETS = {
   '/': ['index.html', 'text/html'],
   '/style.css': ['style.css', 'text/css'],
@@ -30,30 +34,74 @@ class LocalError extends Error {
   constructor(code, status) { super(code); this.code = code; this.status = status; }
 }
 
+async function lockDataDirectory() {
+  mkdirSync(dataDir, { recursive: true });
+  const canonical = realpathSync(dataDir);
+  const hash = createHash('sha256').update(process.platform === 'win32' ? canonical.toLowerCase() : canonical).digest('hex');
+  const lock = createLockServer(socket => socket.destroy());
+  // The OS releases this reservation even after forced termination; no stale PID can reopen the database twice.
+  const address = process.platform === 'win32'
+    ? { path: `\\\\.\\pipe\\whynot-${hash}`, exclusive: true }
+    : { host: '127.0.0.1', port: 20000 + parseInt(hash.slice(0, 8), 16) % 20000, exclusive: true };
+  await new Promise((resolve, reject) => {
+    lock.once('error', () => reject(new Error('本地数据库锁已被占用，请使用已打开的本地版。')));
+    lock.listen(address, resolve);
+  });
+  return lock;
+}
+
 async function localPostgres() {
-  const url = process.env.WHYNOT_TEST_DATABASE_URL;
-  let db, query, exec;
+  const url = localMode ? null : process.env.WHYNOT_TEST_DATABASE_URL;
+  const files = ['schema.sql', ...await readdir(join(ROOT, 'migrations')).then(files =>
+    files.filter(file => file.endsWith('.sql')).sort().map(file => `migrations/${file}`))];
+  let db, query, exec, close;
   if (url) {
     const client = connectPostgres(url);
     db = postgresDb(client);
     query = (sql, params = []) => client.unsafe(sql, params);
     exec = sql => client.unsafe(sql).simple();
+    close = () => client.end();
   } else {
-    const pg = new PGlite();
+    const lock = localMode ? await lockDataDirectory() : null;
+    const pg = new PGlite(localMode ? dataDir : undefined);
     query = async (sql, params) => (await pg.query(sql, params)).rows;
     exec = sql => pg.exec(sql);
+    close = async () => {
+      await pg.close();
+      if (lock) await new Promise(resolve => lock.close(resolve));
+    };
     db = createPostgresDb(query, work => pg.transaction(async tx => work(async (sql, params) => (
       await tx.query(sql, params)
     ).rows)));
+    if (localMode) {
+      try {
+        await pg.transaction(async tx => {
+          await tx.exec('CREATE SCHEMA IF NOT EXISTS app; CREATE TABLE IF NOT EXISTS app.local_migrations (name text PRIMARY KEY, checksum text NOT NULL)');
+          const { rows } = await tx.query('SELECT name, checksum FROM app.local_migrations');
+          const applied = new Map(rows.map(row => [row.name, row.checksum]));
+          for (const file of files) {
+            const sql = await readFile(join(ROOT, file), 'utf8');
+            const checksum = createHash('sha256').update(sql.replace(/\r\n/g, '\n')).digest('hex');
+            if (applied.has(file)) {
+              if (applied.get(file) !== checksum) throw new Error(`已执行的数据库迁移被修改：${file}`);
+              continue;
+            }
+            await tx.exec(sql);
+            await tx.query('INSERT INTO app.local_migrations (name, checksum) VALUES ($1, $2)', [file, checksum]);
+          }
+        });
+      } catch (error) {
+        await close();
+        throw error;
+      }
+      return { db, query, exec, close };
+    }
   }
 
   // Refuse an existing app schema so acceptance never touches deployed data.
   await exec('CREATE SCHEMA app');
-  for (const file of ['schema.sql', ...await readdir(join(ROOT, 'migrations')).then(files =>
-    files.filter(file => file.endsWith('.sql')).sort().map(file => `migrations/${file}`))]) {
-    await exec(await readFile(join(ROOT, file), 'utf8'));
-  }
-  return { db, query, exec };
+  for (const file of files) await exec(await readFile(join(ROOT, file), 'utf8'));
+  return { db, query, exec, close };
 }
 
 const TABLES = [
@@ -81,20 +129,34 @@ let rng = process.env.RNG_SEED != null ? seededRandom(Number(process.env.RNG_SEE
 let clockOffset = 0;
 const now = () => Date.now() + clockOffset;
 
-const { db, query, exec } = await localPostgres();
+const { db, query, exec, close } = await localPostgres();
 const require = createRequire(import.meta.url);
 const validateImage = createImageValidator(() => readFile(require.resolve('@imagemagick/magick-wasm/magick.wasm')));
 const handle = application({ db, BackendError: LocalError, env: { get: name => process.env[name] }, random: () => rng(), now, validateImage });
-const port = Number(process.argv[2] || 8765);
 const maintenance = () => db.purgeExpired(new Date(now()).toISOString());
 const maintenanceInterval = setInterval(() => {
   maintenance().catch(() => console.error('Local cleanup failed'));
-}, Number(process.env.CLEANUP_INTERVAL_MS || 1000));
+}, Number(process.env.CLEANUP_INTERVAL_MS || (localMode ? 300000 : 1000)));
 maintenanceInterval.unref();
 
 const server = createServer(async (incoming, outgoing) => {
   try {
-    const url = new URL(incoming.url, `http://${incoming.headers.host}`);
+    const url = new URL(incoming.url, origin);
+    if (localMode) {
+      const host = incoming.headers.host;
+      if (![new URL(origin).host, `localhost:${port}`].includes(host)
+        || (incoming.headers.origin && incoming.headers.origin !== `http://${host}`)
+        || incoming.headers['sec-fetch-site'] === 'cross-site') {
+        outgoing.writeHead(403, { 'content-type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'FORBIDDEN' }));
+        return;
+      }
+      if (url.pathname.startsWith('/__local/')) {
+        outgoing.writeHead(404, { 'content-type': 'application/json' });
+        outgoing.end(JSON.stringify({ error: 'NOT_FOUND' }));
+        return;
+      }
+    }
     if (url.pathname === '/__local/db' && incoming.method === 'GET') {
       const tables = await Promise.all(TABLES.map(async name => [name, await query(`SELECT * FROM app.${name}`)]));
       outgoing.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' });
@@ -155,7 +217,20 @@ const server = createServer(async (incoming, outgoing) => {
       outgoing.end(JSON.stringify({ error: 'NOT_FOUND' }));
       return;
     }
-    const bytes = await readFile(join(WEB, asset[0]));
+    let bytes = await readFile(join(WEB, asset[0]));
+    if (url.pathname === '/') {
+      let html = bytes.toString('utf8');
+      if (!localMode || process.env.MODEL_API_KEY) html = html.replace('data-image="0"', 'data-image="1"');
+      if (localMode) {
+        const modelStatus = process.env.MODEL_API_KEY
+          ? 'AI 密钥已配置；聊天与照片会发送给模型服务，实际可用性以请求结果为准。'
+          : '尚未配置 AI 密钥：普通建议、手动记忆可用，自由聊天与看图暂不可用。';
+        html = html.replace('<main class="page">', `<main class="page"><p class="share-note" role="status">本地版 · 数据保存在这台电脑，重启后保留。${modelStatus}</p>`)
+          .replace('保存在服务端，用来生成回应和调整建议。', '保存在这台电脑的本地数据库，用来生成回应和调整建议。')
+          .replace('清除浏览器数据不会删除服务端记录。', '清除浏览器数据不会删除本地数据库记录，但会失去当前匿名会话的访问入口。');
+      }
+      bytes = Buffer.from(html);
+    }
     outgoing.writeHead(200, { 'content-type': `${asset[1]}; charset=utf-8`, 'cache-control': 'no-store' });
     outgoing.end(bytes);
   } catch {
@@ -164,6 +239,25 @@ const server = createServer(async (incoming, outgoing) => {
   }
 });
 
+let stopping = false;
+async function shutdown() {
+  if (stopping) return;
+  stopping = true;
+  clearInterval(maintenanceInterval);
+  await new Promise(resolve => server.close(resolve));
+  await close();
+}
+process.once('SIGINT', shutdown);
+process.once('SIGTERM', shutdown);
+server.once('error', async error => {
+  console.error(error.code === 'EADDRINUSE' ? `端口 ${port} 已占用，请使用现有页面或指定其他端口。` : '本地服务启动失败。');
+  await shutdown();
+  process.exitCode = 1;
+});
 server.listen(port, '127.0.0.1', () => {
-  console.log(`WhyNot local fixture  http://127.0.0.1:${port}/  (PostgreSQL, fresh schema)`);
+  console.log(`WhyNot ${localMode ? '本地版' : 'local fixture'}  ${origin}/`);
+  if (localMode) {
+    console.log('数据已启用本地持久化。按 Ctrl+C 停止。');
+    console.log(process.env.MODEL_API_KEY ? 'AI 密钥已配置。' : '尚未配置 MODEL_API_KEY：编辑项目 .env 后重新启动以启用 AI。');
+  }
 });

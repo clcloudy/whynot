@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-image="0">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -75,7 +75,7 @@
       </div>
     </section>
 
-    <button id="ask" class="primary" type="button">给我一个建议</button>
+    <button id="ask" class="primary" type="button">开始一次互动</button>
 
     <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
     <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
@@ -103,8 +103,11 @@
         </div>
       </fieldset>
       <h3>数据说明</h3>
-      <p>不注册。只记下你的选择和反馈，用来调整下次建议。</p>
-      <p>建议和反馈保存在服务端。此设备保存匿名会话、主题和引导状态。清除浏览器数据不会删除服务端记录。</p>
+      <p>不注册。你的条件、反馈、对话和确认过的记忆保存在服务端，用来生成回应和调整建议。</p>
+      <p>对话内容会发送给 AI 服务。只有你点「保存」确认的话才会成为记忆；跳过不会保存。</p>
+      <p>此设备只保存匿名会话、主题和引导状态。清除浏览器数据不会删除服务端记录。</p>
+      <h3 id="memories-title">我让 WhyNot 记住的事</h3>
+      <div id="memories" aria-labelledby="memories-title"></div>
       <p class="version">WhyNot · 首版 P0</p>
     </section>
   </main>

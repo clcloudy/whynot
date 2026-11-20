@@ -1,0 +1,61 @@
+{
+  "method": "Node zlib gzip level 9 per file, summed; compression estimate, not actual fixture transfer bytes",
+  "budget": {
+    "fullGzip": 16384,
+    "coreGzip": 14336
+  },
+  "files": [
+    {
+      "file": "web/app.js",
+      "raw": 55940,
+      "gzip": 14522
+    },
+    {
+      "file": "web/apple-touch-icon.png",
+      "raw": 487,
+      "gzip": 510
+    },
+    {
+      "file": "web/icon-192.png",
+      "raw": 500,
+      "gzip": 521
+    },
+    {
+      "file": "web/icon-512.png",
+      "raw": 1256,
+      "gzip": 1049
+    },
+    {
+      "file": "web/icon.svg",
+      "raw": 299,
+      "gzip": 223
+    },
+    {
+      "file": "web/index.html",
+      "raw": 6487,
+      "gzip": 2514
+    },
+    {
+      "file": "web/manifest.webmanifest",
+      "raw": 419,
+      "gzip": 225
+    },
+    {
+      "file": "web/style.css",
+      "raw": 22202,
+      "gzip": 4379
+    }
+  ],
+  "totals": {
+    "raw": 87590,
+    "gzip": 23943
+  },
+  "coreFour": {
+    "raw": 84928,
+    "gzip": 21638
+  },
+  "conclusion": {
+    "fullGzipOver": 7559,
+    "coreGzipOver": 7302
+  }
+}

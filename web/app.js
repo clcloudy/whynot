@@ -14,8 +14,28 @@ const ERRORS = {
   INVALID_FEEDBACK: '这次反馈没被接受，可以再点一次。',
   STORAGE_UNAVAILABLE: '现在有点忙，没能记下。等一下再试。',
   invalid_response: '拿到的建议不完整，再试一次？',
+  TURN_EXPIRED: '这次互动已经休息了，重新开始一次吧。',
+  IMAGE_EXPIRED: '照片放太久失效了，重新传一张就好。',
+  CANDIDATE_EXPIRED: '这条记忆确认超时了，已经收起。',
+  VERSION_CONFLICT: '内容在别处更新过了，刷新后再试。',
+  REQUEST_CONFLICT: '这次发送和之前不一致，已停止重发。',
+  MODEL_UNAVAILABLE: 'AI 这会儿没回应，你的话还在，可以再发一次。',
+  NOT_CONVERSATIONAL: '这次互动已经结束了。',
+  IMAGE_TOO_LARGE: '照片超过 4 MiB 了，换张小一点的。',
+  UNSUPPORTED_IMAGE: '只支持 JPEG、PNG 或 WebP 照片。',
+  INVALID_IMAGE: '这张照片没能读取，换一张试试。',
+  IMAGE_REQUIRED: '先传一张照片，再开始识别。',
+  INVALID_TURN: '这句话没能发出去，检查一下再试。',
+  INVALID_MEMORY: '这段文字没被接受，改一下再试。',
 };
 const NO_RETRY = ['INVALID_CONTEXT', 'JSON_REQUIRED', 'INVALID_BODY'];
+const SUPPORTS = document.documentElement.dataset.image === '1' ? ['text', 'image'] : ['text'];
+const MODE_LABELS = { chat: '聊聊', discuss: '讨论', photo: '看图' };
+const uuid = () => crypto.randomUUID ? crypto.randomUUID()
+  : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random() * 16 | 0;
+    return (c === 'x' ? r : (r & 3 | 8)).toString(16);
+  });
 let sessionToken = null, sessionPromise = null;
 try { sessionToken = localStorage.getItem(SESSION_KEY); } catch {}
 function saveToken(token) {
@@ -25,8 +45,8 @@ function saveToken(token) {
 class RequestError extends Error {
   constructor(code, status) { super(code); this.code = code; this.status = status; }
 }
-async function requestJson(path, init) {
-  const signal = AbortSignal.timeout(25000);
+async function requestJson(path, init, timeoutMs = 25000) {
+  const signal = AbortSignal.timeout(timeoutMs);
   let response, body;
   try {
     response = await fetch(`${API}${path}`, {
@@ -34,18 +54,19 @@ async function requestJson(path, init) {
       headers: { ...init?.headers, ...(sessionToken ? { 'x-whynot-session': sessionToken } : {}) },
       credentials: 'same-origin', signal,
     });
+    if (response.status === 204) return null;
     body = await response.json();
   } catch (error) {
     const timeout = signal.aborted || ['AbortError', 'TimeoutError'].includes(error.name);
     throw new RequestError(timeout ? 'timeout' : response ? 'invalid_response' : 'network_error', response?.status || 0);
   }
-  if (!response.ok) throw new RequestError(response.status === 409 ? 'STORAGE_UNAVAILABLE' : body?.error || 'request_failed', response.status);
+  if (!response.ok) throw new RequestError(body?.error || 'request_failed', response.status);
   return body;
 }
-async function requestWithRecovery(path, init, recoverSession = true) {
+async function requestWithRecovery(path, init, recoverSession = true, timeoutMs = 25000) {
   let sessionRetried = false, storageRetried = false;
   for (;;) {
-    try { return await requestJson(path, init); }
+    try { return await requestJson(path, init, timeoutMs); }
     catch (error) {
       if (error.code === 'SESSION_REQUIRED' && recoverSession && !sessionRetried) {
         sessionRetried = true;
@@ -69,7 +90,7 @@ function cardResult(value) {
 }
 const state = {
   sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
-  feedbackPending: false, feedbackAttempts: {}, card: null,
+  feedbackPending: false, feedbackAttempts: {}, card: null, ix: null,
 };
 const result = document.getElementById('result');
 const status = document.getElementById('status');
@@ -121,13 +142,13 @@ function renderEmpty() {
   const block = el('div', 'empty');
   const fig = el('span', 'empty-fig');
   fig.innerHTML = SVG_OPEN_64;
-  block.append(fig, el('h2', null, '现在不刷，也可以。'), el('p', 'hint', '选好上面，点一下就有一条。'));
+  block.append(fig, el('h2', null, '现在不刷，也可以。'), el('p', 'hint', '选好上面，点一下就开始。'));
   result.replaceChildren(block);
 }
-function renderLoading() {
+function renderLoading(text = '正在找建议') {
   const card = el('article', 'skeleton');
   card.setAttribute('aria-hidden', 'true');
-  card.append(el('p', 'sk-text', '正在找建议'));
+  card.append(el('p', 'sk-text', text));
   for (const name of ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2']) card.append(el('div', `sk sk-${name}`));
   result.replaceChildren(card);
 }
@@ -135,28 +156,29 @@ function errorText(error) {
   if (NO_RETRY.includes(error.code)) return '这次没成功，刷新页面再试。';
   return ERRORS[error.code] || '这次没找到，再试一次。';
 }
-function renderNotice(error, snapshot) {
+function renderNotice(error, snapshot, opts = {}) {
   const notice = el('div', 'notice');
   const offline = navigator.onLine === false;
   const inner = el('div', 'notice-inner');
   const fig = el('span', 'notice-fig');
   fig.innerHTML = SVG_BROKEN_48;
   const body = el('div', 'notice-body');
-  const text = offline ? '网络断了，已选条件还在。恢复后点「再试一次」。' : errorText(error);
+  const text = offline ? '网络断了，已选条件还在。恢复后点「再试一次」。' : opts.message || errorText(error);
   const message = el('p', 'notice-title', text);
   message.setAttribute('role', offline ? 'status' : 'alert');
   if (offline) notice.dataset.offline = 'true';
   body.append(message);
-  if (!NO_RETRY.includes(error.code)) {
-    const missing = error.code === 'NOT_FOUND';
-    const retry = el('button', 'retry', missing ? '换一个' : '再试一次');
+  const missing = error.code === 'NOT_FOUND';
+  if (opts.retry || !NO_RETRY.includes(error.code)) {
+    const retry = el('button', 'retry', opts.label || (missing ? '换一个' : '再试一次'));
     retry.type = 'button';
     retry.dataset.focus = 'retry';
     retry.disabled = offline;
     retry.setAttribute('aria-disabled', String(offline));
-    retry.addEventListener('click', () => ask(missing ? conditions() : snapshot));
+    retry.addEventListener('click', opts.retry || (() => ask(missing ? conditions() : snapshot)));
     body.append(retry);
   }
+  if (opts.extra) body.append(opts.extra());
   inner.append(fig, body);
   notice.append(inner);
   return notice;
@@ -181,7 +203,9 @@ function swapButton(className = 'swap') {
   const swap = el('button', className, '换一个');
   swap.type = 'button';
   swap.dataset.focus = 'swap';
-  swap.addEventListener('click', () => ask(conditions(), 'swap'));
+  swap.addEventListener('click', () => state.ix
+    ? startInteraction(conditions(), { replaces: state.ix.id, source: 'swap' })
+    : ask(conditions(), 'swap'));
   return swap;
 }
 function feedbackButton(label, kind) {
@@ -302,22 +326,31 @@ function buildCard() {
 function renderCard() {
   const active = document.activeElement;
   const key = result.contains(active) ? active.dataset.focus : null;
+  const caret = key === 'turn-input' ? active.selectionStart : null;
+  const article = state.ix && state.ix.mode !== 'micro' ? buildInteractionCard() : buildCard();
   const old = result.querySelector('.card');
-  if (old) old.replaceWith(buildCard());
-  else result.append(buildCard());
+  if (old) old.replaceWith(article);
+  else result.append(article);
   syncConditions();
-  if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));
+  const log = result.querySelector('.turn-log');
+  if (log) log.scrollTop = log.scrollHeight;
+  if (key) {
+    const node = result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state');
+    focus(node);
+    if (key === 'turn-input' && node) node.setSelectionRange(caret ?? node.value.length, caret ?? node.value.length);
+  }
+  syncTurnForm(state.ix);
 }
 function dismissGuide() {
   try { localStorage.setItem(GUIDE_KEY, 'seen'); } catch {}
   guide.hidden = true;
 }
-function setBusy(busy) {
+function setBusy(busy, busyText = '正在找建议') {
   state.busy = busy;
   result.setAttribute('aria-busy', String(busy));
   askButton.disabled = busy;
   askButton.setAttribute('aria-busy', String(busy));
-  askButton.textContent = busy ? '正在找建议' : '给我一个建议';
+  askButton.textContent = busy ? busyText : '开始一次互动';
 }
 async function ask(snapshot = conditions(), source = 'primary') {
   if (state.busy) return;
@@ -340,6 +373,8 @@ async function ask(snapshot = conditions(), source = 'primary') {
     });
     const card = cardResult(body);
     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+    releaseIx(state.ix);
+    state.ix = null;
     state.card = card;
     state.seq++;
     state.conditions = snapshot;
@@ -389,14 +424,18 @@ async function sendFeedback(kind) {
     if (!current()) return;
     const card = cardResult(body);
     if (card.id !== cardId) throw new RequestError('invalid_response', 0);
-    redraw = Object.keys(card).some(key => card[key] !== state.card[key]);
-    state.card = card;
+    // Interaction cards keep their own state; only feedback fields merge back.
+    const merged = state.ix ? { ...state.card, preference: card.preference, completed: card.completed } : card;
+    redraw = Object.keys(merged).some(key => merged[key] !== state.card[key]);
+    state.card = merged;
     note = kind === 'completed' ? '已完成。这条记下了。' : kind === 'like' ? '记为喜欢，可以改。' : '记为不喜欢，可以改。';
   } catch (error) {
     if (!current()) return;
     redraw = true;
     state.card = snapshot;
     if (error.code === 'NOT_FOUND') {
+      releaseIx(state.ix);
+      state.ix = null;
       state.card = null;
       if (!state.busy) {
         if (result.contains(document.activeElement)) focus(result);
@@ -417,6 +456,697 @@ async function sendFeedback(kind) {
         if (!(kind === 'completed' && state.card.completed && document.activeElement?.classList.contains('done-state'))) feedbackStatus.textContent = note;
       }
     }
+  }
+}
+function interactionResult(value) {
+  const card = cardResult(value);
+  if (!['chat', 'discuss', 'micro', 'photo'].includes(value.mode)
+    || !['open', 'card', 'awaiting_image', 'closed', 'expired'].includes(value.state)
+    || !Number.isInteger(value.version) || value.version < 1
+    || !['text', 'image', 'none'].includes(value.expected_input)) throw new RequestError('invalid_response', 0);
+  return {
+    card, mode: value.mode, topic: typeof value.topic === 'string' ? value.topic : null,
+    state: value.state, version: value.version, word: value.word ?? null,
+  };
+}
+function releaseIx(ix) {
+  if (ix) for (const url of ix.urls) URL.revokeObjectURL(url);
+}
+function interactionFrom(data) {
+  return {
+    id: data.card.id, mode: data.mode, topic: data.topic,
+    status: data.state, version: data.version, word: data.word,
+    messages: [], draft: '', sending: false, ending: false,
+    candidate: null, pendingImage: null, uploadBusy: false, uploadError: '', turnError: '',
+    urls: [],
+  };
+}
+async function startInteraction(snapshot = conditions(), opts = {}) {
+  if (state.busy) return;
+  snapshot = { ...snapshot };
+  const replaces = opts.replaces ?? null;
+  const requestId = opts.requestId || uuid();
+  const source = opts.source || 'primary';
+  const payload = { ...snapshot, supports: SUPPORTS, request_id: requestId, ...(replaces ? { replaces } : {}) };
+  clearShare();
+  feedbackStatus.textContent = '';
+  status.textContent = '正在开启互动';
+  focus(result);
+  setBusy(true, '正在开启互动');
+  renderLoading('正在开启互动');
+  const timer = setTimeout(() => {
+    const text = result.querySelector('.sk-text');
+    if (text) text.textContent = '还在准备，再等一下';
+  }, 8000);
+  try {
+    if (navigator.onLine === false) throw new RequestError('network_error', 0);
+    await ensureSession();
+    const body = await requestWithRecovery('/api/interactions', {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    const data = interactionResult(body);
+    if (data.card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+    releaseIx(state.ix);
+    state.card = data.card;
+    state.ix = interactionFrom(data);
+    state.seq++;
+    state.conditions = snapshot;
+    state.conditionsMatch = sameConditions(data.card, snapshot);
+    state.feedbackPending = false;
+    state.feedbackAttempts = {};
+    setBusy(false);
+    result.replaceChildren();
+    dismissGuide();
+    renderCard();
+    status.textContent = '';
+    if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
+    else {
+      if (document.activeElement === result) focus(result.querySelector('[data-focus="swap"]'));
+      status.textContent = `新的互动：${data.card.title}，约 ${data.card.minutes} 分钟`;
+    }
+    if (result.contains(document.activeElement)) reveal(result.querySelector('.card'));
+  } catch (error) {
+    setBusy(false);
+    status.textContent = '';
+    const noticeOpts = {};
+    if (!NO_RETRY.includes(error.code)) {
+      // Retrying an opening reuses the same request UUID and payload.
+      const fresh = error.code === 'REQUEST_CONFLICT' || (error.code === 'NOT_FOUND' && replaces);
+      noticeOpts.retry = fresh
+        ? () => startInteraction(snapshot, { replaces: error.code === 'REQUEST_CONFLICT' ? replaces : null, source })
+        : () => startInteraction(snapshot, { replaces, requestId, source });
+      if (fresh) noticeOpts.label = '重新开始';
+    }
+    if (error.code === 'STORAGE_UNAVAILABLE') {
+      noticeOpts.message = '互动暂时不可用：服务端还没准备好互动存储。可以先看一条普通建议。';
+      noticeOpts.extra = () => {
+        const fallback = el('button', 'retry', '看一条普通建议');
+        fallback.type = 'button';
+        fallback.addEventListener('click', () => ask(snapshot));
+        return fallback;
+      };
+    }
+    result.replaceChildren(renderNotice(error, snapshot, noticeOpts));
+    if (state.card) renderCard();
+    if (document.activeElement === result) reveal(result);
+  } finally {
+    clearTimeout(timer);
+    setBusy(false);
+    syncConditions();
+  }
+}
+function wordCard(word) {
+  const block = el('div', 'word-card');
+  const head = el('div', 'word-head');
+  head.append(el('span', 'word-en', word.word), el('span', 'word-ipa', word.ipa));
+  block.append(head, el('p', 'word-meaning', word.meaning), el('p', 'word-practice', word.practice));
+  return block;
+}
+function messageNode(ix, msg) {
+  const node = el('div', `msg msg-${msg.role} msg-${msg.status}`);
+  if (msg.imageUrl) {
+    const img = el('img', 'msg-img');
+    img.src = msg.imageUrl;
+    img.alt = '你上传的照片';
+    node.append(img);
+  }
+  if (msg.word) node.append(wordCard(msg.word));
+  else if (msg.text) node.append(el('p', 'msg-text', msg.text));
+  if (msg.status === 'pending') node.append(el('span', 'msg-wait', msg.role === 'user' ? '发送中' : '正在回应'));
+  if (msg.status === 'failed') {
+    const foot = el('div', 'msg-foot');
+    foot.append(el('span', 'msg-error', msg.stale ? '这条跟不上当前对话了，移除后再说一次。' : errorText({ code: msg.error })));
+    if (!msg.conflict && !msg.stale) {
+      const retry = el('button', 'textbtn msg-retry', msg.reupload ? '重新上传' : '重试');
+      retry.type = 'button';
+      retry.dataset.focus = `retry-${msg.requestId}`;
+      retry.addEventListener('click', () => retryTurn(msg));
+      foot.append(retry);
+    }
+    const drop = el('button', 'textbtn', '移除');
+    drop.type = 'button';
+    drop.dataset.focus = `drop-${msg.requestId}`;
+    drop.addEventListener('click', () => dropTurn(msg));
+    foot.append(drop);
+    node.append(foot);
+  }
+  return node;
+}
+function turnLog(ix) {
+  const log = el('div', 'turn-log');
+  log.setAttribute('role', 'log');
+  log.setAttribute('aria-label', '对话记录');
+  for (const msg of ix.messages) log.append(messageNode(ix, msg));
+  return log;
+}
+function syncTurnForm(ix) {
+  if (!ix) return;
+  const input = result.querySelector('[data-focus="turn-input"]');
+  const send = result.querySelector('[data-focus="send"]');
+  if (!input || !send) return;
+  const text = ix.draft.trim();
+  const valid = text.length >= 1 && text.length <= 500 && !/[\u0000-\u001f]/.test(text);
+  input.disabled = ix.sending;
+  send.disabled = ix.sending || !valid;
+  send.setAttribute('aria-disabled', String(send.disabled));
+  const count = result.querySelector('.turn-count');
+  if (count) count.textContent = ix.draft.length ? `${ix.draft.length}/500` : '';
+  const hint = result.querySelector('.turn-hint');
+  if (hint) hint.textContent = ix.turnError || '';
+}
+function turnForm(ix) {
+  const wrap = el('div', 'turn-area');
+  const form = el('div', 'turn-form');
+  const input = el('input', 'turn-input');
+  input.type = 'text';
+  input.maxLength = 500;
+  input.autocomplete = 'off';
+  input.enterKeyHint = 'send';
+  input.placeholder = ix.word ? '围绕这个词继续问…' : ix.mode === 'photo' ? '补充说明，比如「左边那个」' : '说点什么，一句话就够';
+  input.setAttribute('aria-label', '输入要发送的话，1 到 500 字');
+  input.dataset.focus = 'turn-input';
+  input.value = ix.draft;
+  input.addEventListener('input', () => { ix.draft = input.value; syncTurnForm(ix); });
+  input.addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); sendTurn(); }
+  });
+  const send = el('button', 'turn-send', '发送');
+  send.type = 'button';
+  send.dataset.focus = 'send';
+  send.addEventListener('click', () => sendTurn());
+  form.append(input, send);
+  const foot = el('div', 'turn-foot');
+  const hint = el('span', 'turn-hint');
+  hint.setAttribute('role', 'status');
+  foot.append(hint, el('span', 'turn-count'));
+  wrap.append(form, foot);
+  return wrap;
+}
+function openPicker() {
+  result.querySelector('.photo-file')?.click();
+}
+function photoArea(ix) {
+  const area = el('div', 'photo-area');
+  const pick = el('button', 'photo-pick', ix.uploadBusy ? '正在上传…' : ix.messages.length ? '重拍或换一张' : '拍照或选图');
+  pick.type = 'button';
+  pick.dataset.focus = 'photo';
+  pick.disabled = ix.uploadBusy || ix.sending;
+  pick.setAttribute('aria-disabled', String(pick.disabled));
+  pick.addEventListener('click', openPicker);
+  const file = el('input', 'photo-file');
+  file.type = 'file';
+  file.accept = 'image/jpeg,image/png,image/webp';
+  file.hidden = true;
+  file.tabIndex = -1;
+  file.setAttribute('aria-hidden', 'true');
+  file.addEventListener('change', () => {
+    const chosen = file.files?.[0];
+    file.value = '';
+    if (chosen) uploadPhoto(chosen);
+  });
+  area.append(pick, file, el('p', 'photo-hint', '支持 JPEG／PNG／WebP，不超过 4 MiB，每边不超过 4096 像素'));
+  if (ix.uploadError) {
+    const error = el('p', 'photo-error', ix.uploadError);
+    error.setAttribute('role', 'alert');
+    area.append(error);
+  }
+  return area;
+}
+function ixActions(ix) {
+  const row = el('div', 'ix-actions');
+  const end = el('button', 'textbtn ix-end', ix.ending ? '正在结束…' : '结束互动');
+  end.type = 'button';
+  end.dataset.focus = 'end';
+  end.setAttribute('aria-disabled', String(ix.ending));
+  end.addEventListener('click', endInteraction);
+  row.append(end, swapButton());
+  return row;
+}
+function closedRow(ix) {
+  const row = el('div', 'ix-closed');
+  const mark = el('span', 'done-state');
+  mark.innerHTML = SVG_CLOSED_16;
+  mark.append(ix.status === 'expired' ? '这次互动已过期' : '已结束，随时可以再来');
+  const restart = el('button', 'swap ix-restart', '重新开始');
+  restart.type = 'button';
+  restart.dataset.focus = 'restart';
+  restart.addEventListener('click', () => startInteraction(conditions(), { source: 'restart' }));
+  row.append(mark, el('span', 'done-spacer'), restart, swapButton('textbtn'));
+  return row;
+}
+function candButton(label, key, onClick, disabled) {
+  const button = el('button', null, label);
+  button.type = 'button';
+  button.dataset.focus = key;
+  button.setAttribute('aria-disabled', String(disabled));
+  button.addEventListener('click', onClick);
+  return button;
+}
+function candidateBlock(ix) {
+  const candidate = ix.candidate;
+  const block = el('div', 'candidate');
+  block.append(el('span', 'candidate-label', candidate.status === 'saved' ? '已记下这句' : '要记住这句吗？'));
+  if (candidate.status === 'editing') {
+    const input = el('input', 'candidate-input');
+    input.type = 'text';
+    input.maxLength = 100;
+    input.value = candidate.editText;
+    input.dataset.focus = 'cand-input';
+    input.setAttribute('aria-label', '修改要记住的话，1 到 100 字');
+    input.addEventListener('input', () => { candidate.editText = input.value; });
+    block.append(input);
+  } else {
+    block.append(el('p', 'candidate-text', `「${candidate.text}」`));
+  }
+  if (['pending', 'editing'].includes(candidate.status)) {
+    const keys = el('div', 'candidate-keys');
+    keys.setAttribute('role', 'group');
+    keys.setAttribute('aria-label', '保存这条记忆');
+    if (candidate.status === 'editing') {
+      keys.append(
+        candButton('保存修改', 'cand-save', () => confirmCandidate('confirm', candidate.editText), candidate.saving),
+        candButton('取消', 'cand-cancel', () => { candidate.status = 'pending'; candidate.note = ''; renderCard(); }, candidate.saving),
+      );
+    } else {
+      keys.append(
+        candButton('保存', 'cand-save', () => confirmCandidate('confirm'), candidate.saving),
+        candButton('改一下再保存', 'cand-edit', () => {
+          candidate.status = 'editing';
+          candidate.editText = candidate.text;
+          renderCard();
+          focus(result.querySelector('[data-focus="cand-input"]'));
+        }, candidate.saving),
+        candButton('跳过', 'cand-skip', () => confirmCandidate('skip'), candidate.saving),
+      );
+    }
+    block.append(keys);
+  }
+  if (candidate.note) {
+    const note = el('p', 'candidate-note', candidate.note);
+    note.setAttribute('role', 'status');
+    block.append(note);
+  }
+  return block;
+}
+function buildInteractionCard() {
+  const ix = state.ix, card = state.card;
+  const article = el('article', 'card ix-card');
+  article.setAttribute('aria-labelledby', 'card-title');
+  article.setAttribute('aria-describedby', 'card-first');
+  const meta = el('div', 'card-meta');
+  const mode = el('span', `mode mode-${ix.mode}`, MODE_LABELS[ix.mode]);
+  mode.setAttribute('aria-label', `互动方式：${MODE_LABELS[ix.mode]}`);
+  meta.append(mode, el('span', 'badge', `约 ${card.minutes} 分钟`), el('span', 'condition-note'));
+  const title = el('h2', null, card.title);
+  title.id = 'card-title';
+  title.tabIndex = -1;
+  const first = el('div', 'first');
+  first.id = 'card-first';
+  first.append(el('span', 'first-label', ix.mode === 'photo' ? '第一步' : '开场'), el('p', 'first-text', card.first_step));
+  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
+  if (ix.messages.length) article.append(turnLog(ix));
+  if (ix.candidate) article.append(candidateBlock(ix));
+  if (ix.status === 'open' || ix.status === 'awaiting_image') {
+    if (ix.mode === 'photo' && ix.status === 'awaiting_image') article.append(photoArea(ix));
+    if (ix.mode !== 'photo' || ix.pendingImage || ix.word) article.append(turnForm(ix));
+    article.append(ixActions(ix));
+  } else {
+    article.append(closedRow(ix));
+  }
+  return article;
+}
+async function doTurn(ix, msg) {
+  const seq = state.seq;
+  const current = () => state.ix === ix && seq === state.seq;
+  try {
+    if (navigator.onLine === false) throw new RequestError('network_error', 0);
+    const payload = {
+      request_id: msg.requestId, version: msg.version,
+      ...(msg.imageRef ? { image_ref: msg.imageRef } : { text: msg.text }),
+    };
+    const body = await requestWithRecovery(`/api/interactions/${encodeURIComponent(ix.id)}/turns`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    if (!current() || ix.status === 'closed' || ix.status === 'expired') return;
+    if (!body || typeof body.reply !== 'string' || !Number.isInteger(body.version)) throw new RequestError('invalid_response', 0);
+    msg.status = 'sent';
+    ix.version = body.version;
+    if (body.word) { ix.word = body.word; ix.pendingImage = null; ix.status = 'open'; }
+    ix.messages.push({ role: 'ai', text: body.reply, word: body.word ?? null, status: 'sent' });
+    for (const older of ix.messages) {
+      if (older.role === 'user' && older.status === 'failed' && older.version < ix.version) older.stale = true;
+    }
+    if (body.candidate && typeof body.candidate.id === 'string') {
+      ix.candidate = { ...body.candidate, status: 'pending', editText: body.candidate.text, note: '', saving: false };
+    }
+    ix.sending = false;
+    renderCard();
+    status.textContent = body.word ? '识别完成，可以围绕这个词继续问' : 'AI 已回复，可以继续说';
+    focus(result.querySelector('[data-focus="turn-input"]'));
+  } catch (error) {
+    if (!current()) return;
+    ix.sending = false;
+    msg.status = 'failed';
+    msg.error = error.code;
+    if (error.code === 'TURN_EXPIRED' || error.code === 'NOT_FOUND') ix.status = 'expired';
+    else if (error.code === 'NOT_CONVERSATIONAL') ix.status = 'closed';
+    else if (error.code === 'REQUEST_CONFLICT') msg.conflict = true;
+    else if (error.code === 'IMAGE_EXPIRED') { ix.pendingImage = null; msg.reupload = true; }
+    renderCard();
+    status.textContent = '这条没发出去，可以重试';
+  }
+}
+async function sendTurn() {
+  const ix = state.ix;
+  if (!ix || ix.sending || ix.uploadBusy || !['open', 'awaiting_image'].includes(ix.status)) return;
+  const text = ix.draft.trim();
+  if (!text || text.length > 500 || /[\u0000-\u001f]/.test(text)) {
+    ix.turnError = '写 1–500 个字，一行就好。';
+    syncTurnForm(ix);
+    return;
+  }
+  if (ix.mode === 'photo' && !ix.word && !ix.pendingImage) return;
+  ix.turnError = '';
+  const msg = { role: 'user', text, status: 'pending', requestId: uuid(), version: ix.version };
+  ix.messages.push(msg);
+  ix.draft = '';
+  ix.sending = true;
+  renderCard();
+  await doTurn(ix, msg);
+}
+async function retryTurn(msg) {
+  const ix = state.ix;
+  if (!ix || ix.sending || ix.uploadBusy || msg.status !== 'failed' || msg.conflict || msg.stale) return;
+  if (msg.reupload) { dropTurn(msg, false); openPicker(); return; }
+  if (!['open', 'awaiting_image'].includes(ix.status)) return;
+  msg.status = 'pending';
+  msg.error = null;
+  ix.sending = true;
+  renderCard();
+  await doTurn(ix, msg);
+}
+function dropTurn(msg, restore = true) {
+  const ix = state.ix;
+  if (!ix || ix.sending) return;
+  ix.messages = ix.messages.filter(item => item !== msg);
+  if (msg.imageUrl) {
+    URL.revokeObjectURL(msg.imageUrl);
+    ix.urls = ix.urls.filter(url => url !== msg.imageUrl);
+  }
+  if (restore && msg.text && !ix.draft) ix.draft = msg.text;
+  renderCard();
+  focus(result.querySelector('[data-focus="turn-input"]'));
+}
+async function uploadPhoto(file) {
+  const ix = state.ix;
+  if (!ix || ix.uploadBusy || ix.sending || ix.status !== 'awaiting_image') return;
+  ix.uploadError = '';
+  if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) { ix.uploadError = ERRORS.UNSUPPORTED_IMAGE; renderCard(); return; }
+  if (file.size > 4 * 1024 * 1024) { ix.uploadError = ERRORS.IMAGE_TOO_LARGE; renderCard(); return; }
+  if (!file.size) { ix.uploadError = ERRORS.INVALID_IMAGE; renderCard(); return; }
+  ix.uploadBusy = true;
+  renderCard();
+  const seq = state.seq;
+  const current = () => state.ix === ix && seq === state.seq;
+  const version = ix.version;
+  try {
+    if (navigator.onLine === false) throw new RequestError('network_error', 0);
+    const body = await requestWithRecovery(`/api/interactions/${encodeURIComponent(ix.id)}/images?version=${version}`, {
+      method: 'POST', headers: { 'content-type': file.type }, body: file,
+    }, true, 60000);
+    if (!current()) return;
+    if (!body || typeof body.image_ref !== 'string') throw new RequestError('invalid_response', 0);
+    const url = URL.createObjectURL(file);
+    ix.urls.push(url);
+    ix.pendingImage = body.image_ref;
+    const msg = { role: 'user', imageRef: body.image_ref, imageUrl: url, status: 'pending', requestId: uuid(), version };
+    ix.messages.push(msg);
+    ix.uploadBusy = false;
+    ix.sending = true;
+    renderCard();
+    await doTurn(ix, msg);
+  } catch (error) {
+    if (!current()) return;
+    ix.uploadBusy = false;
+    if (error.code === 'TURN_EXPIRED' || error.code === 'NOT_FOUND') ix.status = 'expired';
+    else if (error.code === 'NOT_CONVERSATIONAL') ix.status = 'closed';
+    else ix.uploadError = errorText(error);
+    renderCard();
+  }
+}
+async function endInteraction() {
+  const ix = state.ix;
+  if (!ix || ix.ending || !['open', 'awaiting_image'].includes(ix.status)) return;
+  ix.ending = true;
+  feedbackStatus.textContent = '';
+  renderCard();
+  const seq = state.seq;
+  const current = () => state.ix === ix && seq === state.seq;
+  try {
+    await requestWithRecovery(`/api/interactions/${encodeURIComponent(ix.id)}`, { method: 'DELETE' });
+    if (!current()) return;
+    ix.status = 'closed';
+    status.textContent = '互动已结束';
+  } catch (error) {
+    if (!current()) return;
+    if (error.code === 'NOT_FOUND') { ix.status = 'closed'; status.textContent = '互动已结束'; }
+    else feedbackStatus.textContent = errorText(error);
+  } finally {
+    if (current()) { ix.ending = false; renderCard(); }
+  }
+}
+async function confirmCandidate(action, text) {
+  const ix = state.ix, candidate = ix?.candidate;
+  if (!candidate || candidate.saving || !['pending', 'editing'].includes(candidate.status)) return;
+  if (action === 'confirm' && text !== undefined) {
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 100 || /[\u0000-\u001f]/.test(trimmed)) {
+      candidate.note = '写 1–100 个字就好。';
+      renderCard();
+      return;
+    }
+    text = trimmed;
+  }
+  const payload = { candidate_id: candidate.id, version: candidate.version, action, ...(text !== undefined ? { text } : {}) };
+  const key = JSON.stringify(payload);
+  if (candidate.conflictKey === key) { candidate.note = ERRORS.REQUEST_CONFLICT; renderCard(); return; }
+  candidate.saving = true;
+  candidate.note = '';
+  renderCard();
+  const seq = state.seq;
+  const current = () => state.ix === ix && seq === state.seq && ix.candidate === candidate;
+  try {
+    const body = await requestWithRecovery(`/api/interactions/${encodeURIComponent(ix.id)}/memories`, {
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    if (!current()) return;
+    if (body?.skipped === true) { candidate.status = 'skipped'; candidate.note = '已跳过，不会保存。'; }
+    else if (body && typeof body.text === 'string') {
+      candidate.status = 'saved';
+      candidate.note = `已保存「${body.text}」。在设置里可以查看和修改。`;
+      status.textContent = '记忆已保存';
+    } else throw new RequestError('invalid_response', 0);
+  } catch (error) {
+    if (!current()) return;
+    if (error.code === 'CANDIDATE_EXPIRED') { candidate.status = 'expired'; candidate.note = ERRORS.CANDIDATE_EXPIRED; }
+    else if (error.code === 'VERSION_CONFLICT') { candidate.status = 'expired'; candidate.note = '这条已经处理过了。'; }
+    else if (error.code === 'NOT_FOUND') { candidate.status = 'expired'; candidate.note = '这条候选已经不在了。'; }
+    else if (error.code === 'REQUEST_CONFLICT') { candidate.conflictKey = key; candidate.note = ERRORS.REQUEST_CONFLICT; }
+    else candidate.note = errorText(error);
+  } finally {
+    if (current()) { candidate.saving = false; renderCard(); }
+  }
+}
+const mem = {
+  status: 'idle', items: [], total: 0, busy: false, loadingMore: false,
+  error: '', note: '', editing: null, editDraft: '', confirmDelete: null,
+};
+const memoriesBox = document.getElementById('memories');
+function memDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : `${date.getMonth() + 1}月${date.getDate()}日`;
+}
+function memButton(label, key, onClick, danger = false) {
+  const button = el('button', danger ? 'textbtn mem-danger' : 'textbtn', label);
+  button.type = 'button';
+  button.dataset.focus = key;
+  button.setAttribute('aria-disabled', String(mem.busy));
+  button.addEventListener('click', onClick);
+  return button;
+}
+function renderMemories() {
+  if (!memoriesBox) return;
+  const active = document.activeElement;
+  const key = memoriesBox.contains(active) ? active.dataset.focus : null;
+  const box = el('div');
+  const head = el('div', 'mem-head');
+  head.append(el('span', 'mem-count', mem.status === 'ready' ? `共 ${mem.total} 条` : ''), memButton('刷新', 'mem-refresh', () => loadMemories()));
+  box.append(head);
+  if (mem.status === 'loading') box.append(el('p', 'mem-empty', '正在读取…'));
+  else if (mem.status === 'error') {
+    const error = el('p', 'mem-empty', `没能读到记忆：${mem.error}`);
+    error.setAttribute('role', 'alert');
+    box.append(error);
+  } else if (mem.status === 'ready' && !mem.items.length) {
+    box.append(el('p', 'mem-empty', '还没有保存过记忆。在聊天里说「帮我记住…」，确认后就会出现在这里。'));
+  } else if (mem.status === 'ready') {
+    const list = el('ul', 'mem-list');
+    for (const item of mem.items) {
+      const node = el('li', 'mem-item');
+      if (mem.editing === item.id) {
+        const input = el('input', 'mem-input');
+        input.type = 'text';
+        input.maxLength = 100;
+        input.value = mem.editDraft;
+        input.dataset.focus = `mem-input-${item.id}`;
+        input.setAttribute('aria-label', '修改这条记忆，1 到 100 字');
+        input.addEventListener('input', () => { mem.editDraft = input.value; });
+        input.addEventListener('keydown', event => {
+          if (event.key === 'Enter' && !event.isComposing) { event.preventDefault(); saveMemory(item); }
+        });
+        const keys = el('div', 'mem-keys');
+        keys.append(
+          memButton('保存', `mem-save-${item.id}`, () => saveMemory(item)),
+          memButton('取消', `mem-cancel-${item.id}`, () => { mem.editing = null; mem.note = ''; renderMemories(); }),
+        );
+        node.append(input, keys);
+      } else {
+        node.append(el('p', 'mem-text', item.text), el('p', 'mem-meta', `${item.topic || '记忆'} · ${memDate(item.confirmed_at)}确认`));
+        const keys = el('div', 'mem-keys');
+        if (mem.confirmDelete === item.id) {
+          keys.append(
+            memButton('确认删除', `mem-confirm-${item.id}`, () => removeMemory(item), true),
+            memButton('取消', `mem-cancel-${item.id}`, () => { mem.confirmDelete = null; renderMemories(); }),
+          );
+        } else {
+          keys.append(
+            memButton('编辑', `mem-edit-${item.id}`, () => {
+              mem.editing = item.id;
+              mem.editDraft = item.text;
+              mem.confirmDelete = null;
+              mem.note = '';
+              renderMemories();
+              focus(memoriesBox.querySelector(`[data-focus="mem-input-${item.id}"]`));
+            }),
+            memButton('删除', `mem-delete-${item.id}`, () => { mem.confirmDelete = item.id; mem.editing = null; renderMemories(); }, true),
+          );
+        }
+        node.append(keys);
+      }
+      list.append(node);
+    }
+    box.append(list);
+    if (mem.items.length < mem.total) {
+      box.append(memButton(mem.loadingMore ? '正在加载…' : '加载更多', 'mem-more', () => moreMemories()));
+    }
+  }
+  if (mem.note) {
+    const note = el('p', 'mem-note', mem.note);
+    note.setAttribute('role', 'status');
+    box.append(note);
+  }
+  memoriesBox.replaceChildren(box);
+  if (key) focus(memoriesBox.querySelector(`[data-focus="${key}"]`));
+}
+async function loadMemories() {
+  if (mem.status === 'loading' || mem.busy) return;
+  mem.status = 'loading';
+  mem.error = '';
+  renderMemories();
+  try {
+    await ensureSession();
+    const body = await requestWithRecovery('/api/memories?limit=20&offset=0');
+    if (!body || !Array.isArray(body.memories) || !Number.isInteger(body.total)) throw new RequestError('invalid_response', 0);
+    mem.items = body.memories;
+    mem.total = body.total;
+    mem.status = 'ready';
+    if (mem.editing && !mem.items.some(item => item.id === mem.editing)) {
+      mem.editing = null;
+      mem.note = '要修改的那条已经不在了。';
+    }
+    if (mem.confirmDelete && !mem.items.some(item => item.id === mem.confirmDelete)) mem.confirmDelete = null;
+  } catch (error) {
+    mem.status = 'error';
+    mem.error = errorText(error);
+  }
+  renderMemories();
+}
+async function moreMemories() {
+  if (mem.busy || mem.loadingMore || mem.status !== 'ready') return;
+  mem.loadingMore = true;
+  renderMemories();
+  try {
+    const body = await requestWithRecovery(`/api/memories?limit=20&offset=${mem.items.length}`);
+    if (!body || !Array.isArray(body.memories)) throw new RequestError('invalid_response', 0);
+    mem.items.push(...body.memories);
+    mem.total = body.total;
+  } catch (error) {
+    mem.note = errorText(error);
+  } finally {
+    mem.loadingMore = false;
+    renderMemories();
+  }
+}
+async function saveMemory(item) {
+  if (mem.busy) return;
+  const text = mem.editDraft.trim();
+  if (!text || text.length > 100 || /[\u0000-\u001f]/.test(text)) {
+    mem.note = '写 1–100 个字就好。';
+    renderMemories();
+    return;
+  }
+  mem.busy = true;
+  mem.note = '';
+  renderMemories();
+  try {
+    const body = await requestWithRecovery(`/api/memories/${encodeURIComponent(item.id)}`, {
+      method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ text, version: item.version }),
+    });
+    if (!body || typeof body.text !== 'string' || !Number.isInteger(body.version)) throw new RequestError('invalid_response', 0);
+    Object.assign(item, body);
+    mem.editing = null;
+    mem.note = '已更新。';
+  } catch (error) {
+    if (error.code === 'VERSION_CONFLICT') {
+      mem.note = '这条在别处改过了，列表已刷新，你的修改还在。';
+      mem.busy = false;
+      await loadMemories();
+      return;
+    }
+    if (error.code === 'NOT_FOUND') {
+      mem.editing = null;
+      mem.note = '这条已经不在了。';
+      mem.busy = false;
+      await loadMemories();
+      return;
+    }
+    mem.note = errorText(error);
+  } finally {
+    mem.busy = false;
+    renderMemories();
+  }
+}
+async function removeMemory(item) {
+  if (mem.busy) return;
+  mem.busy = true;
+  mem.note = '';
+  renderMemories();
+  try {
+    await requestWithRecovery(`/api/memories/${encodeURIComponent(item.id)}`, { method: 'DELETE' });
+    mem.items = mem.items.filter(entry => entry.id !== item.id);
+    mem.total = Math.max(0, mem.total - 1);
+    mem.confirmDelete = null;
+    mem.note = '已删除。之后问 AI，这条不会再出现。';
+  } catch (error) {
+    if (error.code === 'NOT_FOUND') {
+      mem.items = mem.items.filter(entry => entry.id !== item.id);
+      mem.total = Math.max(0, mem.total - 1);
+      mem.confirmDelete = null;
+      mem.note = '这条已经不在了。';
+    } else mem.note = errorText(error);
+  } finally {
+    mem.busy = false;
+    renderMemories();
   }
 }
 function syncSceneRow() {
@@ -452,14 +1182,15 @@ about.addEventListener('change', event => {
   } catch { theme = 'system'; }
   applyTheme(theme);
 });
-settingsToggle.setAttribute('aria-label', '设置，关于与主题');
+settingsToggle.setAttribute('aria-label', '设置，关于、主题与记忆');
 settingsToggle.addEventListener('click', () => {
   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
   settingsToggle.setAttribute('aria-expanded', String(!expanded));
   settingsToggle.textContent = expanded ? '设置' : '收起设置';
-  settingsToggle.setAttribute('aria-label', expanded ? '设置，关于与主题' : '收起设置，关于与主题');
+  settingsToggle.setAttribute('aria-label', expanded ? '设置，关于、主题与记忆' : '收起设置，关于、主题与记忆');
   about.hidden = expanded;
   if (expanded) focus(settingsToggle);
+  else loadMemories();
 });
 for (const event of ['offline', 'online']) window.addEventListener(event, () => {
   syncConditions();
@@ -470,7 +1201,7 @@ for (const event of ['offline', 'online']) window.addEventListener(event, () => 
     if (retry) { retry.disabled = !navigator.onLine; retry.setAttribute('aria-disabled', String(retry.disabled)); }
   }
 });
-askButton.addEventListener('click', () => ask());
+askButton.addEventListener('click', () => startInteraction());
 (function init() {
   const now = new Date();
   document.getElementById('masthead-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日`;
