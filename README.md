@@ -32,4 +32,24 @@
 
 目前项目处于产品构想阶段。首版想验证的是，在人们习惯性打开短视频的一刻，WhyNot 能不能足够快地给出一个让人愿意尝试的选择。
 
-测试
+## 后端验收
+
+使用 Node.js 22 或更新版本。先执行 `npm ci`，再在两个终端分别运行 `node dev/server.mjs` 和 `node dev/fake-model.mjs`。验收服务启动时会从 `schema.sql` 和 `migrations/` 建库，默认使用嵌入式 PostgreSQL。设置 `WHYNOT_TEST_DATABASE_URL` 可改用原生 PostgreSQL 的空白测试库。
+
+依次执行以下脚本。互动套件共享本机模型和验收服务的控制参数，请按顺序运行。
+
+```sh
+node dev/acceptance.mjs
+node dev/acceptance-model.mjs
+node dev/acceptance-interactions.mjs
+node dev/acceptance-photos.mjs
+node dev/acceptance-memories.mjs
+```
+
+真实视觉模型验收时，在启动本地验收服务前向服务端设置 `MODEL_API_KEY`，按需设置 `MODEL_ENDPOINT`。使用一张单个日常物品清晰入镜的照片运行 `node dev/acceptance-vision-real.mjs <照片路径> <英文词> <中文词义> <带重音的音标>`。程序通过上传和续聊接口检查识别结果。
+
+## 后端发布配置
+
+1. 在同一 PostgreSQL 数据库中保留或迁移现有 `app` 数据。全新数据库先创建 `app` schema 再应用 `schema.sql`，然后按编号应用尚未执行的迁移。新版互动使用支持事务的直连 PostgreSQL。使用服务端密钥 `WHYNOT_DATABASE_URL` 配置运行时连接；若连接角色和迁移角色不同，向运行角色授予所需表、序列及 `app.clear_interaction`、`app.redact_invalid_memory_turns` 的访问权限。未配置该连接时，原推荐和反馈继续使用托管数据库客户端，互动入口返回存储不可用。
+2. 在同库启用 `pg_cron` 后，由迁移角色运行 `ops/schedule-cleanup.sql`；也可以使用现有数据库调度器每五分钟执行 `SELECT app.purge_expired()`。清理在无访客时也会执行。
+3. 运行 `npm run build:function`，将生成的 `.local/function` 作为 Function 源目录。目录包含入口和解码所需的 WASM。托管平台在发布时提供 `_qoder/backend.mjs`。在 Function 环境中配置模型密钥后即可开启模型开场和图片识别。
