@@ -1,0 +1,77 @@
+{
+  "stage": "B4",
+  "date": "2026-11-20",
+  "status": "implemented_and_automated_tests_passed_with_open_acceptance_gates",
+  "baseCommit": "c73630f529a943b8313db70db373b4f892714292",
+  "localBase": "http://127.0.0.1:8785",
+  "environment": {"node": "v24.20.0", "database": "local in-memory", "cloudUsed": false},
+  "suites": [
+    {"name": "actual-route API", "command": "BASE=http://127.0.0.1:8785 node dev/acceptance.mjs", "passed": 42, "failed": 0},
+    {"name": "fake-model actual-route API", "command": "BASE=http://127.0.0.1:8785 node dev/acceptance-model.mjs", "passed": 11, "failed": 0},
+    {"name": "browser state", "passed": 32, "failed": 0},
+    {"name": "browser layout", "passed": 20, "failed": 0},
+    {"name": "browser timing", "passed": 12, "failed": 0},
+    {"name": "browser b4", "passed": 48, "failed": 0}
+  ],
+  "browserTotal": {"passed": 112, "failed": 0},
+  "total": {"passed": 165, "failed": 0},
+  "b4Coverage": [
+    "about disclosure and native three-option theme group",
+    "six combinations of emulated system preference and explicit theme choice",
+    "color-scheme, theme-color meta and dark card shadow",
+    "explicit theme persistence and system override removal",
+    "storage write failure silently falls back to system",
+    "storage read failure still permits session, recommendation and feedback",
+    "pre-app theme, meta and first-visit/revisit guide visibility",
+    "no share before confirmed completion, including pending completion response",
+    "native share preference, cancellation and rejection fallback",
+    "clipboard, legacy copy and selectable text fallback",
+    "40-code-point title limit and origin-plus-path-only link",
+    "two-second copied message, persistent manual fallback and focus",
+    "share branches do not request APIs or submit feedback",
+    "duplicate share guard and stale result isolation after changing cards",
+    "offline share message without requests",
+    "320px with 200% text: no horizontal overflow, theme targets at least 44px",
+    "manifest response and 180/192/512px installation icons"
+  ],
+  "methods": {
+    "viewport": "Actual same-origin iframe viewport: 320, 390 and 768 CSS pixels; not body max-width simulation",
+    "largeText": "Root font size 200%; not a physical mobile font setting",
+    "theme": "CSSMediaRule.media.mediaText all/not all; not OS theme switching",
+    "prepaint": "Inline script evaluated in srcdoc before app.js; not real OS first-frame video",
+    "share": "Native Share, Clipboard and execCommand stubs; no real share destination or system clipboard tested",
+    "layoutWait": "50ms test-only pause before synchronous geometry reads; hidden embedded browser stalled requestAnimationFrame",
+    "compression": "Per-file Node zlib gzip level 9 summed; local fixture does not serve these compressed bytes"
+  },
+  "checks": {
+    "appSyntax": "passed",
+    "uiAcceptanceSyntax": "passed",
+    "gitDiffCheck": "passed",
+    "inlineScriptBytes": 298,
+    "inlineScriptLimit": 400,
+    "assetHttp": "200 for manifest and all three PNG icons; unknown asset 404",
+    "pngDimensionsAndSignatures": "passed",
+    "newRuntimeDependencies": 0,
+    "serviceWorkerAdded": false,
+    "backupFilesByteCompared": 17,
+    "screenshotsSavedAndVisuallyInspected": 9,
+    "normalPageRestored": true,
+    "testIframesAfterCleanup": 0
+  },
+  "sizeResults": {
+    "coreRaw": {"bytes": 44442, "limit": 34000, "passed": false},
+    "coreGzip": {"bytes": 12990, "initialRelaxedLimit": 14336, "passed": true},
+    "allWebGzip": {"bytes": 15291, "finalRelaxedLimit": 16384, "passed": true},
+    "rawOverruns": ["app.js", "index.html", "style.css"],
+    "detailFile": "asset-sizes.json"
+  },
+  "openGates": [
+    "Raw budgets are unchanged and exceeded; implementation is not fully accepted",
+    "Physical mobile and audible screen-reader testing",
+    "Real native Share, Clipboard permissions and installation shell",
+    "Real OS dark/light first-frame capture",
+    "Throttled performance/CWV and exact B3 card-height comparison",
+    "Cloud/public-link access and another-device verification require separate authorization"
+  ],
+  "publication": {"committed": false, "pushed": false, "published": false, "nextStageStarted": false}
+}

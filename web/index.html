@@ -9,6 +9,9 @@
   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#18211c':'#f6f1e7')}}catch{}</script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -24,7 +27,7 @@
   </header>
 
   <main class="page">
-    <div class="guide" id="guide" hidden>
+    <div class="guide" id="guide">
       <p>选一下还有多久、现在有多少力气。</p>
       <p>点一下，就有一条现在能做的事。</p>
       <p>不合适就换，什么都不做也行。</p>
@@ -61,7 +64,7 @@
           </span>
         </button>
         <div class="scene-panel" id="scene-panel" hidden>
-          <div class="chips">
+          <div class="chips" role="group" aria-label="我在哪儿，可以跳过">
             <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
             <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
             <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
@@ -74,17 +77,36 @@
 
     <button id="ask" class="primary" type="button">给我一个建议</button>
 
-    <section id="result" aria-live="polite"></section>
+    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
+    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
+    <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
+    <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
 
     <noscript>
-      <p class="noscript">WhyNot 需要启用 JavaScript 才能生成建议。选好时间和精力后，你会看到一条现在就能开始的小事。</p>
+      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
     </noscript>
 
     <footer class="foot">
       <span>随时可以停下</span>
       <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about">设置</button>
     </footer>
-    <div class="about" id="about" hidden></div>
+    <section class="about" id="about" aria-labelledby="about-title" hidden>
+      <h2 id="about-title">关于与主题</h2>
+      <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
+      <fieldset>
+        <legend>主题</legend>
+        <div class="chips">
+          <input type="radio" name="theme" id="theme-system" value="system" checked><label for="theme-system">跟随系统</label>
+          <input type="radio" name="theme" id="theme-light" value="light"><label for="theme-light">浅色</label>
+          <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark">深色</label>
+        </div>
+      </fieldset>
+      <h3>数据说明</h3>
+      <p>不注册。只记下你的选择和反馈，用来调整下次建议。</p>
+      <p>建议和反馈保存在服务端。此设备保存匿名会话、主题和引导状态。清除浏览器数据不会删除服务端记录。</p>
+      <p class="version">WhyNot · 首版 P0</p>
+    </section>
   </main>
   <script src="/app.js"></script>
 </body>

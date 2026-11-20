@@ -15,21 +15,89 @@
 | 此刻的情境 | WhyNot 可能给出的建议 |
 | --- | --- |
 | 在食堂吃饭，还有几分钟，想看点新鲜的 | 看看窗口是怎么分开点单和取餐的。你能找到一个让队伍走得更快的设计吗？ |
-| 有 3 分钟，对计算机感兴趣 | 看一张二维码，找找三个方形定位标记。二维码还会存一些冗余信息，所以局部被挡住时，扫描器有时仍能恢复原来的内容。 |
+| 有 3 分钟，想看看日常技术的小细节 | 看一张二维码，找找三个方形定位标记。二维码还会存一些冗余信息，所以局部被挡住时，扫描器有时仍能恢复原来的内容。 |
 | 忙完一阵，想轻松一下 | 想刷短视频就刷一会儿。要是 10 分钟后还有事，可以先定个提醒。 |
 
-## AI 怎么选
+## 当前 P0 怎么用
 
-建议会考虑你有多少时间、现在有多少精力，以及此刻在哪儿、什么事方便做。如果你愿意补充兴趣，或者对之前的建议留过反馈，WhyNot 也可以参考这些信息。建议要足够具体，看到就能开始。累了可以休息，有点好奇心时也可以探索身边的小事。
+项目已有可在本地运行的前后端，不再只是产品构想。主页面只有「此刻」，没有「今日」页或历史列表；页脚折叠区用于「关于与主题」。
 
-## 第一版计划
+- 默认 **10 分钟、还可以（steady）**，场景可跳过。时间可选 3／5／10／15 分钟，精力可选有点累／还可以／精神好；场景为等饭／排队、在桌前、在路上、在家／宿舍。
+- 每次只给一个行动，写清第一步和预计耗时，耗时不超过所选预算。
+- 修改条件不会自动生成。「换一个」使用**当前表单**条件，只请求新建议，从不提交反馈；失败后的「再试一次」保留**失败请求的条件快照**，不会悄悄改用新条件。
+- 「喜欢」「不喜欢」可以改选，以最后选择为准。「已完成」独立、幂等，确认成功后不可撤销；反馈始终绑定具体建议。
 
-1. **一键求推荐**。打开后快速选择可用时间和当前状态，情境可以按需补充。
-2. **每次给一个微行动**。建议说明怎么开始和大概需要多久，尽量省掉搜索资料和准备的步骤。
-3. **用反馈调整推荐**。支持「喜欢」「不喜欢」「换一个」和「已完成」，用这些反馈逐步了解用户愿意尝试什么。
+建议参考主动选择的时间、精力、场景和当前匿名会话的历史偏好，不提供兴趣输入，也不接入或追踪定位、日历、健康与兴趣数据。累了可以休息，有点好奇心时也可以探索身边的小事。未配置模型密钥或模型失败时，服务端使用符合条件的内置建议；配置模型后，每次调用超时 7 秒，最多尝试 2 次，并校验输出。
 
-第一版通过用户主动选择了解当下情境，日历、定位和健康数据接入留待后续评估。
+## B4 界面与边界
 
-目前项目处于产品构想阶段。首版想验证的是，在人们习惯性打开短视频的一刻，WhyNot 能不能足够快地给出一个让人愿意尝试的选择。
+界面采用「空当纸册」视觉体系，保留系统字体、原生 HTML／CSS／JavaScript，无新增运行时依赖。
 
-测试
+- 页脚折叠的「关于与主题」说明匿名会话、推荐与反馈数据用途，并提供跟随系统／浅色／深色。显式 `light`／`dark` 选择存于 `whynot-theme`，跟随系统则移除覆盖值；存储读写失败时静默回到跟随系统。
+- 只有已完成的建议提供分享：原生分享 → Clipboard → `execCommand` → 可选中文本手动复制。用户取消原生分享时安静结束，不再复制。分享链接只取 `location.origin + location.pathname`，不带 query、hash、建议编号、会话或反馈信息；分享不会记录反馈。
+- 安装相关仅补 manifest、Apple 180px 图标及 192／512px 安装图标；能否添加到主屏幕取决于浏览器，不承诺自动安装。**无 service worker，不支持离线重新打开。** 已打开的页面断网后仍可看原卡片，但不能生成新建议；恢复网络后由用户手动重试。
+
+## 本地开发与验收
+
+使用 Node.js，在仓库根目录 `E:\whynot` 的 Git Bash 中运行；分别保留服务终端：
+
+```sh
+# 终端 1：当前前端 + 实际 functions 路由，内存数据库
+node dev/server.mjs 8765
+
+# 终端 2：本地 API 验收
+node dev/acceptance.mjs
+# 如服务换到其他端口，可覆盖 BASE（不包含 /functions/v1/app）
+BASE=http://127.0.0.1:8875 node dev/acceptance.mjs
+
+# 终端 3：无真实密钥的假模型，固定监听 8766
+node dev/fake-model.mjs
+# 回到终端 2，假模型保持运行
+node dev/acceptance-model.mjs
+```
+
+打开 `http://127.0.0.1:8765/` 体验。内存数据随服务重启清空；无须云凭据，不设置 `MODEL_API_KEY` 即走内置建议。`acceptance-model.mjs` 也支持 `BASE`，会临时切换本地模型配置，覆盖成功、无效输出、上游错误和超时；不要与其他验收并行运行。本地 `/__local/*` 为测试控制入口，不是生产 API。
+
+`dev/acceptance-ui.mjs` 是浏览器测试模块，**不是 Node 命令行测试**。在上述本地页面的浏览器控制台运行已有分组：
+
+```js
+const { default: run } = await import('/__local/acceptance-ui.mjs');
+for (const group of ['state', 'timing', 'layout', 'b4']) console.log(await run(group));
+```
+
+`b4` 覆盖三态主题、存储受限、分享降级和安装资源。系统配色组合通过浏览器 CSS 媒体规则模拟，原生分享／剪贴板权限分支使用桩函数，不等于真实系统面板或手机验收。具体结果见 [B4 阶段日志](deliverables/b4-wrapup/B4-关于主题与收尾日志.md)。
+
+全量 `web/`（包括安装图标和 manifest）gzip 上限放宽至 **16 KiB（16384 B）**；原四项资源同时对照初定的 14 KiB。逐文件使用 gzip level 9 求和，不是当前本地服务器的实际传输量；raw 上限未放宽，超限单独报告。
+
+## 当前 API 契约
+
+代码入口为 `functions/index.ts` → `functions/routes.mjs`；浏览器统一基址为 **`/functions/v1/app`**。以下路径均接在该基址后：
+
+| 方法与路径 | 行为 |
+| --- | --- |
+| `POST /api/session` | 建立匿名会话，返回 `{ok:true, token}`；已有有效 token 时复用，返回 `{ok:true}`。 |
+| `POST /api/recommendations` | JSON 条件生成一条建议，成功为 201。 |
+| `POST /api/recommendations/:id/feedback` | JSON `{kind:"like"}`／`dislike`／`completed`，成功为 200 并返回更新后的卡片。 |
+| `GET /api/health` | 健康检查，返回 `{ok:true}`。 |
+
+三个业务端点之外仅有上述健康检查；当前 Functions **没有 `/api/history`**。
+
+会话流程：前端把 token 存于 `localStorage` 的 `whynot-session`，后续通过 `x-whynot-session` 请求头携带；存储不可用时仍可在当前页面内存中使用。服务端按 token 的 SHA-256 摘要识别归属，不信任请求 JSON 中的用户身份。前端保留 `credentials: 'same-origin'`，但 Sites 网关不转发应用 cookie，当前路由不靠 cookie 认证。
+
+推荐请求只接受 `budget`（整数 3／5／10／15）、`energy`（`low`／`steady`／`high`）及可省略或为 `null` 的 `scene`（`waiting`／`desk`／`outside`／`home`），拒绝额外字段。例如：
+
+```json
+{"budget":10,"energy":"steady","scene":null}
+```
+
+卡片字段为 `id`、`scene`、`energy`、`budget`、`category`、`title`、`first_step`、`detail`、`minutes`、`created`、`preference`、`completed`。增量字段 `category` 取 `rest`／`observe`／`listen`／`tidy`／`explore`；缺失、空值或未知值时前端仅隐藏类别，不丢弃整卡。`preference` 为 `null`／`like`／`dislike`，`completed` 为布尔值。换建议仍调用推荐端点，没有 swap 反馈类型。
+
+典型错误：401 `SESSION_REQUIRED`，400 `INVALID_CONTEXT`／`INVALID_FEEDBACK`／`INVALID_BODY`，415 `JSON_REQUIRED`，404 `NOT_FOUND`（含不属于当前会话的建议），503 `STORAGE_UNAVAILABLE`；请求体超过 2048 字节返回 413 `INVALID_BODY`。
+
+`app.py` 是较早的 Python／SQLite 原型：访问首页设置 HttpOnly `whynot` cookie，直接使用 `/api/*`，另有 `GET /api/history`。它与当前共享前端的 `/functions/v1/app` URL 和 token 会话流不兼容，不能用 `python app.py` 替代上述当前前端联调入口。
+
+## 交付状态
+
+详细交互与验收目标见 [产品说明](产品说明.md)。云端部署、公网链接验收、真实手机与有声屏幕阅读器测试、性能基准均不在此声明通过。后续部署及公开访问须另行授权执行。
+
+**每阶段记录实际改动、测试结果与未验项，然后停止，等待下一条指令；不自动提交、发布或进入下一阶段。** 日志只记录验证摘要，不记录密钥、用户原文或模型原始响应。

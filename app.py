@@ -17,7 +17,11 @@ from suggestions import BUDGETS, ENERGIES, SCENES, options
 
 ROOT = Path(__file__).resolve().parent
 ASSETS = {"/": ("index.html", "text/html"), "/style.css": ("style.css", "text/css"),
-          "/app.js": ("app.js", "text/javascript"), "/icon.svg": ("icon.svg", "image/svg+xml")}
+          "/app.js": ("app.js", "text/javascript"), "/icon.svg": ("icon.svg", "image/svg+xml"),
+          "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
+          "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+          "/icon-192.png": ("icon-192.png", "image/png"),
+          "/icon-512.png": ("icon-512.png", "image/png")}
 
 
 class ApiError(Exception):

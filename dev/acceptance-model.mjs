@@ -30,6 +30,7 @@ const sessionBody = await session.json().catch(() => null);
 if (typeof sessionBody?.token === 'string') token = sessionBody.token;
 const db = async () => (await fetch(`${BASE}/__local/db`)).json();
 const counts = async () => (await fetch(`${FAKE}/counts`)).json();
+const initialCounts = await counts();
 const rowFor = async id => (await db()).recommendations.find(row => row.id === id);
 
 await setEnv('MODEL_API_KEY', 'fake-local-key');
@@ -56,12 +57,12 @@ await setEnv('MODEL_ENDPOINT', `${FAKE}/http500`);
 result = await recommend(context);
 row = await rowFor(result.data.id);
 check('5xx → 兜底', result.status === 201 && row?.source === 'builtin');
-check('5xx 重试一次为止', (await counts()).http500 === 2);
+check('5xx 重试一次为止', (await counts()).http500 - (initialCounts.http500 || 0) === 2);
 
 await setEnv('MODEL_ENDPOINT', `${FAKE}/http401`);
 result = await recommend(context);
 row = await rowFor(result.data.id);
-check('401 → 兜底且不重试', result.status === 201 && row?.source === 'builtin' && (await counts()).http401 === 1);
+check('401 → 兜底且不重试', result.status === 201 && row?.source === 'builtin' && (await counts()).http401 - (initialCounts.http401 || 0) === 1);
 
 console.log('超时兜底');
 await setEnv('MODEL_ENDPOINT', `${FAKE}/slow`);

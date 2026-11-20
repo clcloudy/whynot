@@ -1,0 +1,41 @@
+{
+  "date": "2026-11-20",
+  "stage": "B3",
+  "baseCommit": "c73630f",
+  "fixture": "http://127.0.0.1:8785",
+  "api": {"passed": 42, "failed": 0, "contextCombinations": 60},
+  "model": {"passed": 11, "failed": 0, "counterStrategy": "delta from test start"},
+  "browser": {
+    "state": {"passed": 32, "failed": 0},
+    "layout": {"passed": 20, "failed": 0},
+    "timing": {"passed": 12, "failed": 0},
+    "feedbackDelayMs": 5000,
+    "actualRequestTimeoutMs": 25000,
+    "loadingSecondPhaseMs": 8000,
+    "storageRetryMinimumMs": 800,
+    "viewports": [[320, 568], [390, 844], [768, 1024]],
+    "fontScale": 2,
+    "singleRowButtonWidths": {"320": 55.67, "390": 71.17, "768": 93.67},
+    "singleRowButtonHeight": 44,
+    "horizontalOverflow": false,
+    "keyboard": "Tab, arrow keys, Space tested; browser-use Enter emitted keydown/keyup without native click, not counted as passing Enter activation",
+    "privacyStorageThrows": "session and recommendation succeeded",
+    "darkMode": "exact stylesheet media-query rules injected; no OS scheme emulation available",
+    "reducedMotion": "exact stylesheet media-query rules injected; animation:none and 8s visual text verified",
+    "scriptErrors": 0,
+    "expectedNetworkErrors": ["404 from deliberately invalid recommendation id"],
+    "screenReaderAudio": "not tested",
+    "mobilePhysicalDevice": "not tested"
+  },
+  "sizes": {
+    "method": "Node zlib gzipSync level 9, individual files summed",
+    "index.html": {"raw": 4538, "gzip": 1669},
+    "style.css": {"raw": 12426, "gzip": 3039},
+    "app.js": {"raw": 20265, "gzip": 6310},
+    "icon.svg": {"raw": 299, "gzip": 223},
+    "total": {"raw": 37528, "gzip": 11241},
+    "budgetPass": false,
+    "notes": "Exceeds 34000 total raw, 12000 app.js raw, 4500 index.html raw, and strict decimal 11000 gzip limits. Below 11 KiB (11264 bytes) does not count as specification approval."
+  },
+  "stageGate": "functional verification passed; size gate and manual accessibility validation outstanding; B4 not started"
+}

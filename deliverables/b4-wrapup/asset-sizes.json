@@ -1,0 +1,67 @@
+{
+  "method": "Per-file Node zlib gzip level9, estimated compressed bytes; fixture itself serves uncompressed",
+  "files": [
+    {
+      "name": "app.js",
+      "raw": 23309,
+      "gzip9": 7040,
+      "rawLimit": 12000,
+      "rawPass": false
+    },
+    {
+      "name": "apple-touch-icon.png",
+      "raw": 487,
+      "gzip9": 510
+    },
+    {
+      "name": "icon-192.png",
+      "raw": 500,
+      "gzip9": 521
+    },
+    {
+      "name": "icon-512.png",
+      "raw": 1256,
+      "gzip9": 1049
+    },
+    {
+      "name": "icon.svg",
+      "raw": 299,
+      "gzip9": 223,
+      "rawLimit": 500,
+      "rawPass": true
+    },
+    {
+      "name": "index.html",
+      "raw": 6198,
+      "gzip9": 2367,
+      "rawLimit": 4500,
+      "rawPass": false
+    },
+    {
+      "name": "manifest.webmanifest",
+      "raw": 404,
+      "gzip9": 221
+    },
+    {
+      "name": "style.css",
+      "raw": 14636,
+      "gzip9": 3360,
+      "rawLimit": 14000,
+      "rawPass": false
+    }
+  ],
+  "core": {
+    "raw": 44442,
+    "gzip9": 12990
+  },
+  "all": {
+    "raw": 47089,
+    "gzip9": 15291
+  },
+  "limits": {
+    "coreGzipInitial": 14336,
+    "allGzipFinal": 16384,
+    "coreRaw": 34000
+  },
+  "inlineScriptBytes": 298
+}

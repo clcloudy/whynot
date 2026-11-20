@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WhyNot · 此刻</title>
+  <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e7">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-left">
+      <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M12.5 3 H3 V17 H17 V8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      </svg>
+      <span class="brand-name">WhyNot</span>
+    </div>
+    <span class="masthead-date" id="masthead-date"></span>
+  </header>
+
+  <main class="page">
+    <div class="guide" id="guide" hidden>
+      <p>选一下还有多久、现在有多少力气。</p>
+      <p>点一下，就有一条现在能做的事。</p>
+      <p>不合适就换，什么都不做也行。</p>
+    </div>
+
+    <section class="panel" aria-label="此刻的条件">
+      <fieldset>
+        <legend>我有多久</legend>
+        <div class="seg">
+          <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
+          <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
+          <input type="radio" name="budget" id="b10" value="10" checked><label for="b10">10 分钟</label>
+          <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>现在的精力</legend>
+        <div class="chips">
+          <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
+          <input type="radio" name="energy" id="esteady" value="steady" checked><label for="esteady">还可以</label>
+          <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
+        </div>
+      </fieldset>
+
+      <div class="scene">
+        <button type="button" class="scene-row" id="scene-toggle" aria-expanded="false" aria-controls="scene-panel">
+          <span class="scene-label">场景</span>
+          <span class="scene-value">
+            <span id="scene-value-text">可跳过</span>
+            <svg class="chev" viewBox="0 0 12 12" aria-hidden="true">
+              <path d="M2 4.5 L6 8.5 L10 4.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+        </button>
+        <div class="scene-panel" id="scene-panel" hidden>
+          <div class="chips" role="group" aria-label="我在哪儿，可以跳过">
+            <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
+            <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
+            <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
+            <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">在路上</label>
+            <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家／宿舍</label>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <button id="ask" class="primary" type="button">给我一个建议</button>
+
+    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
+    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
+
+    <noscript>
+      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
+    </noscript>
+
+    <footer class="foot">
+      <span>随时可以停下</span>
+      <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about">设置</button>
+    </footer>
+    <div class="about" id="about" hidden></div>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

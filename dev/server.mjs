@@ -14,6 +14,11 @@ const ASSETS = {
   '/style.css': ['style.css', 'text/css'],
   '/app.js': ['app.js', 'text/javascript'],
   '/icon.svg': ['icon.svg', 'image/svg+xml'],
+  '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],
+  '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'],
+  '/icon-192.png': ['icon-192.png', 'image/png'],
+  '/icon-512.png': ['icon-512.png', 'image/png'],
+  '/__local/acceptance-ui.mjs': ['../dev/acceptance-ui.mjs', 'text/javascript'],
 };
 
 class LocalError extends Error {

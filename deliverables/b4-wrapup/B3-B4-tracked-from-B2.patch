@@ -1,0 +1,1826 @@
+diff --git a/README.md b/README.md
+index 4e051dc..2699e10 100644
+--- a/README.md
++++ b/README.md
+@@ -15,21 +15,89 @@
+ | 此刻的情境 | WhyNot 可能给出的建议 |
+ | --- | --- |
+ | 在食堂吃饭，还有几分钟，想看点新鲜的 | 看看窗口是怎么分开点单和取餐的。你能找到一个让队伍走得更快的设计吗？ |
+-| 有 3 分钟，对计算机感兴趣 | 看一张二维码，找找三个方形定位标记。二维码还会存一些冗余信息，所以局部被挡住时，扫描器有时仍能恢复原来的内容。 |
++| 有 3 分钟，想看看日常技术的小细节 | 看一张二维码，找找三个方形定位标记。二维码还会存一些冗余信息，所以局部被挡住时，扫描器有时仍能恢复原来的内容。 |
+ | 忙完一阵，想轻松一下 | 想刷短视频就刷一会儿。要是 10 分钟后还有事，可以先定个提醒。 |
+ 
+-## AI 怎么选
++## 当前 P0 怎么用
+ 
+-建议会考虑你有多少时间、现在有多少精力，以及此刻在哪儿、什么事方便做。如果你愿意补充兴趣，或者对之前的建议留过反馈，WhyNot 也可以参考这些信息。建议要足够具体，看到就能开始。累了可以休息，有点好奇心时也可以探索身边的小事。
++项目已有可在本地运行的前后端，不再只是产品构想。主页面只有「此刻」，没有「今日」页或历史列表；页脚折叠区用于「关于与主题」。
+ 
+-## 第一版计划
++- 默认 **10 分钟、还可以（steady）**，场景可跳过。时间可选 3／5／10／15 分钟，精力可选有点累／还可以／精神好；场景为等饭／排队、在桌前、在路上、在家／宿舍。
++- 每次只给一个行动，写清第一步和预计耗时，耗时不超过所选预算。
++- 修改条件不会自动生成。「换一个」使用**当前表单**条件，只请求新建议，从不提交反馈；失败后的「再试一次」保留**失败请求的条件快照**，不会悄悄改用新条件。
++- 「喜欢」「不喜欢」可以改选，以最后选择为准。「已完成」独立、幂等，确认成功后不可撤销；反馈始终绑定具体建议。
+ 
+-1. **一键求推荐**。打开后快速选择可用时间和当前状态，情境可以按需补充。
+-2. **每次给一个微行动**。建议说明怎么开始和大概需要多久，尽量省掉搜索资料和准备的步骤。
+-3. **用反馈调整推荐**。支持「喜欢」「不喜欢」「换一个」和「已完成」，用这些反馈逐步了解用户愿意尝试什么。
++建议参考主动选择的时间、精力、场景和当前匿名会话的历史偏好，不提供兴趣输入，也不接入或追踪定位、日历、健康与兴趣数据。累了可以休息，有点好奇心时也可以探索身边的小事。未配置模型密钥或模型失败时，服务端使用符合条件的内置建议；配置模型后，每次调用超时 7 秒，最多尝试 2 次，并校验输出。
+ 
+-第一版通过用户主动选择了解当下情境，日历、定位和健康数据接入留待后续评估。
++## B4 界面与边界
+ 
+-目前项目处于产品构想阶段。首版想验证的是，在人们习惯性打开短视频的一刻，WhyNot 能不能足够快地给出一个让人愿意尝试的选择。
++界面采用「空当纸册」视觉体系，保留系统字体、原生 HTML／CSS／JavaScript，无新增运行时依赖。
+ 
+-测试
++- 页脚折叠的「关于与主题」说明匿名会话、推荐与反馈数据用途，并提供跟随系统／浅色／深色。显式 `light`／`dark` 选择存于 `whynot-theme`，跟随系统则移除覆盖值；存储读写失败时静默回到跟随系统。
++- 只有已完成的建议提供分享：原生分享 → Clipboard → `execCommand` → 可选中文本手动复制。用户取消原生分享时安静结束，不再复制。分享链接只取 `location.origin + location.pathname`，不带 query、hash、建议编号、会话或反馈信息；分享不会记录反馈。
++- 安装相关仅补 manifest、Apple 180px 图标及 192／512px 安装图标；能否添加到主屏幕取决于浏览器，不承诺自动安装。**无 service worker，不支持离线重新打开。** 已打开的页面断网后仍可看原卡片，但不能生成新建议；恢复网络后由用户手动重试。
++
++## 本地开发与验收
++
++使用 Node.js，在仓库根目录 `E:\whynot` 的 Git Bash 中运行；分别保留服务终端：
++
++```sh
++# 终端 1：当前前端 + 实际 functions 路由，内存数据库
++node dev/server.mjs 8765
++
++# 终端 2：本地 API 验收
++node dev/acceptance.mjs
++# 如服务换到其他端口，可覆盖 BASE（不包含 /functions/v1/app）
++BASE=http://127.0.0.1:8875 node dev/acceptance.mjs
++
++# 终端 3：无真实密钥的假模型，固定监听 8766
++node dev/fake-model.mjs
++# 回到终端 2，假模型保持运行
++node dev/acceptance-model.mjs
++```
++
++打开 `http://127.0.0.1:8765/` 体验。内存数据随服务重启清空；无须云凭据，不设置 `MODEL_API_KEY` 即走内置建议。`acceptance-model.mjs` 也支持 `BASE`，会临时切换本地模型配置，覆盖成功、无效输出、上游错误和超时；不要与其他验收并行运行。本地 `/__local/*` 为测试控制入口，不是生产 API。
++
++`dev/acceptance-ui.mjs` 是浏览器测试模块，**不是 Node 命令行测试**。在上述本地页面的浏览器控制台运行已有分组：
++
++```js
++const { default: run } = await import('/__local/acceptance-ui.mjs');
++for (const group of ['state', 'timing', 'layout', 'b4']) console.log(await run(group));
++```
++
++`b4` 覆盖三态主题、存储受限、分享降级和安装资源。系统配色组合通过浏览器 CSS 媒体规则模拟，原生分享／剪贴板权限分支使用桩函数，不等于真实系统面板或手机验收。具体结果见 [B4 阶段日志](deliverables/b4-wrapup/B4-关于主题与收尾日志.md)。
++
++全量 `web/`（包括安装图标和 manifest）gzip 上限放宽至 **16 KiB（16384 B）**；原四项资源同时对照初定的 14 KiB。逐文件使用 gzip level 9 求和，不是当前本地服务器的实际传输量；raw 上限未放宽，超限单独报告。
++
++## 当前 API 契约
++
++代码入口为 `functions/index.ts` → `functions/routes.mjs`；浏览器统一基址为 **`/functions/v1/app`**。以下路径均接在该基址后：
++
++| 方法与路径 | 行为 |
++| --- | --- |
++| `POST /api/session` | 建立匿名会话，返回 `{ok:true, token}`；已有有效 token 时复用，返回 `{ok:true}`。 |
++| `POST /api/recommendations` | JSON 条件生成一条建议，成功为 201。 |
++| `POST /api/recommendations/:id/feedback` | JSON `{kind:"like"}`／`dislike`／`completed`，成功为 200 并返回更新后的卡片。 |
++| `GET /api/health` | 健康检查，返回 `{ok:true}`。 |
++
++三个业务端点之外仅有上述健康检查；当前 Functions **没有 `/api/history`**。
++
++会话流程：前端把 token 存于 `localStorage` 的 `whynot-session`，后续通过 `x-whynot-session` 请求头携带；存储不可用时仍可在当前页面内存中使用。服务端按 token 的 SHA-256 摘要识别归属，不信任请求 JSON 中的用户身份。前端保留 `credentials: 'same-origin'`，但 Sites 网关不转发应用 cookie，当前路由不靠 cookie 认证。
++
++推荐请求只接受 `budget`（整数 3／5／10／15）、`energy`（`low`／`steady`／`high`）及可省略或为 `null` 的 `scene`（`waiting`／`desk`／`outside`／`home`），拒绝额外字段。例如：
++
++```json
++{"budget":10,"energy":"steady","scene":null}
++```
++
++卡片字段为 `id`、`scene`、`energy`、`budget`、`category`、`title`、`first_step`、`detail`、`minutes`、`created`、`preference`、`completed`。增量字段 `category` 取 `rest`／`observe`／`listen`／`tidy`／`explore`；缺失、空值或未知值时前端仅隐藏类别，不丢弃整卡。`preference` 为 `null`／`like`／`dislike`，`completed` 为布尔值。换建议仍调用推荐端点，没有 swap 反馈类型。
++
++典型错误：401 `SESSION_REQUIRED`，400 `INVALID_CONTEXT`／`INVALID_FEEDBACK`／`INVALID_BODY`，415 `JSON_REQUIRED`，404 `NOT_FOUND`（含不属于当前会话的建议），503 `STORAGE_UNAVAILABLE`；请求体超过 2048 字节返回 413 `INVALID_BODY`。
++
++`app.py` 是较早的 Python／SQLite 原型：访问首页设置 HttpOnly `whynot` cookie，直接使用 `/api/*`，另有 `GET /api/history`。它与当前共享前端的 `/functions/v1/app` URL 和 token 会话流不兼容，不能用 `python app.py` 替代上述当前前端联调入口。
++
++## 交付状态
++
++详细交互与验收目标见 [产品说明](产品说明.md)。云端部署、公网链接验收、真实手机与有声屏幕阅读器测试、性能基准均不在此声明通过。后续部署及公开访问须另行授权执行。
++
++**每阶段记录实际改动、测试结果与未验项，然后停止，等待下一条指令；不自动提交、发布或进入下一阶段。** 日志只记录验证摘要，不记录密钥、用户原文或模型原始响应。
+diff --git a/app.py b/app.py
+index 6c4e0d6..7c4d567 100644
+--- a/app.py
++++ b/app.py
+@@ -17,7 +17,11 @@ from suggestions import BUDGETS, ENERGIES, SCENES, options
+ 
+ ROOT = Path(__file__).resolve().parent
+ ASSETS = {"/": ("index.html", "text/html"), "/style.css": ("style.css", "text/css"),
+-          "/app.js": ("app.js", "text/javascript"), "/icon.svg": ("icon.svg", "image/svg+xml")}
++          "/app.js": ("app.js", "text/javascript"), "/icon.svg": ("icon.svg", "image/svg+xml"),
++          "/manifest.webmanifest": ("manifest.webmanifest", "application/manifest+json"),
++          "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
++          "/icon-192.png": ("icon-192.png", "image/png"),
++          "/icon-512.png": ("icon-512.png", "image/png")}
+ 
+ 
+ class ApiError(Exception):
+diff --git a/dev/acceptance-model.mjs b/dev/acceptance-model.mjs
+index b8341bb..02d2754 100644
+--- a/dev/acceptance-model.mjs
++++ b/dev/acceptance-model.mjs
+@@ -30,6 +30,7 @@ const sessionBody = await session.json().catch(() => null);
+ if (typeof sessionBody?.token === 'string') token = sessionBody.token;
+ const db = async () => (await fetch(`${BASE}/__local/db`)).json();
+ const counts = async () => (await fetch(`${FAKE}/counts`)).json();
++const initialCounts = await counts();
+ const rowFor = async id => (await db()).recommendations.find(row => row.id === id);
+ 
+ await setEnv('MODEL_API_KEY', 'fake-local-key');
+@@ -56,12 +57,12 @@ await setEnv('MODEL_ENDPOINT', `${FAKE}/http500`);
+ result = await recommend(context);
+ row = await rowFor(result.data.id);
+ check('5xx → 兜底', result.status === 201 && row?.source === 'builtin');
+-check('5xx 重试一次为止', (await counts()).http500 === 2);
++check('5xx 重试一次为止', (await counts()).http500 - (initialCounts.http500 || 0) === 2);
+ 
+ await setEnv('MODEL_ENDPOINT', `${FAKE}/http401`);
+ result = await recommend(context);
+ row = await rowFor(result.data.id);
+-check('401 → 兜底且不重试', result.status === 201 && row?.source === 'builtin' && (await counts()).http401 === 1);
++check('401 → 兜底且不重试', result.status === 201 && row?.source === 'builtin' && (await counts()).http401 - (initialCounts.http401 || 0) === 1);
+ 
+ console.log('超时兜底');
+ await setEnv('MODEL_ENDPOINT', `${FAKE}/slow`);
+diff --git a/dev/server.mjs b/dev/server.mjs
+index f03c032..ada19d0 100644
+--- a/dev/server.mjs
++++ b/dev/server.mjs
+@@ -14,6 +14,11 @@ const ASSETS = {
+   '/style.css': ['style.css', 'text/css'],
+   '/app.js': ['app.js', 'text/javascript'],
+   '/icon.svg': ['icon.svg', 'image/svg+xml'],
++  '/manifest.webmanifest': ['manifest.webmanifest', 'application/manifest+json'],
++  '/apple-touch-icon.png': ['apple-touch-icon.png', 'image/png'],
++  '/icon-192.png': ['icon-192.png', 'image/png'],
++  '/icon-512.png': ['icon-512.png', 'image/png'],
++  '/__local/acceptance-ui.mjs': ['../dev/acceptance-ui.mjs', 'text/javascript'],
+ };
+ 
+ class LocalError extends Error {
+diff --git a/web/app.js b/web/app.js
+index fc6c3b1..605c7d4 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -1,57 +1,79 @@
+ const API = '/functions/v1/app';
+ const SESSION_KEY = 'whynot-session';
+ const GUIDE_KEY = 'whynot-guide';
+-
+ const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
++const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
+ const SCENE_LABELS = { waiting: '等饭／排队', desk: '在桌前', outside: '在路上', home: '在家／宿舍' };
+ const ENERGY_LABELS = { low: '有点累', steady: '还可以', high: '精神好' };
+-
+-let sessionToken = null;
++const FEEDBACK_LABELS = { like: '喜欢这条建议', dislike: '不喜欢这条建议', completed: '标记为已完成' };
++const ERRORS = {
++  network_error: '网络好像断了，已选条件还在。再试一次？',
++  timeout: '等太久了，网络可能不太稳。再试一次？',
++  SESSION_REQUIRED: '会话过期了，再试一次就好。',
++  NOT_FOUND: '这条建议找不到了，换一条就好。',
++  INVALID_FEEDBACK: '这次反馈没被接受，可以再点一次。',
++  STORAGE_UNAVAILABLE: '现在有点忙，没能记下。等一下再试。',
++  invalid_response: '拿到的建议不完整，再试一次？',
++};
++const NO_RETRY = ['INVALID_CONTEXT', 'JSON_REQUIRED', 'INVALID_BODY'];
++let sessionToken = null, sessionPromise = null;
+ try { sessionToken = localStorage.getItem(SESSION_KEY); } catch {}
+ function saveToken(token) {
+   sessionToken = token;
+   try { localStorage.setItem(SESSION_KEY, token); } catch {}
+ }
+-
+ class RequestError extends Error {
+   constructor(code, status) { super(code); this.code = code; this.status = status; }
+ }
+-
+ async function requestJson(path, init) {
+-  let response;
++  const signal = AbortSignal.timeout(25000);
++  let response, body;
+   try {
+     response = await fetch(`${API}${path}`, {
+       ...init,
+       headers: { ...init?.headers, ...(sessionToken ? { 'x-whynot-session': sessionToken } : {}) },
+-      credentials: 'same-origin',
+-      signal: AbortSignal.timeout(25000),
++      credentials: 'same-origin', signal,
+     });
+-  } catch { throw new RequestError('network_error', 0); }
+-  let body;
+-  try { body = await response.json(); } catch { throw new RequestError('invalid_response', response.status); }
+-  if (!response.ok) throw new RequestError(typeof body?.error === 'string' ? body.error : 'request_failed', response.status);
++    body = await response.json();
++  } catch (error) {
++    const timeout = signal.aborted || ['AbortError', 'TimeoutError'].includes(error.name);
++    throw new RequestError(timeout ? 'timeout' : response ? 'invalid_response' : 'network_error', response?.status || 0);
++  }
++  if (!response.ok) throw new RequestError(response.status === 409 ? 'STORAGE_UNAVAILABLE' : body?.error || 'request_failed', response.status);
+   return body;
+ }
+-
++async function requestWithRecovery(path, init, recoverSession = true) {
++  let sessionRetried = false, storageRetried = false;
++  for (;;) {
++    try { return await requestJson(path, init); }
++    catch (error) {
++      if (error.code === 'SESSION_REQUIRED' && recoverSession && !sessionRetried) {
++        sessionRetried = true;
++        await ensureSession(true);
++      } else if (error.code === 'STORAGE_UNAVAILABLE' && !storageRetried) {
++        storageRetried = true;
++        await new Promise(resolve => setTimeout(resolve, 800));
++      } else { throw error; }
++    }
++  }
++}
+ function cardResult(value) {
+   if (!value || typeof value !== 'object'
+-    || typeof value.id !== 'string' || typeof value.title !== 'string'
+-    || typeof value.first_step !== 'string' || typeof value.detail !== 'string'
+-    || !Number.isInteger(value.minutes)
++    || typeof value.id !== 'string' || typeof value.title !== 'string' || !value.title.trim()
++    || typeof value.first_step !== 'string' || !value.first_step.trim() || typeof value.detail !== 'string'
++    || !Number.isInteger(value.minutes) || value.minutes < 1
+     || !['like', 'dislike', null].includes(value.preference)
+     || typeof value.completed !== 'boolean') throw new RequestError('invalid_response', 0);
+-  const category = typeof value.category === 'string' && CATEGORY_LABELS[value.category] ? value.category : null;
++  const category = Object.keys(CATEGORY_LABELS).includes(value.category) ? value.category : null;
+   return { ...value, category };
+ }
+-
+ const state = {
+-  sessionReady: false,
+-  busy: false,
+-  feedbackPending: false,
+-  card: null,
++  sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
++  feedbackPending: false, feedbackAttempts: {}, card: null,
+ };
+-
+ const result = document.getElementById('result');
++const status = document.getElementById('status');
++const feedbackStatus = document.getElementById('feedback-status');
+ const askButton = document.getElementById('ask');
+ const guide = document.getElementById('guide');
+ const sceneToggle = document.getElementById('scene-toggle');
+@@ -59,41 +81,42 @@ const scenePanel = document.getElementById('scene-panel');
+ const sceneValueText = document.getElementById('scene-value-text');
+ const settingsToggle = document.getElementById('settings-toggle');
+ const about = document.getElementById('about');
+-
+ const SVG_OPEN_64 = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 7.2 H7.2 V40.8 H40.8 V19.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 32 H38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+ const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
+ const SVG_CLOSED_16 = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 2.4 H2.4 V13.6 H13.6 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>';
+-
+ function conditions() {
+-  const scene = document.querySelector('input[name="scene"]:checked').value;
+   return {
+     budget: Number(document.querySelector('input[name="budget"]:checked').value),
+     energy: document.querySelector('input[name="energy"]:checked').value,
+-    scene: scene || null,
++    scene: document.querySelector('input[name="scene"]:checked').value || null,
+   };
+ }
+-
++function sameConditions(a, b) {
++  return a && b && ['budget', 'energy', 'scene'].every(key => a[key] === b[key]);
++}
+ async function ensureSession(force = false) {
+-  if (state.sessionReady && !force) return true;
+-  try {
+-    const body = await requestJson('/api/session', { method: 'POST' });
++  if (sessionPromise) return sessionPromise;
++  if (state.sessionReady && !force) return;
++  sessionPromise = (async () => {
++    state.sessionReady = false;
++    const body = await requestWithRecovery('/api/session', { method: 'POST' }, false);
+     if (body?.ok !== true) throw new RequestError('invalid_response', 0);
+     if (typeof body.token === 'string') saveToken(body.token);
+     state.sessionReady = true;
+-    return true;
+-  } catch {
+-    state.sessionReady = false;
+-    return false;
+-  }
++  })();
++  try { await sessionPromise; } finally { sessionPromise = null; }
+ }
+-
+ function el(tag, className, text) {
+   const node = document.createElement(tag);
+   if (className) node.className = className;
+   if (text !== undefined) node.textContent = text;
+   return node;
+ }
+-
++function focus(node) { node?.focus({ preventScroll: true }); }
++function reveal(node) {
++  const top = node.getBoundingClientRect().top;
++  if (top < 0 || top >= innerHeight) node.scrollIntoView({ block: 'start', behavior: 'instant' });
++}
+ function renderEmpty() {
+   const block = el('div', 'empty');
+   const fig = el('span', 'empty-fig');
+@@ -101,238 +124,359 @@ function renderEmpty() {
+   block.append(fig, el('h2', null, '现在不刷，也可以。'), el('p', 'hint', '选好上面，点一下就有一条。'));
+   result.replaceChildren(block);
+ }
+-
+ function renderLoading() {
+   const card = el('article', 'skeleton');
++  card.setAttribute('aria-hidden', 'true');
+   card.append(el('p', 'sk-text', '正在找建议'));
+-  const meta = el('div', 'sk sk-meta');
+-  const title1 = el('div', 'sk sk-title w1');
+-  const title2 = el('div', 'sk sk-title w2');
+-  const btn = el('div', 'sk sk-btn');
+-  const line1 = el('div', 'sk sk-line w1');
+-  const line2 = el('div', 'sk sk-line w2');
+-  card.append(meta, title1, title2, btn, line1, line2);
++  for (const name of ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2']) card.append(el('div', `sk sk-${name}`));
+   result.replaceChildren(card);
+ }
+-
+-function renderNotice(text) {
++function errorText(error) {
++  if (NO_RETRY.includes(error.code)) return '这次没成功，刷新页面再试。';
++  return ERRORS[error.code] || '这次没找到，再试一次。';
++}
++function renderNotice(error, snapshot) {
+   const notice = el('div', 'notice');
+-  notice.setAttribute('role', 'alert');
++  const offline = navigator.onLine === false;
+   const inner = el('div', 'notice-inner');
+   const fig = el('span', 'notice-fig');
+   fig.innerHTML = SVG_BROKEN_48;
+   const body = el('div', 'notice-body');
+-  body.append(el('p', 'notice-title', text));
+-  const retry = el('button', 'retry', '再试一次');
+-  retry.type = 'button';
+-  retry.addEventListener('click', () => ask());
+-  body.append(retry);
++  const text = offline ? '网络断了，已选条件还在。恢复后点「再试一次」。' : errorText(error);
++  const message = el('p', 'notice-title', text);
++  message.setAttribute('role', offline ? 'status' : 'alert');
++  if (offline) notice.dataset.offline = 'true';
++  body.append(message);
++  if (!NO_RETRY.includes(error.code)) {
++    const missing = error.code === 'NOT_FOUND';
++    const retry = el('button', 'retry', missing ? '换一个' : '再试一次');
++    retry.type = 'button';
++    retry.dataset.focus = 'retry';
++    retry.disabled = offline;
++    retry.setAttribute('aria-disabled', String(offline));
++    retry.addEventListener('click', () => ask(missing ? conditions() : snapshot));
++    body.append(retry);
++  }
+   inner.append(fig, body);
+   notice.append(inner);
+   return notice;
+ }
+-
+-function swapButton() {
+-  const swap = el('button', 'swap', '换一个');
+-  swap.type = 'button';
+-  const card = state.card;
+-  if (card) {
+-    const sceneText = card.scene ? SCENE_LABELS[card.scene] : '跳过';
+-    swap.setAttribute('aria-label', `换一个，保留 ${card.budget} 分钟、${ENERGY_LABELS[card.energy]}、${sceneText}`);
++function syncConditions() {
++  const changed = !!state.conditions && !sameConditions(state.conditions, conditions());
++  const note = result.querySelector('.condition-note');
++  if (note) {
++    note.textContent = state.conditionsMatch && changed ? `按 ${state.conditions.budget} 分钟生成` : '';
++    note.hidden = !note.textContent;
+   }
+-  swap.disabled = state.busy;
+-  swap.addEventListener('click', () => ask());
++  const swap = result.querySelector('[data-focus="swap"]');
++  if (!swap) return;
++  swap.textContent = changed ? '按新条件再来一条' : '换一个';
++  swap.closest('.card-actions')?.classList.toggle('changed', changed);
++  const context = state.conditions;
++  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `换一个，保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
++  swap.disabled = state.busy || navigator.onLine === false;
++  swap.setAttribute('aria-disabled', String(swap.disabled));
++}
++function swapButton(className = 'swap') {
++  const swap = el('button', className, '换一个');
++  swap.type = 'button';
++  swap.dataset.focus = 'swap';
++  swap.addEventListener('click', () => ask(conditions(), 'swap'));
+   return swap;
+ }
+-
+ function feedbackButton(label, kind) {
+   const button = el('button', kind === 'completed' ? 'done-key' : null, label);
+   button.type = 'button';
+-  const active = kind === 'completed' ? state.card.completed : state.card.preference === kind;
+-  button.setAttribute('aria-pressed', String(active));
++  button.dataset.focus = kind;
++  button.setAttribute('aria-label', FEEDBACK_LABELS[kind]);
++  button.setAttribute('aria-pressed', String(kind === 'completed' ? state.card.completed : state.card.preference === kind));
++  button.setAttribute('aria-disabled', String(state.feedbackPending || (state.feedbackAttempts[kind] || 0) >= 2));
+   button.addEventListener('click', () => sendFeedback(kind));
+   return button;
+ }
+-
+ function completedRow() {
+   const row = el('div', 'done-row');
+   const done = el('span', 'done-state');
++  done.tabIndex = -1;
++  done.dataset.focus = 'completed';
++  done.setAttribute('aria-label', '已完成。这条记下了。');
+   done.innerHTML = SVG_CLOSED_16;
+   done.append('已完成');
+-  row.append(done, el('span', 'done-spacer'));
+-  const swap = el('button', 'textbtn', '换一个');
+-  swap.type = 'button';
+-  const card = state.card;
+-  const sceneText = card.scene ? SCENE_LABELS[card.scene] : '跳过';
+-  swap.setAttribute('aria-label', `换一个，保留 ${card.budget} 分钟、${ENERGY_LABELS[card.energy]}、${sceneText}`);
+-  swap.addEventListener('click', () => ask());
+   const share = el('button', 'textbtn', '分享这条');
+   share.type = 'button';
+-  share.addEventListener('click', () => shareCard());
+-  row.append(swap, share);
++  share.dataset.focus = 'share';
++  share.setAttribute('aria-label', '分享这条建议');
++  share.setAttribute('aria-disabled', String(state.feedbackPending || shareBusy));
++  share.addEventListener('click', shareCard);
++  row.append(done, el('span', 'done-spacer'), swapButton('textbtn'), share);
+   return row;
+ }
+-
++const shareStatus = document.getElementById('share-status');
++const shareText = document.getElementById('share-text');
++let shareAttempt = 0, shareBusy = false, shareTimer;
++function clearShare() {
++  shareAttempt++;
++  shareBusy = false;
++  clearTimeout(shareTimer);
++  shareStatus.textContent = '';
++  shareText.hidden = true;
++  shareText.value = '';
++}
+ async function shareCard() {
+   const card = state.card;
+-  if (!card) return;
+-  const text = `刚看到一条 ${card.budget} 分钟能做的小事：${card.first_step}你也可以选一次自己的空当。${location.href}`;
+-  let note = '已复制。';
+-  if (navigator.share) {
+-    try {
+-      await navigator.share({ text });
+-      return;
+-    } catch {}
+-  }
++  if (!card?.completed || state.busy || state.feedbackPending || shareBusy) return;
++  clearShare();
++  if (navigator.onLine === false) { shareStatus.textContent = '现在分享不了，等有网再试。'; return; }
++  shareBusy = true;
++  const attempt = shareAttempt, seq = state.seq;
++  const current = () => attempt === shareAttempt && seq === state.seq && state.card?.id === card.id && state.card.completed;
++  const button = result.querySelector('[data-focus="share"]');
++  button?.setAttribute('aria-disabled', 'true');
++  const title = Array.from(card.title).slice(0, 40).join('').replace(/[。！？.!?]+$/, '');
++  const text = `刚看到一条 ${state.conditions.budget} 分钟能做的小事：${title}。你也可以选一次自己的空当。\n${location.origin}${location.pathname}`;
+   try {
+-    await navigator.clipboard.writeText(text);
+-  } catch {
+-    note = '没复制成功，可以长按页面手动复制。';
++    if (typeof navigator.share === 'function') {
++      try { await navigator.share({ text }); return; }
++      catch (error) { if (error.name === 'AbortError' || !current()) return; }
++    }
++    let copied = false;
++    try { await navigator.clipboard.writeText(text); copied = true; } catch {}
++    if (!current()) return;
++    if (!copied) {
++      shareText.value = text;
++      shareText.hidden = false;
++      focus(shareText);
++      shareText.select();
++      try { copied = document.execCommand('copy'); } catch {}
++      if (copied) {
++        shareText.hidden = true;
++        shareText.value = '';
++        focus(button);
++      } else {
++        shareStatus.textContent = '没能复制，可以长按选中这段文字。';
++        reveal(shareText);
++        return;
++      }
++    }
++    shareStatus.textContent = '已复制。';
++    shareTimer = setTimeout(() => { if (current()) shareStatus.textContent = ''; }, 2000);
++  } finally {
++    if (current()) {
++      shareBusy = false;
++      result.querySelector('[data-focus="share"]')?.setAttribute('aria-disabled', 'false');
++    }
+   }
+-  const row = result.querySelector('.done-row');
+-  if (row) row.insertAdjacentElement('afterend', el('p', 'share-note', note));
+ }
+-
+ function buildCard() {
+   const card = state.card;
+   const article = el('article', 'card');
++  article.setAttribute('aria-labelledby', 'card-title');
++  article.setAttribute('aria-describedby', 'card-first');
+   const meta = el('div', 'card-meta');
+-  if (card.category) meta.append(el('span', 'cat', CATEGORY_LABELS[card.category]));
+-  meta.append(el('span', 'badge', `约 ${card.minutes} 分钟`));
++  if (card.category) {
++    const cat = el('span', 'cat', CATEGORY_LABELS[card.category]);
++    cat.setAttribute('aria-label', `类别：${CATEGORY_NAMES[card.category]}`);
++    meta.append(cat);
++  }
++  meta.append(el('span', 'badge', `约 ${card.minutes} 分钟`), el('span', 'condition-note'));
+   const title = el('h2', null, card.title);
+-  const sep = el('hr', 'card-sep');
++  title.id = 'card-title';
++  title.tabIndex = -1;
++  title.setAttribute('aria-label', `新的建议：${card.title}，约 ${card.minutes} 分钟`);
+   const first = el('div', 'first');
++  first.id = 'card-first';
+   first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
+-  article.append(meta, title, sep, first, el('p', 'detail', card.detail));
+-
+-  if (card.completed) {
+-    article.append(completedRow());
+-  } else {
++  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
++  if (card.completed) article.append(completedRow());
++  else {
+     const actions = el('div', 'card-actions');
+     const feedback = el('div', 'feedback');
+     feedback.setAttribute('role', 'group');
+     feedback.setAttribute('aria-label', '这条建议怎么样');
+     feedback.append(feedbackButton('喜欢', 'like'), feedbackButton('不喜欢', 'dislike'), feedbackButton('已完成', 'completed'));
+-    actions.append(feedback, el('span', 'key-sep'), swapButton());
++    actions.append(feedback, swapButton());
+     article.append(actions);
+   }
+   return article;
+ }
+-
+ function renderCard() {
+-  result.replaceChildren(buildCard());
+-}
+-
+-function errorText(error) {
+-  if (error instanceof RequestError) {
+-    if (error.code === 'network_error') return '网络好像断了，已选条件还在。再试一次？';
+-    if (error.code === 'INVALID_CONTEXT') return '时间和精力的选择好像出了点问题，请重新选一下。';
+-    if (error.code === 'SESSION_REQUIRED') return '会话过期了，请再试一次。';
+-  }
+-  return '暂时没找到建议，请稍后再试。';
++  const active = document.activeElement;
++  const key = result.contains(active) ? active.dataset.focus : null;
++  const old = result.querySelector('.card');
++  if (old) old.replaceWith(buildCard());
++  else result.append(buildCard());
++  syncConditions();
++  if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));
+ }
+-
+ function dismissGuide() {
+   try { localStorage.setItem(GUIDE_KEY, 'seen'); } catch {}
+   guide.hidden = true;
+ }
+-
+-async function ask() {
++function setBusy(busy) {
++  state.busy = busy;
++  result.setAttribute('aria-busy', String(busy));
++  askButton.disabled = busy;
++  askButton.setAttribute('aria-busy', String(busy));
++  askButton.textContent = busy ? '正在找建议' : '给我一个建议';
++}
++async function ask(snapshot = conditions(), source = 'primary') {
+   if (state.busy) return;
+-  state.busy = true;
+-  askButton.disabled = true;
+-  askButton.textContent = '正在找建议';
+-  const previous = state.card;
++  snapshot = { ...snapshot };
++  clearShare();
++  feedbackStatus.textContent = '';
++  status.textContent = '正在找建议';
++  focus(result);
++  setBusy(true);
+   renderLoading();
++  const timer = setTimeout(() => {
++    const text = result.querySelector('.sk-text');
++    if (text) text.textContent = '还在找，再等一下';
++  }, 8000);
+   try {
+-    if (!await ensureSession()) throw new RequestError('network_error', 0);
+-    const payload = {
+-      method: 'POST',
+-      headers: { 'content-type': 'application/json' },
+-      body: JSON.stringify(conditions()),
+-    };
+-    let body;
+-    try {
+-      body = await requestJson('/api/recommendations', payload);
+-    } catch (error) {
+-      if (error instanceof RequestError && error.code === 'SESSION_REQUIRED') {
+-        await ensureSession(true);
+-        body = await requestJson('/api/recommendations', payload);
+-      } else { throw error; }
+-    }
+-    state.card = cardResult(body);
++    if (navigator.onLine === false) throw new RequestError('network_error', 0);
++    await ensureSession();
++    const body = await requestWithRecovery('/api/recommendations', {
++      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(snapshot),
++    });
++    const card = cardResult(body);
++    if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
++    state.card = card;
++    state.seq++;
++    state.conditions = snapshot;
++    state.conditionsMatch = sameConditions(card, snapshot);
++    if (!state.conditionsMatch) console.warn('Recommendation context mismatch');
++    state.feedbackPending = false;
++    state.feedbackAttempts = {};
++    setBusy(false);
++    result.replaceChildren();
+     dismissGuide();
+     renderCard();
++    status.textContent = '';
++    if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
++    else {
++      if (document.activeElement === result) focus(result.querySelector('[data-focus="swap"]'));
++      status.textContent = `新的建议：${card.title}，约 ${card.minutes} 分钟`;
++    }
++    if (result.contains(document.activeElement)) reveal(result.querySelector('.card'));
+   } catch (error) {
+-    state.card = previous;
+-    result.replaceChildren(renderNotice(errorText(error)));
+-    if (previous) result.append(buildCard());
++    setBusy(false);
++    status.textContent = '';
++    result.replaceChildren(renderNotice(error, snapshot));
++    if (state.card) renderCard();
++    if (document.activeElement === result) reveal(result);
+   } finally {
+-    state.busy = false;
+-    askButton.disabled = false;
+-    askButton.textContent = '给我一个建议';
+-    const swap = result.querySelector('.swap, .done-row .textbtn');
+-    if (swap) swap.disabled = false;
++    clearTimeout(timer);
++    setBusy(false);
++    syncConditions();
+   }
+ }
+-
+ async function sendFeedback(kind) {
+-  if (state.busy || state.feedbackPending || !state.card) return;
+-  if (kind === 'completed' && state.card.completed) return;
+-  if (kind !== 'completed' && state.card.preference === kind) return;
++  if (state.busy || state.feedbackPending || !state.card || (state.feedbackAttempts[kind] || 0) >= 2) return;
++  if (kind === 'completed' ? state.card.completed : state.card.preference === kind) return;
++  if (navigator.onLine === false) { feedbackStatus.textContent = ERRORS.network_error; return; }
++  const seq = state.seq, cardId = state.card.id, snapshot = { ...state.card };
++  const current = () => seq === state.seq && state.card?.id === cardId;
+   state.feedbackPending = true;
+-  const snapshot = { ...state.card };
++  feedbackStatus.textContent = '';
+   if (kind === 'completed') state.card.completed = true;
+   else state.card.preference = kind;
+   renderCard();
++  let note = '', redraw = false;
+   try {
+-    const body = await requestJson(`/api/recommendations/${state.card.id}/feedback`, {
+-      method: 'POST',
+-      headers: { 'content-type': 'application/json' },
+-      body: JSON.stringify({ kind }),
++    const body = await requestWithRecovery(`/api/recommendations/${encodeURIComponent(cardId)}/feedback`, {
++      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ kind }),
+     });
+-    state.card = cardResult(body);
+-    renderCard();
+-  } catch {
++    if (!current()) return;
++    const card = cardResult(body);
++    if (card.id !== cardId) throw new RequestError('invalid_response', 0);
++    redraw = Object.keys(card).some(key => card[key] !== state.card[key]);
++    state.card = card;
++    note = kind === 'completed' ? '已完成。这条记下了。' : kind === 'like' ? '记为喜欢，可以改。' : '记为不喜欢，可以改。';
++  } catch (error) {
++    if (!current()) return;
++    redraw = true;
+     state.card = snapshot;
+-    renderCard();
+-    result.querySelector('.card')?.append(el('p', 'share-note', '反馈没有送达，请再点一次。'));
++    if (error.code === 'NOT_FOUND') {
++      state.card = null;
++      if (!state.busy) {
++        if (result.contains(document.activeElement)) focus(result);
++        result.replaceChildren(renderNotice(error, state.conditions));
++      }
++    } else if (error.code === 'INVALID_FEEDBACK') {
++      state.feedbackAttempts[kind] = (state.feedbackAttempts[kind] || 0) + 1;
++      if (state.feedbackAttempts[kind] < 2) note = errorText(error);
++    } else { note = errorText(error); }
+   } finally {
+-    state.feedbackPending = false;
++    // A stale completion must not unlock or roll back feedback on the next card.
++    if (seq === state.seq && (state.card?.id === cardId || !state.card)) {
++      state.feedbackPending = false;
++      if (!state.busy && state.card) {
++        if (redraw) renderCard();
++        else result.querySelectorAll('.feedback button').forEach(button => button.setAttribute('aria-disabled', String((state.feedbackAttempts[button.dataset.focus] || 0) >= 2)));
++        result.querySelector('[data-focus="share"]')?.setAttribute('aria-disabled', String(shareBusy));
++        if (!(kind === 'completed' && state.card.completed && document.activeElement?.classList.contains('done-state'))) feedbackStatus.textContent = note;
++      }
++    }
+   }
+ }
+-
+ function syncSceneRow() {
+-  const scene = document.querySelector('input[name="scene"]:checked').value;
+-  sceneValueText.textContent = scene ? SCENE_LABELS[scene] : '可跳过';
++  const scene = conditions().scene;
++  const expanded = sceneToggle.getAttribute('aria-expanded') === 'true';
++  sceneValueText.textContent = SCENE_LABELS[scene] || '可跳过';
++  sceneToggle.setAttribute('aria-label', `场景，当前${SCENE_LABELS[scene] || '可跳过'}，${expanded ? '收起' : '展开'}${scene ? '修改' : '补充'}`);
+ }
+-
+ sceneToggle.addEventListener('click', () => {
+   const expanded = sceneToggle.getAttribute('aria-expanded') === 'true';
+   sceneToggle.setAttribute('aria-expanded', String(!expanded));
+   scenePanel.hidden = expanded;
++  syncSceneRow();
++  if (expanded) focus(sceneToggle);
+ });
+-
+-document.querySelectorAll('input[name="scene"]').forEach(input => {
+-  input.addEventListener('change', syncSceneRow);
++document.querySelector('.panel').addEventListener('change', () => { syncSceneRow(); syncConditions(); });
++const themeKey = 'whynot-theme';
++function applyTheme(theme) {
++  if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
++  else delete document.documentElement.dataset.theme;
++  document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
++  document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
++    const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
++    meta.content = dark ? '#18211c' : '#f6f1e7';
++  });
++}
++about.addEventListener('change', event => {
++  if (event.target.name !== 'theme') return;
++  let theme = event.target.value;
++  try {
++    if (theme === 'system') localStorage.removeItem(themeKey);
++    else localStorage.setItem(themeKey, theme);
++  } catch { theme = 'system'; }
++  applyTheme(theme);
+ });
+-
++settingsToggle.setAttribute('aria-label', '设置，关于与主题');
+ settingsToggle.addEventListener('click', () => {
+   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
+   settingsToggle.setAttribute('aria-expanded', String(!expanded));
+   settingsToggle.textContent = expanded ? '设置' : '收起设置';
++  settingsToggle.setAttribute('aria-label', expanded ? '设置，关于与主题' : '收起设置，关于与主题');
+   about.hidden = expanded;
++  if (expanded) focus(settingsToggle);
++});
++for (const event of ['offline', 'online']) window.addEventListener(event, () => {
++  syncConditions();
++  const notice = result.querySelector('[data-offline]');
++  if (notice) {
++    notice.querySelector('.notice-title').textContent = navigator.onLine ? '网络回来了。点「再试一次」。' : '网络断了，已选条件还在。恢复后点「再试一次」。';
++    const retry = notice.querySelector('.retry');
++    if (retry) { retry.disabled = !navigator.onLine; retry.setAttribute('aria-disabled', String(retry.disabled)); }
++  }
+ });
+-
+ askButton.addEventListener('click', () => ask());
+-
+ (function init() {
+   const now = new Date();
+   document.getElementById('masthead-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日`;
+-  let guideSeen = false;
+-  try { guideSeen = localStorage.getItem(GUIDE_KEY) === 'seen'; } catch {}
+-  guide.hidden = guideSeen;
++  guide.hidden = document.documentElement.dataset.guided === '1';
++  applyTheme(document.documentElement.dataset.theme || 'system');
+   syncSceneRow();
+   renderEmpty();
+-  ensureSession();
++  ensureSession().catch(() => {});
+ })();
+diff --git a/web/index.html b/web/index.html
+index 6ae4873..96d5e7e 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -9,6 +9,9 @@
+   <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
+   <meta name="color-scheme" content="light dark">
+   <link rel="icon" href="/icon.svg" type="image/svg+xml">
++  <link rel="manifest" href="/manifest.webmanifest">
++  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
++  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#18211c':'#f6f1e7')}}catch{}</script>
+   <link rel="stylesheet" href="/style.css">
+ </head>
+ <body>
+@@ -24,7 +27,7 @@
+   </header>
+ 
+   <main class="page">
+-    <div class="guide" id="guide" hidden>
++    <div class="guide" id="guide">
+       <p>选一下还有多久、现在有多少力气。</p>
+       <p>点一下，就有一条现在能做的事。</p>
+       <p>不合适就换，什么都不做也行。</p>
+@@ -61,7 +64,7 @@
+           </span>
+         </button>
+         <div class="scene-panel" id="scene-panel" hidden>
+-          <div class="chips">
++          <div class="chips" role="group" aria-label="我在哪儿，可以跳过">
+             <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
+             <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
+             <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
+@@ -74,17 +77,36 @@
+ 
+     <button id="ask" class="primary" type="button">给我一个建议</button>
+ 
+-    <section id="result" aria-live="polite"></section>
++    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
++    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
++    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
++    <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
++    <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
+ 
+     <noscript>
+-      <p class="noscript">WhyNot 需要启用 JavaScript 才能生成建议。选好时间和精力后，你会看到一条现在就能开始的小事。</p>
++      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
+     </noscript>
+ 
+     <footer class="foot">
+       <span>随时可以停下</span>
+       <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about">设置</button>
+     </footer>
+-    <div class="about" id="about" hidden></div>
++    <section class="about" id="about" aria-labelledby="about-title" hidden>
++      <h2 id="about-title">关于与主题</h2>
++      <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
++      <fieldset>
++        <legend>主题</legend>
++        <div class="chips">
++          <input type="radio" name="theme" id="theme-system" value="system" checked><label for="theme-system">跟随系统</label>
++          <input type="radio" name="theme" id="theme-light" value="light"><label for="theme-light">浅色</label>
++          <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark">深色</label>
++        </div>
++      </fieldset>
++      <h3>数据说明</h3>
++      <p>不注册。只记下你的选择和反馈，用来调整下次建议。</p>
++      <p>建议和反馈保存在服务端。此设备保存匿名会话、主题和引导状态。清除浏览器数据不会删除服务端记录。</p>
++      <p class="version">WhyNot · 首版 P0</p>
++    </section>
+   </main>
+   <script src="/app.js"></script>
+ </body>
+diff --git a/web/style.css b/web/style.css
+index 0a905f0..6e41f1b 100644
+--- a/web/style.css
++++ b/web/style.css
+@@ -1,674 +1,154 @@
+-:root {
+-  --wn-paper: #f6f1e7;
+-  --wn-sheet: #fffdf7;
+-  --wn-well: #f2ede1;
+-  --wn-ink: #26362e;
+-  --wn-ink-2: #5f6e64;
+-  --wn-accent: #2f6d5a;
+-  --wn-accent-press: #255a4a;
+-  --wn-accent-soft: #e8f0ea;
+-  --wn-on-accent: #f8f5ec;
+-  --wn-line: #95876d;
+-  --wn-hairline: #e3dac7;
+-  --wn-time: #7d5a33;
+-  --wn-time-soft: #f3e7d4;
+-  --wn-alert: #8c3b2e;
+-  --wn-alert-soft: #f6e3dc;
+-  --wn-focus: #26362e;
+-  --wn-bone: #e6ddcc;
+-  --wn-font: "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, -apple-system, "Segoe UI", sans-serif;
+-  --wn-r1: 6px;
+-  --wn-r2: 14px;
+-  --wn-r3: 22px;
+-  --wn-rpill: 999px;
+-  --wn-s1: 0.25rem;
+-  --wn-s2: 0.5rem;
+-  --wn-s3: 0.75rem;
+-  --wn-s4: 1rem;
+-  --wn-s5: 1.25rem;
+-  --wn-s6: 1.5rem;
+-  --wn-s7: 2rem;
+-  --wn-s8: 3rem;
+-  --wn-s9: 4rem;
+-  --wn-t1: 700 2rem/1.25;
+-  --wn-t2: 600 1.375rem/1.364;
+-  --wn-t3: 500 1.1875rem/1.579;
+-  --wn-t4: 400 1rem/1.625;
+-  --wn-t5: 400 0.875rem/1.571;
+-  --wn-t6: 500 0.75rem/1.5;
+-  --wn-m1: 120ms;
+-  --wn-m2: 180ms;
+-  --wn-m3: 240ms;
+-  --wn-m4: 1600ms;
+-}
+-
+-@media (prefers-color-scheme: dark) {
+-  :root {
+-    --wn-paper: #18211c;
+-    --wn-sheet: #212c25;
+-    --wn-well: #141b17;
+-    --wn-ink: #e9e4d6;
+-    --wn-ink-2: #9aa89d;
+-    --wn-accent: #7fc4a8;
+-    --wn-accent-press: #6bb094;
+-    --wn-accent-soft: #26362f;
+-    --wn-on-accent: #12241c;
+-    --wn-line: #64796c;
+-    --wn-hairline: #33413a;
+-    --wn-time: #d9b483;
+-    --wn-time-soft: #2e2a21;
+-    --wn-alert: #e8a58f;
+-    --wn-alert-soft: #33241f;
+-    --wn-focus: #e9e4d6;
+-    --wn-bone: #2c3830;
+-  }
+-}
+-
+-* { box-sizing: border-box; }
+-
+-:focus-visible {
+-  outline: 2px solid var(--wn-focus);
+-  outline-offset: 2px;
+-}
+-
+-body {
+-  margin: 0;
+-  background: var(--wn-paper);
+-  color: var(--wn-ink);
+-  font-family: var(--wn-font);
+-  font-size: 1rem;
+-  line-height: 1.625;
+-  -webkit-font-smoothing: antialiased;
+-}
+-
+-.masthead {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  max-width: 480px;
+-  margin: 0 auto;
+-  height: 56px;
+-  padding: 0 var(--wn-s5);
+-  border-bottom: 1px solid var(--wn-hairline);
+-}
+-
+-.masthead-left {
+-  display: flex;
+-  align-items: center;
+-  gap: var(--wn-s2);
+-}
+-
+-.mark { display: block; width: 20px; height: 20px; color: var(--wn-ink); }
+-
+-.brand-name {
+-  font-size: 1.375rem;
+-  font-weight: 600;
+-  line-height: 1.364;
+-  letter-spacing: 0.04em;
+-}
+-
+-.masthead-date {
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  letter-spacing: 0.04em;
+-}
+-
+-.page {
+-  max-width: 480px;
+-  margin: 0 auto;
+-  padding: var(--wn-s3) var(--wn-s5) var(--wn-s7);
+-}
+-
+-.guide { margin: 0 0 var(--wn-s4); }
+-
+-.guide p {
+-  margin: 0;
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  line-height: 22px;
+-}
+-
+-.panel {
+-  background: var(--wn-sheet);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-r2);
+-  padding: var(--wn-s4);
+-}
+-
+-fieldset {
+-  border: 0;
+-  padding: 0;
+-  margin: var(--wn-s6) 0 0;
+-}
+-
+-fieldset:first-of-type { margin-top: 0; }
+-
+-legend {
+-  padding: 0;
+-  margin-bottom: var(--wn-s2);
+-  font-size: 1rem;
+-  font-weight: 600;
+-  line-height: 1.625;
+-}
+-
+-.seg {
+-  display: flex;
+-  min-height: 48px;
+-  padding: var(--wn-s1);
+-  border-radius: var(--wn-rpill);
+-  background: var(--wn-well);
+-}
+-
+-.seg input {
+-  position: absolute;
+-  width: 1px;
+-  height: 1px;
+-  opacity: 0;
+-  pointer-events: none;
+-}
+-
+-.seg label {
+-  flex: 1;
+-  display: flex;
+-  align-items: center;
+-  justify-content: center;
+-  min-height: 40px;
+-  border: 1px solid transparent;
+-  border-radius: var(--wn-rpill);
+-  color: var(--wn-ink-2);
+-  font-size: 1rem;
+-  font-weight: 400;
+-  cursor: pointer;
+-  user-select: none;
+-  transition: background var(--wn-m2) ease, border-color var(--wn-m2) ease, color var(--wn-m2) ease;
+-}
+-
+-.seg input:checked + label {
+-  background: var(--wn-sheet);
+-  border-color: var(--wn-line);
+-  color: var(--wn-ink);
+-  font-weight: 600;
+-}
+-
+-.seg input:focus-visible + label {
+-  outline: 2px solid var(--wn-focus);
+-  outline-offset: 1px;
+-}
+-
+-@media (hover: hover) {
+-  .seg label:hover { background: var(--wn-sheet); color: var(--wn-ink); }
+-}
+-
+-.chips { display: flex; flex-wrap: wrap; gap: var(--wn-s2); }
+-
+-.chips input {
+-  position: absolute;
+-  width: 1px;
+-  height: 1px;
+-  opacity: 0;
+-  pointer-events: none;
+-}
+-
+-.chips label {
+-  display: inline-flex;
+-  align-items: center;
+-  justify-content: center;
+-  min-height: 48px;
+-  padding: 0 var(--wn-s4);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-rpill);
+-  background: var(--wn-sheet);
+-  color: var(--wn-ink);
+-  font-size: 1rem;
+-  font-weight: 400;
+-  cursor: pointer;
+-  user-select: none;
+-  transition: background var(--wn-m2) ease, border-color var(--wn-m2) ease, color var(--wn-m2) ease;
+-}
+-
+-@media (hover: hover) {
+-  .chips label:hover { background: var(--wn-well); }
+-}
+-
+-.chips input:checked + label {
+-  background: var(--wn-accent);
+-  border-color: var(--wn-accent);
+-  color: var(--wn-on-accent);
+-  font-weight: 600;
+-}
+-
+-.chips input:focus-visible + label {
+-  outline: 2px solid var(--wn-focus);
+-  outline-offset: 2px;
+-}
+-
+-.scene { margin-top: var(--wn-s6); }
+-
+-.scene-row {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  width: 100%;
+-  min-height: 44px;
+-  padding: 0;
+-  border: 0;
+-  background: transparent;
+-  color: inherit;
+-  font-family: inherit;
+-  font-size: 1rem;
+-  cursor: pointer;
+-}
+-
+-.scene-label { font-weight: 600; }
+-
+-.scene-value {
+-  display: flex;
+-  align-items: center;
+-  gap: var(--wn-s1);
+-  color: var(--wn-ink-2);
+-  font-weight: 400;
+-}
+-
+-.chev { width: 12px; height: 12px; transition: transform var(--wn-m2) ease; }
+-
+-.scene-row[aria-expanded="true"] .chev { transform: rotate(180deg); }
+-
+-.scene-panel { padding-top: var(--wn-s2); }
+-
+-.primary {
+-  width: 100%;
+-  min-height: 56px;
+-  margin-top: var(--wn-s6);
+-  border: 0;
+-  border-radius: var(--wn-r2);
+-  background: var(--wn-accent);
+-  color: var(--wn-on-accent);
+-  font-family: inherit;
+-  font-size: 1rem;
+-  font-weight: 600;
+-  cursor: pointer;
+-  transition: background var(--wn-m1) ease;
+-}
+-
+-.primary:active {
+-  background: var(--wn-accent-press);
+-  transform: translateY(1px);
+-}
+-
+-.primary:disabled {
+-  opacity: 0.35;
+-  cursor: default;
+-  transform: none;
+-}
+-
+-.card {
+-  margin-top: var(--wn-s6);
+-  padding: var(--wn-s5);
+-  background: var(--wn-sheet);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-r2);
+-  box-shadow: 0 1px 2px rgba(38, 54, 46, 0.06), 0 6px 16px -8px rgba(38, 54, 46, 0.10);
+-  animation: rise var(--wn-m3) ease-out;
+-  scroll-margin-top: var(--wn-s4);
+-}
+-
+-@keyframes rise {
+-  from { opacity: 0; transform: translateY(8px); }
+-  to { opacity: 1; transform: none; }
+-}
+-
+-.card-meta {
+-  display: flex;
+-  align-items: center;
+-  gap: var(--wn-s3);
+-  min-height: 20px;
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  letter-spacing: 0.04em;
+-}
+-
+-.card-meta .cat { white-space: nowrap; }
+-
+-.badge {
+-  flex: none;
+-  display: inline-flex;
+-  align-items: center;
+-  height: 20px;
+-  padding: 0 var(--wn-s2);
+-  border-radius: var(--wn-r1);
+-  background: var(--wn-time-soft);
+-  color: var(--wn-time);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  font-variant-numeric: tabular-nums;
+-  white-space: nowrap;
+-}
+-
+-.card h2 {
+-  margin: var(--wn-s2) 0 0;
+-  font-size: 1.375rem;
+-  font-weight: 600;
+-  line-height: 1.364;
+-  letter-spacing: 0.01em;
+-}
+-
+-.card-sep {
+-  margin: var(--wn-s4) 0 0;
+-  border: 0;
+-  border-top: 1px solid var(--wn-hairline);
+-}
+-
+-.first {
+-  position: relative;
+-  margin: var(--wn-s3) 0 0;
+-  padding-left: var(--wn-s3);
+-}
+-
+-.first::before {
+-  content: '';
+-  position: absolute;
+-  left: 0;
+-  top: calc(-1 * var(--wn-s3));
+-  bottom: 0;
+-  width: 2px;
+-  background: var(--wn-accent);
+-}
+-
+-.first-label {
+-  display: block;
+-  margin-bottom: var(--wn-s1);
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  letter-spacing: 0.04em;
+-}
+-
+-.first-text {
+-  margin: 0;
+-  font-size: 1.1875rem;
+-  font-weight: 500;
+-  line-height: 1.579;
+-}
+-
+-.detail {
+-  margin: var(--wn-s3) 0 0;
+-  color: var(--wn-ink-2);
+-  font-size: 0.875rem;
+-  line-height: 1.571;
+-}
+-
+-.card-actions {
+-  display: flex;
+-  align-items: stretch;
+-  gap: var(--wn-s2);
+-  margin-top: var(--wn-s4);
+-  min-height: 44px;
+-}
+-
+-.card-actions button {
+-  flex: 1;
+-  min-height: 44px;
+-  border-radius: var(--wn-r2);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  cursor: pointer;
+-}
+-
+-.feedback {
+-  display: flex;
+-  flex: 1;
+-  gap: var(--wn-s2);
+-}
+-
+-.feedback button.done-key { margin-left: var(--wn-s1); }
+-
+-.feedback button {
+-  flex: 1;
+-  border: 1px solid var(--wn-line);
+-  background: var(--wn-sheet);
+-  color: var(--wn-ink-2);
+-  font-weight: 400;
+-  transition: background var(--wn-m2) ease, border-color var(--wn-m2) ease, color var(--wn-m2) ease;
+-}
+-
+-@media (hover: hover) {
+-  .feedback button:hover { background: var(--wn-well); }
+-}
+-
+-.feedback button:active {
+-  background: var(--wn-well);
+-  color: var(--wn-ink);
+-  font-weight: 600;
+-}
+-
+-.feedback button[aria-pressed="true"] {
+-  border-color: var(--wn-accent);
+-  background: var(--wn-accent-soft);
+-  color: var(--wn-accent);
+-  font-weight: 600;
+-}
+-
+-.feedback button:disabled { opacity: 0.7; cursor: default; }
+-
+-.key-sep {
+-  flex: none;
+-  align-self: stretch;
+-  width: 1px;
+-  margin: 0 var(--wn-s1);
+-  background: var(--wn-hairline);
+-}
+-
+-.swap {
+-  flex: 1;
+-  border: 1px solid var(--wn-accent);
+-  background: transparent;
+-  color: var(--wn-accent);
+-  font-weight: 600;
+-  transition: background var(--wn-m2) ease;
+-}
+-
+-@media (hover: hover) {
+-  .swap:hover { background: var(--wn-well); }
+-}
+-
+-.swap:active { background: var(--wn-well); }
+-
+-.swap:disabled { opacity: 0.7; cursor: default; }
+-
+-.done-row {
+-  display: flex;
+-  align-items: center;
+-  gap: var(--wn-s3);
+-  margin-top: var(--wn-s4);
+-  min-height: 44px;
+-}
+-
+-.done-state {
+-  display: flex;
+-  align-items: center;
+-  gap: 6px;
+-  color: var(--wn-accent);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-}
+-
+-.done-state svg { display: block; width: 16px; height: 16px; }
+-
+-.done-spacer { flex: 1; }
+-
+-.textbtn {
+-  min-height: 44px;
+-  padding: 0;
+-  border: 0;
+-  background: transparent;
+-  color: var(--wn-ink);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  font-weight: 400;
+-  cursor: pointer;
+-}
+-
+-.share-note {
+-  margin: var(--wn-s2) 0 0;
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-}
+-
+-.empty {
+-  margin-top: var(--wn-s6);
+-  padding: var(--wn-s7) var(--wn-s5);
+-  text-align: center;
+-}
+-
+-.empty-fig { width: 64px; height: 64px; margin: 0 auto var(--wn-s3); color: var(--wn-ink-2); display: block; }
+-
+-.empty h2 {
+-  margin: 0;
+-  font-size: 1.1875rem;
+-  font-weight: 500;
+-  line-height: 1.579;
+-}
+-
+-.empty .hint {
+-  margin: var(--wn-s1) 0 0;
+-  color: var(--wn-ink-2);
+-  font-size: 0.875rem;
+-}
+-
+-.skeleton {
+-  margin-top: var(--wn-s6);
+-  padding: var(--wn-s5);
+-  min-height: 269px;
+-  background: var(--wn-sheet);
+-  border: 1px solid var(--wn-hairline);
+-  border-radius: var(--wn-r2);
+-}
+-
+-.sk-text {
+-  margin: 0 0 var(--wn-s3);
+-  color: var(--wn-ink-2);
+-  font-size: 0.875rem;
+-}
+-
+-.sk {
+-  background: var(--wn-bone);
+-  border-radius: var(--wn-r1);
+-  animation: soak var(--wn-m4) ease-in-out infinite;
+-}
+-
+-@keyframes soak { 50% { opacity: 0.35; } }
+-
+-.sk-meta { width: 96px; height: 20px; }
+-.sk-title { height: 18px; margin-top: var(--wn-s2); }
+-.sk-title.w1 { width: 94%; }
+-.sk-title.w2 { width: 76%; }
+-.sk-btn { width: 100%; height: 44px; margin-top: var(--wn-s4); }
+-.sk-line { height: 12px; margin-top: var(--wn-s3); }
+-.sk-line.w1 { width: 88%; }
+-.sk-line.w2 { width: 54%; margin-top: var(--wn-s2); }
+-
+-.notice {
+-  position: relative;
+-  margin-top: var(--wn-s6);
+-  padding: var(--wn-s4);
+-  background: var(--wn-sheet);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-r2);
+-}
+-
+-.notice::before {
+-  content: '';
+-  position: absolute;
+-  left: 0;
+-  top: var(--wn-s4);
+-  bottom: var(--wn-s4);
+-  width: 2px;
+-  border-radius: 2px;
+-  background: var(--wn-alert);
+-}
+-
+-.notice-inner {
+-  display: flex;
+-  align-items: flex-start;
+-  gap: var(--wn-s3);
+-}
+-
+-.notice-fig { flex: none; width: 48px; height: 48px; color: var(--wn-ink-2); display: block; }
+-
+-.notice-body { flex: 1; min-width: 0; }
+-
+-.notice-title {
+-  margin: 0;
+-  font-size: 1rem;
+-  font-weight: 600;
+-  line-height: 1.625;
+-}
+-
+-.notice-desc {
+-  margin: var(--wn-s1) 0 0;
+-  color: var(--wn-ink-2);
+-  font-size: 0.875rem;
+-}
+-
+-.retry {
+-  min-height: 44px;
+-  margin-top: var(--wn-s1);
+-  padding: 0 var(--wn-s3);
+-  border: 0;
+-  background: transparent;
+-  color: var(--wn-accent);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  font-weight: 600;
+-  cursor: pointer;
+-}
+-
+-.foot {
+-  display: flex;
+-  align-items: center;
+-  justify-content: space-between;
+-  margin-top: var(--wn-s7);
+-  min-height: 44px;
+-  color: var(--wn-ink-2);
+-  font-size: 0.75rem;
+-}
+-
+-.settings {
+-  min-height: 44px;
+-  padding: 0;
+-  border: 0;
+-  background: transparent;
+-  color: var(--wn-ink-2);
+-  font-family: inherit;
+-  font-size: 0.875rem;
+-  font-weight: 500;
+-  cursor: pointer;
+-}
+-
+-.noscript {
+-  margin: var(--wn-s4) 0 0;
+-  padding: var(--wn-s4);
+-  background: var(--wn-sheet);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-r2);
+-  color: var(--wn-ink);
+-}
+-
+-@media (max-width: 359px) {
+-  .page { padding-left: var(--wn-s4); padding-right: var(--wn-s4); }
+-  .masthead { padding: 0 var(--wn-s4); }
+-  .brand-name { font-size: 1.25rem; }
+-  .card h2 { font-size: 1.25rem; }
+-  .first-text { font-size: 1.125rem; }
+-}
+-
+-@media (prefers-color-scheme: dark) {
+-  .card { box-shadow: none; }
+-}
+-
+-@media (prefers-reduced-motion: reduce) {
+-  *, *::before, *::after { animation: none !important; transition: none !important; }
++:root{color-scheme:light;--wn-paper:#f6f1e7;--wn-sheet:#fffdf7;--wn-well:#f2ede1;--wn-ink:#26362e;--wn-ink-2:#5f6e64;--wn-accent:#2f6d5a;--wn-accent-press:#255a4a;--wn-accent-soft:#e8f0ea;--wn-on-accent:#f8f5ec;--wn-line:#95876d;--wn-hairline:#e3dac7;--wn-time:#7d5a33;--wn-time-soft:#f3e7d4;--wn-alert:#8c3b2e;--wn-alert-soft:#f6e3dc;--wn-focus:#26362e;--wn-bone:#e6ddcc;--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
++:root{--wn-dark-paper:#18211c;--wn-dark-sheet:#212c25;--wn-dark-well:#141b17;--wn-dark-ink:#e9e4d6;--wn-dark-ink-2:#9aa89d;--wn-dark-accent:#7fc4a8;--wn-dark-accent-press:#6bb094;--wn-dark-accent-soft:#26362f;--wn-dark-on-accent:#12241c;--wn-dark-line:#64796c;--wn-dark-hairline:#33413a;--wn-dark-time:#d9b483;--wn-dark-time-soft:#2e2a21;--wn-dark-alert:#e8a58f;--wn-dark-alert-soft:#33241f;--wn-dark-focus:#e9e4d6;--wn-dark-bone:#2c3830}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++}
++:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++*{box-sizing:border-box}
++[hidden]{display:none !important}
++.sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
++button,label,.card,.notice{overflow-wrap:anywhere}
++button{line-height:1.5}
++#result{scroll-margin-top:var(--wn-s4)}
++.share-note:empty{margin:0}
++.panel,.card{container-type:inline-size}
++:focus-visible{outline:2px solid var(--wn-focus);outline-offset:2px}
++body{margin:0;background:var(--wn-paper);color:var(--wn-ink);font-family:var(--wn-font);font-size:1rem;line-height:1.625;-webkit-font-smoothing:antialiased}
++.masthead{display:flex;align-items:center;justify-content:space-between;max-width:480px;margin:0 auto;min-height:56px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 var(--wn-s5);border-bottom:1px solid var(--wn-hairline)}
++.masthead-left{display:flex;align-items:center;gap:var(--wn-s2)}
++.mark{display:block;width:20px;height:20px;color:var(--wn-ink)}
++.brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.04em}
++.masthead-date{color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
++.page{max-width:480px;margin:0 auto;padding:var(--wn-s3) var(--wn-s5) calc(var(--wn-s7) + env(safe-area-inset-bottom,0px))}
++[data-guided="1"] .guide{display:none}
++.guide{margin:0 0 var(--wn-s4)}
++.guide p{margin:0;color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;line-height:1.833}
++.panel{background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);padding:var(--wn-s4)}
++fieldset{min-width:0;border:0;padding:0;margin:var(--wn-s6) 0 0}
++fieldset:first-of-type{margin-top:0}
++legend{padding:0;margin-bottom:var(--wn-s2);font-size:1rem;font-weight:600;line-height:1.625}
++.seg{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));box-shadow:inset 0 0 0 1px var(--wn-hairline);min-height:48px;padding:var(--wn-s1);border-radius:var(--wn-rpill);background:var(--wn-well)}
++.seg input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
++.seg label{flex:1;display:flex;align-items:center;justify-content:center;min-height:44px;border:1px solid transparent;border-radius:var(--wn-rpill);color:var(--wn-ink-2);font-size:1rem;font-weight:400;cursor:pointer;user-select:none;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
++.seg input:checked + label{background:var(--wn-sheet);border-color:var(--wn-line);color:var(--wn-ink);font-weight:600}
++.seg input:focus-visible + label{outline:2px solid var(--wn-focus);outline-offset:1px}
++@media (hover:hover){
++.seg label:hover{background:var(--wn-sheet);color:var(--wn-ink)}
++}
++.chips{display:flex;flex-wrap:wrap;gap:var(--wn-s2)}
++.chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
++.chips label{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 var(--wn-s4);border:1px solid var(--wn-line);border-radius:var(--wn-rpill);background:var(--wn-sheet);color:var(--wn-ink);font-size:1rem;font-weight:400;cursor:pointer;user-select:none;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
++@media (hover:hover){
++.chips label:hover{background:var(--wn-well)}
++}
++.chips input:checked + label{background:var(--wn-accent);border-color:var(--wn-accent);color:var(--wn-on-accent);font-weight:600}
++.chips input:focus-visible + label{outline:2px solid var(--wn-focus);outline-offset:2px}
++.scene{margin-top:var(--wn-s6)}
++.scene-row{display:flex;align-items:center;justify-content:space-between;width:100%;min-height:44px;padding:0;border:0;background:transparent;color:inherit;font-family:inherit;font-size:1rem;cursor:pointer}
++.scene-label{font-weight:600}
++.scene-value{display:flex;align-items:center;gap:var(--wn-s1);color:var(--wn-ink-2);font-weight:400}
++.chev{width:12px;height:12px;transition:transform var(--wn-m2) ease}
++.scene-row[aria-expanded="true"] .chev{transform:rotate(180deg)}
++.scene-panel{padding-top:var(--wn-s2)}
++.primary{width:100%;min-height:56px;margin-top:var(--wn-s6);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m1) ease}
++.primary:active{background:var(--wn-accent-press);transform:translateY(1px)}
++.primary:disabled{opacity:0.35;cursor:default;transform:none}
++.card{margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:0 1px 2px rgba(38,54,46,0.06),0 6px 16px -8px rgba(38,54,46,0.10);animation:rise var(--wn-m3) ease-out;scroll-margin-top:var(--wn-s4)}
++@keyframes rise{
++from{opacity:0;transform:translateY(8px)}
++to{opacity:1;transform:none}
++}
++.card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);min-height:20px;color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
++.card-meta .cat{white-space:nowrap}
++.badge{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 var(--wn-s2);border-radius:var(--wn-r1);background:var(--wn-time-soft);color:var(--wn-time);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
++.card h2{margin:var(--wn-s2) 0 0;font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.01em}
++.card-sep{margin:var(--wn-s4) 0 0;border:0;border-top:1px solid var(--wn-hairline)}
++.first{position:relative;margin:var(--wn-s3) 0 0;padding-left:var(--wn-s3)}
++.first::before{content:'';position:absolute;left:0;top:calc(-1 * var(--wn-s3));bottom:0;width:2px;background:var(--wn-accent)}
++.first-label{display:block;margin-bottom:var(--wn-s1);color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
++.first-text{margin:0;font-size:1.1875rem;font-weight:500;line-height:1.579}
++.detail{margin:var(--wn-s3) 0 0;color:var(--wn-ink-2);font-size:0.875rem;line-height:1.571}
++.card-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px}
++.card-actions button{flex:1 1 0;min-width:44px;min-height:44px;padding:var(--wn-s1) 2px;border-radius:var(--wn-r2);font-family:inherit;font-size:0.875rem;cursor:pointer}
++.feedback{display:grid;grid-column:1 / 4;grid-template-columns:subgrid;min-width:0;gap:var(--wn-s2)}
++.card-actions.changed{grid-template-columns:repeat(3,minmax(0,1fr))}
++.card-actions.changed .feedback,.card-actions.changed .swap{grid-column:1 / -1}
++.feedback button{flex:1;border:1px solid var(--wn-line);background:var(--wn-sheet);color:var(--wn-ink-2);font-weight:400;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
++@media (hover:hover){
++.feedback button:hover{background:var(--wn-well)}
++}
++.feedback button:active{background:var(--wn-well);color:var(--wn-ink);font-weight:600}
++.feedback button[aria-pressed="true"]{border-color:var(--wn-accent);background:var(--wn-accent-soft);color:var(--wn-accent);font-weight:600}
++.feedback button[aria-disabled="true"]{opacity:0.7;cursor:default}
++.swap{flex:1;border:1px solid var(--wn-accent);background:transparent;color:var(--wn-accent);font-weight:600;transition:background var(--wn-m2) ease}
++@media (hover:hover){
++.swap:hover{background:var(--wn-well)}
++}
++.swap:active{background:var(--wn-well)}
++.swap:disabled{opacity:0.7;cursor:default}
++.done-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);margin-top:var(--wn-s4);min-height:44px}
++.done-state{display:flex;align-items:center;gap:6px;color:var(--wn-accent);font-size:0.75rem;font-weight:500}
++.done-state svg{display:block;width:16px;height:16px}
++.done-spacer{flex:1}
++.textbtn{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:400;cursor:pointer}
++.share-note{margin:var(--wn-s2) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
++.share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
++.empty{margin-top:var(--wn-s6);padding:var(--wn-s7) var(--wn-s5);text-align:center}
++.empty-fig{width:64px;height:64px;margin:0 auto var(--wn-s3);color:var(--wn-ink-2);display:block}
++.empty h2{margin:0;font-size:1.1875rem;font-weight:500;line-height:1.579}
++.empty .hint{margin:var(--wn-s1) 0 0;color:var(--wn-ink-2);font-size:0.875rem}
++.skeleton{margin-top:var(--wn-s6);padding:var(--wn-s5);min-height:269px;background:var(--wn-sheet);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2)}
++.sk-text{margin:0 0 var(--wn-s3);color:var(--wn-ink-2);font-size:0.875rem}
++.sk{background:var(--wn-bone);border-radius:var(--wn-r1);animation:soak var(--wn-m4) ease-in-out infinite}
++@keyframes soak{
++50%{opacity:0.35}
++}
++.sk-meta{width:96px;height:20px}
++.sk-title{height:18px;margin-top:var(--wn-s2)}
++.sk-title.w1{width:94%}
++.sk-title.w2{width:76%}
++.sk-btn{width:100%;height:44px;margin-top:var(--wn-s4)}
++.sk-line{height:12px;margin-top:var(--wn-s3)}
++.sk-line.w1{width:88%}
++.sk-line.w2{width:54%;margin-top:var(--wn-s2)}
++.notice{position:relative;margin-top:var(--wn-s6);padding:var(--wn-s4);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2)}
++.notice::before{content:'';position:absolute;left:0;top:var(--wn-s4);bottom:var(--wn-s4);width:2px;border-radius:2px;background:var(--wn-alert)}
++.notice-inner{display:flex;align-items:flex-start;gap:var(--wn-s3)}
++.notice-fig{flex:none;width:48px;height:48px;color:var(--wn-ink-2);display:block}
++.notice-body{flex:1;min-width:0}
++.notice-title{margin:0;font-size:1rem;font-weight:600;line-height:1.625}
++.retry{min-height:44px;margin-top:var(--wn-s1);padding:0 var(--wn-s3);border:0;background:transparent;color:var(--wn-accent);font-family:inherit;font-size:0.875rem;font-weight:600;cursor:pointer}
++.foot{display:flex;align-items:center;justify-content:space-between;margin-top:var(--wn-s7);min-height:44px;color:var(--wn-ink-2);font-size:0.75rem}
++.about{margin-top:var(--wn-s3);padding-top:var(--wn-s4);border-top:1px solid var(--wn-hairline);overflow-wrap:anywhere}
++.about h2{margin:0;font-size:1.1875rem;font-weight:500}
++.about h3{margin:var(--wn-s6) 0 var(--wn-s2);font-size:1rem}
++.about p{margin:var(--wn-s2) 0;color:var(--wn-ink-2);font-size:0.875rem}
++.about .version{margin-top:var(--wn-s4);font-size:0.75rem}
++.textbtn[aria-disabled="true"]{opacity:0.7;cursor:default}
++.settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-ink-2);font-family:inherit;font-size:0.875rem;font-weight:500;cursor:pointer}
++.noscript{margin:var(--wn-s4) 0 0;padding:var(--wn-s4);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);color:var(--wn-ink)}
++@media (max-width:359px){
++.page{padding-left:var(--wn-s4);padding-right:var(--wn-s4)}
++.masthead{padding:0 var(--wn-s4)}
++.brand-name{font-size:1.25rem}
++.card h2{font-size:1.25rem}
++.first-text{font-size:1.125rem}
++}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]) .card{box-shadow:none}
++}
++:root[data-theme="dark"] .card{box-shadow:none}
++@container (max-width:15em){
++.card-actions,.card-actions.changed{grid-template-columns:repeat(2,minmax(0,1fr))}
++.feedback{display:grid;grid-column:1 / -1;grid-row:1 / 3;grid-template-columns:subgrid;grid-template-rows:subgrid}
++.card-actions .swap{grid-column:2;grid-row:2}
++.card-actions.changed .swap{grid-column:1 / -1;grid-row:3}
++}
++@container (max-width:13em){
++.seg{grid-template-columns:repeat(2,minmax(0,1fr));border-radius:var(--wn-r2)}
++.seg label{border-radius:var(--wn-r2)}
++}
++@media (prefers-reduced-motion:reduce){
++*,*::before,*::after{animation:none !important;transition:none !important;scroll-behavior:auto !important}
++.primary:active{transform:none}
+ }
+diff --git "a/\344\272\247\345\223\201\350\257\264\346\230\216.md" "b/\344\272\247\345\223\201\350\257\264\346\230\216.md"
+index a77dc44..a04fcd1 100644
+--- "a/\344\272\247\345\223\201\350\257\264\346\230\216.md"
++++ "b/\344\272\247\345\223\201\350\257\264\346\230\216.md"
+@@ -8,10 +8,12 @@ WhyNot 帮处在碎片时间里的大学生选一件现在就能做的事。用
+ 
+ ## 用户怎么用
+ 
+-1. 用手机打开 WhyNot 的 Qoder Sites 公网链接，直接进入「此刻」页，访客即可体验。
+-2. 选「我有多久」和「现在的精力」。愿意的话，再选「我在哪儿」。
++当前 P0 已有可本地运行的前后端，包含主题、关于、分享与安装资源。公网交付仍需另行授权与验收。
++
++1. 打开 WhyNot，直接进入「此刻」页，不需要注册；本地入口见 [README](README.md#本地开发与验收)。
++2. 默认「10 分钟」「还可以」，场景可跳过；按当下情况调整时间、精力，愿意的话再补场景。
+ 3. 点「给我一个建议」。页面显示一张卡片，写清行动、第一步和预计耗时。
+-4. 想试就放下手机去做。不合适就点「换一个」，沿用刚才的选择。用户也可以点「喜欢」「不喜欢」，或做完后点「已完成」。
++4. 想试就放下手机去做。不合适就点「换一个」，按当前表单条件生成；也可以点「喜欢」「不喜欢」，做完后点「已完成」，再按需分享。
+ 
+ ## 一次真实的体验
+ 
+@@ -25,13 +27,21 @@ WhyNot 帮处在碎片时间里的大学生选一件现在就能做的事。用
+ 
+ ## 页面与交互
+ 
+-| 位置 | 首版行为 |
++只有「此刻」主页面与页脚折叠的「关于与主题」，没有「今日」页或历史列表。
++
++| 位置 | P0／B4 行为 |
+ | --- | --- |
+-| 此刻 | 时间单选「3、5、10、15 分钟」，精力单选「有点累、还可以、精神好」。场景可跳过，可选「等饭／排队、在桌前、在路上、在家／宿舍」。所有选项和主按钮都适合手机单手点按。 |
+-| 建议卡 | 一次显示一条。标题说清做什么，预计耗时放在标题旁，下一行直接给第一步。用户看完卡片即可开始。 |
+-| 换一个 | 保留时间、精力和场景，生成另一条建议。新卡片有独立编号，上一条的反馈保持原状。 |
+-| 反馈 | 「喜欢」「不喜欢」二选一，允许改选，以最后选择为准。「已完成」独立记录。点击后当场显示已选状态，连续点击只生效一次。 |
+-| 等待与失败 | 生成时显示「正在找建议」，避免重复提交。网络中断时保留已选条件和已有卡片，显示「再试一次」。 |
++| 此刻 | 时间单选「3、5、10、15 分钟」，默认 10；精力单选「有点累、还可以、精神好」，默认还可以（steady）。场景默认跳过，可选「等饭／排队、在桌前、在路上、在家／宿舍」。修改条件不自动提交。 |
++| 建议卡 | 一次显示一个行动，标题说清做什么，旁边标预计耗时，下一行直接给第一步。类别只作轻量提示，缺失或未知时仅隐藏类别，卡片仍可用。 |
++| 换一个 | 使用当前表单条件；若条件已改，提示「按新条件再来一条」。新卡片有独立编号，旧反馈不变；换一个只请求推荐，绝不提交反馈。 |
++| 反馈 | 「喜欢」「不喜欢」可改选，以最后选择为准，不是再次点击取消。「已完成」独立、重复提交只生效一次，成功后不可撤销。反馈失败会提示并恢复原状态，旧卡的延迟响应不能覆盖新卡。 |
++| 等待与失败 | 生成时显示「正在找建议」，防止重复生成，仍可修改表单。失败保留条件和旧卡；「再试一次」重放失败请求的原始快照，而非当前新条件。网络恢复不自动提交。 |
++| 关于与主题（B4） | 页脚展开后说明产品及数据用途，提供跟随系统／浅色／深色。浅色／深色分别以 `light`／`dark` 存于 `whynot-theme`，跟随系统则移除覆盖值，存储读写失败时静默回到跟随系统。 |
++| 分享（B4） | 仅已完成卡片提供入口。原生分享不可用或失败时依次尝试 Clipboard、`execCommand`，最后提供可选中的文本供手动复制。用户取消原生分享时静默结束，不触发后续复制；分享本身不提交反馈。 |
++
++分享链接只使用 `location.origin + location.pathname`，不携带 query、hash、建议编号、session token 或反馈信息；接收者打开后自行选择条件，不是访问原用户的建议记录。
++
++安装相关仅补 manifest、Apple 180px 图标及 192／512px 安装图标。是否能添加到主屏幕取决于浏览器，不承诺自动安装。没有 service worker，也不支持离线重新打开；只有已经打开的页面可在断网后继续看旧卡片，不能离线生成建议。
+ 
+ ## 推荐怎么选
+ 
+@@ -39,22 +49,39 @@ WhyNot 帮处在碎片时间里的大学生选一件现在就能做的事。用
+ - **场景决定什么方便做。** 排队时要听得到叫号，在路上时要先确保可以安全停留。跳过场景时，给出无需假定身边有窗户、桌子或其他物品的建议。
+ - **精力决定行动的难度。** 「有点累」可以放空或休息；「精神好」可以观察一个设计、尝试一个小创作。文案用邀请的口吻，用户可以随时结束。
+ - **反馈只影响适合当下的候选建议。** 例如用户喜欢过「观察身边的小设计」，下次场景和精力合适时可优先推荐同类。只有明确点了「不喜欢」才记负向反馈。
+-- **生成失败仍有结果。** 服务端校验模型返回的行动、第一步和耗时。模型超时、超过有限重试次数或输出不符合条件时，从适合当前条件的内置建议中选一条。密钥由服务端保管。
++- **模型失败有兜底。** 服务端校验行动、第一步、耗时和类别；模型每次调用超时 7 秒、最多尝试 2 次。未配置密钥、模型失败或输出无效时，从适合当前条件的内置建议中选一条；网络或存储失败仍需明确报错，不能保证离线生成。密钥只由服务端保管。
++
++## 数据与接口边界
++
++只按功能需要保存匿名会话、推荐条件、建议和反馈，不接入定位、日历或健康数据，不提供兴趣输入或兴趣追踪。模型可参考当前条件、近期建议标题和反馈类别；这些内容与密钥、模型原始响应不得写入日志。
+ 
+-## 数据与验收
++浏览器保存 `whynot-session`（匿名 token）、`whynot-guide`（引导是否看过）及 B4 的 `whynot-theme`（主题）。服务端按 token 摘要确认归属，校验输入，并以数据库约束及条件更新保持完成记录幂等。匿名会话不是登录账号，也不承诺跨设备同步。
+ 
+-用匿名会话区分访客。服务端校验时间、精力、场景和建议归属，只保存推荐与反馈所需的数据。通过数据库约束和事务保证反馈只生效一次。日志避开密钥、用户原文和模型原始响应。
++当前 Functions 基址为 `/functions/v1/app`：三个业务端点是 `POST /api/session`、`POST /api/recommendations`、`POST /api/recommendations/:id/feedback`，另有 `GET /api/health`，没有历史查询端点。会话先取 token，再通过 `x-whynot-session` 请求头携带；前端虽使用同源 credentials，但当前网关不转发应用 cookie，归属不靠 cookie。
++
++卡片增量字段 `category` 为 `rest`／`observe`／`listen`／`tidy`／`explore`；旧响应缺失、空值或未知类别仅隐藏类别标记。完整请求、响应和错误契约见 [README](README.md#当前-api-契约)。旧 `app.py` 才使用 HttpOnly cookie、直接 `/api/*` 和 `/api/history`，与当前共享前端不兼容，不是当前联调入口。
++
++## 验收目标（不代表已经通过）
++
++本地运行 `node dev/server.mjs 8765`；API 用 `node dev/acceptance.mjs`，模型路径另开 `node dev/fake-model.mjs`（8766）后运行 `node dev/acceptance-model.mjs`。前两类验收支持 `BASE` 覆盖本地服务地址。`dev/acceptance-ui.mjs` 在浏览器运行，覆盖现有状态、时序和布局分组；具体步骤见 README。
+ 
+ | 验收场景 | 通过条件 |
+ | --- | --- |
+-| 首次公开访问 | 在手机无痕窗口打开 Qoder Sites 地址，无须开发者账号，能从选择条件走到第一条可执行的建议。 |
+ | 只有 3 分钟，精力低 | 无论填写或跳过场景，都只返回一条低负担建议，含明确第一步，预计耗时最多 3 分钟。 |
+-| 换建议后给反馈 | 新旧建议不同，「换一个」不产生反馈。连续两次提交「已完成」只记录一次。 |
+-| 模型不可用 | 从实际推荐接口发起请求，能在有限等待后获得符合原条件的兜底卡片。 |
+-| 错误输入或他人的建议编号 | 从实际接口提交无效时间，或尝试给另一个访客的建议提交反馈，服务端返回明确错误，已有记录保持正确。 |
++| 改条件、换建议与重试 | 改条件不发请求；换一个用当前表单且不发反馈；失败重试使用原始快照。 |
++| 反馈归属与幂等 | 喜欢／不喜欢可改选；已完成重复提交仅生效一次且不能撤销；旧卡响应不影响新卡。 |
++| 模型不可用 | 从实际推荐入口验证有限等待后的合规兜底，以及无效输出和上游错误。 |
++| 错误输入或他人的建议编号 | 服务端返回明确错误，已有记录保持正确。 |
++| B4 主题与分享 | 主题持久化及存储失败降级正确；完成前不提供分享；取消无提示；各复制降级可用，链接无敏感参数。 |
++| 离线与安装资源 | manifest 和图标可访问；已打开页面保留旧卡，离线生成被阻止；不声称可离线重新打开或自动安装。 |
++| 公开访问（后续待授权） | 用真实手机无痕窗口打开最终 Qoder Sites 地址，无须开发者账号，走通完整体验。 |
++
++云端／公网验收、真实手机、有声屏幕阅读器测试和性能基准尚未验证。gzip 最终上限按 **16 KiB（16384 B）** 统计整个 `web/`（包含 manifest 与安装图标），原四项资源同时对照初定的 14 KiB；原始体积上限未被放宽。实测数据、超限与人工未验项见 [B4 阶段日志](deliverables/b4-wrapup/B4-关于主题与收尾日志.md)。
++
++## Qoder Sites 交付（待执行）
+ 
+-## Qoder Sites 交付
++按 **LifeHack 生活娱乐** 赛道设计。后续获得明确授权后，才进行 Qoder Sites 部署、公开访问设置与另一台设备的最终链接验收；本文不表示这些操作已执行。开发时保留必要截图和修改记录，作品帖中如实说明哪些步骤交给了 Qoder、哪些地方由作者调整。
+ 
+-按 **LifeHack 生活娱乐** 赛道设计。用 Qoder 完成开发和部署，在 Qoder Sites 开启公开访问，用另一台设备打开最终链接走通以上流程。开发时保留关键截图和修改记录，作品帖中如实说明哪些步骤交给了 Qoder、哪些地方由作者调整。
++**每阶段记录实际改动、验证结果和未验项，然后停止等待下一条指令；不自动提交、发布或推进下一阶段。** 阶段日志保留验证边界，文档同步不替代验收。
+ 
+-参赛提交时，作品帖附公开链接、自我介绍、作品用途、创作缘由、五步以内的使用说明和 Qoder 开发过程。[阿里云天池官方赛题](https://tianchi.aliyun.com/competition/entrance/532536/introduction)
++参赛提交时，作品帖应附公开链接、自我介绍、作品用途、创作缘由、五步以内的使用说明和 Qoder 开发过程。[阿里云天池官方赛题](https://tianchi.aliyun.com/competition/entrance/532536/introduction)
