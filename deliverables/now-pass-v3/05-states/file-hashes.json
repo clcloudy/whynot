@@ -1,0 +1,10 @@
+{
+  "source-before/style.css": "b442189790b4aad2d169e3d04c59f57afca5bae0b5e6df3cac2f7247a5e19878",
+  "source-after/style.css": "cfb38909749ba542f58b39687fecbc8f538d4c6b1301f60b71af8ce6534e3e0c",
+  "source-before/app.js": "572664913dc5d940b80387f5bb7e0d0bb4d2a938f7855cd046e217be6d2c4df8",
+  "source-after/app.js": "1b5c222e78c667b1be0e9b9284cfb1e300e21e405b5e5e1062f0d109f34b4d9c",
+  "source-before/index.html": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+  "source-after/index.html": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+  "source-before/acceptance-ui.mjs": "71ba3d1b9034df9a1b7b93efe1bfabcbcd6ac71f43bc84c1a7ee9fb84a636f8f",
+  "source-after/acceptance-ui.mjs": "71ba3d1b9034df9a1b7b93efe1bfabcbcd6ac71f43bc84c1a7ee9fb84a636f8f"
+}

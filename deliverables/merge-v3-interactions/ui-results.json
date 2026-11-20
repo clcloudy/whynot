@@ -1,0 +1,1943 @@
+{
+  "failed": [],
+  "fixture": "http://127.0.0.1:8881",
+  "notes": [
+    "Eight groups executed serially; polish rerun after native Tab enabled keyboard focus-visible modality.",
+    "Initial failures and diagnostic attempts are preserved separately.",
+    "Photo recognition uses credential-free local fake model, not real vision accuracy."
+  ],
+  "passed": 375,
+  "reports": [
+    {
+      "failed": [],
+      "group": "state",
+      "passed": 32,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈焦点保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈在途仍可换卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换卡后焦点在换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换卡使新卡反馈立即可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧反馈不能覆盖新卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧反馈 finally 不能解锁新反馈",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "5秒旧反馈失败不回滚新卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "会话等待前快照条件",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改条件不自动提交",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧条件标注与新条件按钮",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "编辑表单期间返回不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "新条件生成不超3分钟",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "失败保留旧卡与当前条件",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "网络错误不自动重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重试仍使用失败请求快照",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效编号实际API返回404，仅留换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈401重建会话并重放一次",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重复401恢复有上限且回滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "503只重试一次且退避800ms",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "409保留服务端错误码不自动重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "非法反馈只允许一次手动再试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "服务端权威完成态覆盖乐观状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "INVALID_CONTEXT不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "JSON_REQUIRED不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "INVALID_BODY不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效响应可手动重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "未知category安全降级",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "timing",
+      "passed": 12,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "生成中aria-busy且条件可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "8秒只更新视觉文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "真实25秒超时文案且保留旧卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "结束清理加载状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "离线保留卡片并禁用换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "网络恢复就地提示，不自动提交",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "恢复后手动重试成功且只有一张卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "layout",
+      "passed": 20,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[55.66666793823242,44],[55.66666793823242,44],[55.66666793823242,44],[55.66666793823242,44]]",
+          "name": "320px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[71.16667175292969,44],[71.16667175292969,44],[71.16667175292969,44],[71.16667175292969,44]]",
+          "name": "390px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px卡宽350",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[93.66667175292969,44],[93.66667175292969,44],[93.66667175292969,44],[93.66667175292969,44]]",
+          "name": "768px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px单列480居中",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%四键2×2且≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%分段2×2",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%第一步与耗时不裁切",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "b4",
+      "passed": 66,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关于可展开且主题为原生单选组",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择system",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题system/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择light",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题light/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择dark",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题dark/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择system",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题system/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择light",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题light/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择dark",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题dark/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "显式主题写入存储",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "跟随系统清除覆盖值",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "写入被拒静默回到系统",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关闭关于后焦点回入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首屏脚本≤400B且早于样式",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "外部app运行前已是深色且回访引导隐藏",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "外部app运行前主题meta已同步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效主题忽略且首访引导无需app即可见",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "存储读取被拒仍能生成及反馈，主题跟随系统",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "未完成卡无分享入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成反馈在途不允许提前分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成后分享可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生分享优先且不落剪贴板（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享标题≤40字且链接不带查询、片段、编号",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享取消安静结束且不复制",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生拒绝后剪贴板降级（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "复制提示2秒清除",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "剪贴板拒绝后传统复制（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "全部复制受限提供只读可选文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%关于及分享无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题触摸目标均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "所有分享分支不调用API",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生分享在途防重复",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧分享完成不污染新卡或显示旧文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "离线分享有提示且不发请求",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "manifest类型、入口与显示模式",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "manifest身份与语言保持稳定",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装启动主题采用夜色而非旧纸色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "manifest声明两种普通安装图标而非maskable",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "favicon为夜色米白32px静态SVG",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "favicon包含三笔圆头圆接锁齿图形",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标180px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "180px安装图标背景与中心笔画配色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "180px安装图标全不透明且外缘留白≥16%",
+          "passed": true
+        },
+        {
+          "detail": "0.21550411522633744",
+          "name": "180px PNG与favicon主体几何一致",
+          "passed": true
+        },
+        {
+          "detail": "[1.1242603550295858,1.1341222879684418,1.1715976331360947,1.1854043392504932,1.5085470085470085,1.5833333333333333,1.0414201183431953,1.5029585798816567,1.3333333333333333,1.455621301775148,1.5029585798816567,1.3333333333333333,1.455621301775148,1.047337278106509,0.9625246548323472,0.9842209072978304]",
+          "name": "180px PNG端点和锁齿圆角与SVG一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标192px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "192px安装图标背景与中心笔画配色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "192px安装图标全不透明且外缘留白≥16%",
+          "passed": true
+        },
+        {
+          "detail": "0.1406882957175926",
+          "name": "192px PNG与favicon主体几何一致",
+          "passed": true
+        },
+        {
+          "detail": "[1.8241758241758241,1.8058608058608059,1.4908424908424909,1.534798534798535,0.8007889546351085,0.8520710059171598,0.6886446886446886,0.8461538461538461,0.8443223443223443,0.9644970414201184,0.5167652859960552,0.9047619047619048,1.1597633136094674,0.532967032967033,0.6117216117216118,0.5732600732600732]",
+          "name": "192px PNG端点和锁齿圆角与SVG一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标512px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "512px安装图标背景与中心笔画配色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "512px安装图标全不透明且外缘留白≥16%",
+          "passed": true
+        },
+        {
+          "detail": "0.06047185262044271",
+          "name": "512px PNG与favicon主体几何一致",
+          "passed": true
+        },
+        {
+          "detail": "[1.010727969348659,0.9839080459770115,1.100383141762452,1.0804597701149425,0.5759017043202537,0.606817281014665,0.4019157088122605,0.43256704980842914,0.435632183908046,0.3927863654379707,0.3218390804597701,0.7003703703703704,0.46135552913198574,0.4314176245210728,0.3524904214559387,0.34521072796934865]",
+          "name": "512px PNG端点和锁齿圆角与SVG一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "文档关联manifest及Apple图标",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "文档关联SVG favicon",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "completion",
+      "passed": 46,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成在途双击只发一次且禁止分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "乐观完成同步印章打孔编号与刻度",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成状态不可点且保留焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "印章出现时出票按钮不可见",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成失败完整回滚且按钮恢复",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[521.3333740234375,16,288,407.35418701171875],[578.1666870117188,36.66666793823242,246.6666717529297,269.85418701171875],[960.6875,16,288,44]],\"after\":[[521.3333740234375,16,288,407.35418701171875],[578.1666870117188,36.66666793823242,246.6666717529297,269.85418701171875],[960.6875,16,288,44]]}",
+          "name": "320px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[465.3333435058594,20,350,375.375],[522.1666870117188,40.66666793823242,308.66668701171875,237.875],[872.7083740234375,20,350,44]],\"after\":[[465.3333435058594,20,350,375.375],[522.1666870117188,40.66666793823242,308.66668701171875,237.875],[872.7083740234375,20,350,44]]}",
+          "name": "390px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[465.3333435058594,164,440,326.1875],[522.1666870117188,184.6666717529297,398.66668701171875,188.6875],[823.5208740234375,164,440,44]],\"after\":[[465.3333435058594,164,440,326.1875],[522.1666870117188,184.6666717529297,398.66668701171875,188.6875],[823.5208740234375,164,440,44]]}",
+          "name": "768px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[44.21875,32,256,1307.760498046875],[156.55209350585938,72.66667175292969,174.6666717529297,904.09375],[1415.979248046875,32,256,99]],\"after\":[[44.21875,32,256,1307.760498046875],[156.55209350585938,72.66667175292969,174.6666717529297,904.09375],[1415.979248046875,32,256,99]]}",
+          "name": "320px/200%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "确认后再次完成不发请求且不可撤销",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成操作显示换一张与分享此刻且名称含可见文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享只含实际分钟与干净链接不含票号",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改条件两行操作区完成后不收缩",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成票退场期间主按钮仍隐藏",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成票实际播放160ms退场动画",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "骨架接管后主按钮恢复且在途禁用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换票失败保留完成票及重试入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换票失败回显保留完成区高度",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成后失败重试仍重放条件快照",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模拟减少动态立即呈现静态完成态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模拟减少动态跳过旧票退场",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "legends",
+      "passed": 60,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "rest图例16px且位于票头编号旁",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "rest装饰隐藏且类别文字保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "rest/light静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "rest/dark静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "observe图例16px且位于票头编号旁",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "observe装饰隐藏且类别文字保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "observe/light静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "observe/dark静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "listen图例16px且位于票头编号旁",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "listen装饰隐藏且类别文字保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "listen/light静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "listen/dark静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "tidy图例16px且位于票头编号旁",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "tidy装饰隐藏且类别文字保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "tidy/light静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "tidy/dark静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "explore图例16px且位于票头编号旁",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "explore装饰隐藏且类别文字保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "explore/light静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "explore/dark静态中性色且320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "五类几何不同且均不依赖外部图像",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别缺失仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别null仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别\"toString\"仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别\"<svg onload=alert(1)>\"仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别[\"rest\"]仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "异常类别{}仅隐藏图例",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "未反馈时预留标记位但没有图形",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "乐观喜欢显示单枚12px心形且120ms一次淡入",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈不重播整卡且布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈在途防连点且焦点保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "确认不重建标记且同选项不重发",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成淡入后切换窄版不重播隐藏副本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "切回副券仍不重播且动画类已清理",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "可改选折角且两按钮pressed互斥",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "可再次改回心形且反馈归属不变",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "失败还原心形pressed及焦点且不重播动画",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%只显示一个标记且热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%标记在票内且不覆盖正文",
+          "passed": true
+        },
+        {
+          "detail": "{\"beforeChange\":[[521.3333587646484,16,288,435.35418701171875],[578.1666717529297,36.66666793823242,246.6666717529297,297.85418701171875],[586.0000152587891,227.33334350585938,56,290.0208435058594],[892.0208587646484,36.66666793823242,246.6666717529297,44]],\"afterChange\":[[521.3333587646484,16,288,435.35418701171875],[578.1666717529297,36.66666793823242,246.6666717529297,297.85418701171875],[586.0000152587891,227.33334350585938,56,290.0208435058594],[892.0208587646484,36.66666793823242,246.6666717529297,44]],\"beforeScroll\":[0,220.6666717529297],\"afterScroll\":[0,220.6666717529297]}",
+          "name": "320px/100%改选图形不引发布局位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%只显示一个标记且热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%标记在票内且不覆盖正文",
+          "passed": true
+        },
+        {
+          "detail": "{\"beforeChange\":[[465.3333435058594,20,350,375.375],[522.1666870117188,40.66666793823242,308.66668701171875,237.875],[530,293.3333435058594,56,230.0416717529297],[776.0416870117188,40.66666793823242,308.66668701171875,44]],\"afterChange\":[[465.3333511352539,20,350,375.375],[522.1666641235352,40.66666793823242,308.66668701171875,237.875],[530.0000076293945,293.3333435058594,56,230.0416717529297],[776.0416641235352,40.66666793823242,308.66668701171875,44]],\"beforeScroll\":[0,132],\"afterScroll\":[0,104.66666412353516]}",
+          "name": "390px/100%改选图形不引发布局位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%只显示一个标记且热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%标记在票内且不覆盖正文",
+          "passed": true
+        },
+        {
+          "detail": "{\"beforeChange\":[[465.3333511352539,164,440,353.38543701171875],[522.1666641235352,184.6666717529297,398.66668701171875,215.8854217529297],[530.0000076293945,527.3333740234375,56,208.05209350585938],[754.0521011352539,184.6666717529297,398.66668701171875,44]],\"afterChange\":[[465.3333511352539,164,440,353.38543701171875],[522.1666641235352,184.6666717529297,398.66668701171875,215.8854217529297],[530.0000076293945,527.3333740234375,56,208.05209350585938],[754.0521011352539,184.6666717529297,398.66668701171875,44]],\"beforeScroll\":[0,104.66666412353516],\"afterScroll\":[0,82.66666412353516]}",
+          "name": "768px/100%改选图形不引发布局位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%只显示一个标记且热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%标记在票内且不覆盖正文",
+          "passed": true
+        },
+        {
+          "detail": "{\"beforeChange\":[[1034.2187881469727,32,256,1294.1458740234375],[1146.5521621704102,72.66667175292969,174.6666717529297,890.4791870117188],[82.66666412353516,0,0,0],[2069.0312881469727,72.66667175292969,174.6666717529297,218.6666717529297]],\"afterChange\":[[1034.2187881469727,32,256,1294.1458740234375],[1146.5521621704102,72.66667175292969,174.6666717529297,890.4791870117188],[82.66666412353516,0,0,0],[2069.0312881469727,72.66667175292969,174.6666717529297,218.6666717529297]],\"beforeScroll\":[0,82.66666412353516],\"afterScroll\":[0,82.66666412353516]}",
+          "name": "320px/200%改选图形不引发布局位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "light灰度仍有填充边框字重与形状区分",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "dark灰度仍有填充边框字重与形状区分",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模拟减少动态显示静态标记",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧反馈失败不会把标记带到新票",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成仪式保留已确认偏好且无反馈按钮",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成后偏好标记与印章不重叠",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "polish",
+      "passed": 74,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首访三行引导在外部脚本前可见且措辞准确",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首帧显式深色与页外文字同步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首次出票失败不收起引导也不写seen",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "生成中可访问名称含出票中且条件仍可编辑",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首次成功收起引导并写seen而条件常驻",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "回访外部脚本前引导已隐藏且主题不闪回",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "存储写拒绝仍出票并在本页收起引导",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "写拒绝后刷新无法持久记住但仍可见引导",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "存储读拒绝保持系统主题并能出票收起引导",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关于入口可见文案包含于名称",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "展开关于与数据保留主题与服务端数据说明",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关闭关于焦点回入口且名称恢复",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "页眉显示本地日期且主按钮名称含可见文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关于记忆加载完成后再测主题请求隔离",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":13.704892373255847},{\"selector\":\".masthead-date\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".scene-label\",\"ratio\":14.804006798713335},{\"selector\":\".scene-value\",\"ratio\":6.495246115300597},{\"selector\":\".foot\",\"ratio\":6.0130105422364135},{\"selector\":\".settings\",\"ratio\":6.0130105422364135},{\"selector\":\".about h2\",\"ratio\":13.704892373255847},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about legend\",\"ratio\":13.704892373255847},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".card h2\",\"ratio\":14.804006798713335},{\"selector\":\".first-label\",\"ratio\":6.495246115300597},{\"selector\":\".first-text\",\"ratio\":14.804006798713335},{\"selector\":\".detail\",\"ratio\":6.495246115300597},{\"selector\":\".cat\",\"ratio\":6.495246115300597},{\"selector\":\".gauge-label\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".swap\",\"ratio\":14.804006798713335},{\"selector\":\".primary\",\"ratio\":4.83750467123581}]",
+          "name": "系统浅/system页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/system主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":13.704892373255847},{\"selector\":\".masthead-date\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".scene-label\",\"ratio\":14.804006798713335},{\"selector\":\".scene-value\",\"ratio\":6.495246115300597},{\"selector\":\".foot\",\"ratio\":6.0130105422364135},{\"selector\":\".settings\",\"ratio\":6.0130105422364135},{\"selector\":\".about h2\",\"ratio\":13.704892373255847},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about legend\",\"ratio\":13.704892373255847},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".card h2\",\"ratio\":14.804006798713335},{\"selector\":\".first-label\",\"ratio\":6.495246115300597},{\"selector\":\".first-text\",\"ratio\":14.804006798713335},{\"selector\":\".detail\",\"ratio\":6.495246115300597},{\"selector\":\".cat\",\"ratio\":6.495246115300597},{\"selector\":\".gauge-label\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".swap\",\"ratio\":14.804006798713335},{\"selector\":\".primary\",\"ratio\":4.83750467123581}]",
+          "name": "系统浅/light页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/light主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":14.054042682817393},{\"selector\":\".masthead-date\",\"ratio\":7.313594900259887},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".scene-label\",\"ratio\":14.054042682817393},{\"selector\":\".scene-value\",\"ratio\":5.781122297012072},{\"selector\":\".foot\",\"ratio\":8.270314459673724},{\"selector\":\".settings\",\"ratio\":8.270314459673724},{\"selector\":\".about h2\",\"ratio\":15.892506216395185},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about legend\",\"ratio\":15.892506216395185},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".card h2\",\"ratio\":14.054042682817393},{\"selector\":\".first-label\",\"ratio\":5.781122297012072},{\"selector\":\".first-text\",\"ratio\":14.054042682817393},{\"selector\":\".detail\",\"ratio\":5.781122297012072},{\"selector\":\".cat\",\"ratio\":5.781122297012072},{\"selector\":\".gauge-label\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".swap\",\"ratio\":14.054042682817393},{\"selector\":\".primary\",\"ratio\":7.786294128163162}]",
+          "name": "系统浅/dark页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统浅/dark主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":14.054042682817393},{\"selector\":\".masthead-date\",\"ratio\":7.313594900259887},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".scene-label\",\"ratio\":14.054042682817393},{\"selector\":\".scene-value\",\"ratio\":5.781122297012072},{\"selector\":\".foot\",\"ratio\":8.270314459673724},{\"selector\":\".settings\",\"ratio\":8.270314459673724},{\"selector\":\".about h2\",\"ratio\":15.892506216395185},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about legend\",\"ratio\":15.892506216395185},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".card h2\",\"ratio\":14.054042682817393},{\"selector\":\".first-label\",\"ratio\":5.781122297012072},{\"selector\":\".first-text\",\"ratio\":14.054042682817393},{\"selector\":\".detail\",\"ratio\":5.781122297012072},{\"selector\":\".cat\",\"ratio\":5.781122297012072},{\"selector\":\".gauge-label\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".swap\",\"ratio\":14.054042682817393},{\"selector\":\".primary\",\"ratio\":7.786294128163162}]",
+          "name": "系统深/system页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/system主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":13.704892373255847},{\"selector\":\".masthead-date\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".guide p\",\"ratio\":6.0130105422364135},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".panel legend\",\"ratio\":14.804006798713335},{\"selector\":\".scene-label\",\"ratio\":14.804006798713335},{\"selector\":\".scene-value\",\"ratio\":6.495246115300597},{\"selector\":\".foot\",\"ratio\":6.0130105422364135},{\"selector\":\".settings\",\"ratio\":6.0130105422364135},{\"selector\":\".about h2\",\"ratio\":13.704892373255847},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about p\",\"ratio\":6.0130105422364135},{\"selector\":\".about legend\",\"ratio\":13.704892373255847},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".share-note\",\"ratio\":6.0130105422364135},{\"selector\":\".card h2\",\"ratio\":14.804006798713335},{\"selector\":\".first-label\",\"ratio\":6.495246115300597},{\"selector\":\".first-text\",\"ratio\":14.804006798713335},{\"selector\":\".detail\",\"ratio\":6.495246115300597},{\"selector\":\".cat\",\"ratio\":6.495246115300597},{\"selector\":\".gauge-label\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".feedback button\",\"ratio\":6.495246115300597},{\"selector\":\".swap\",\"ratio\":14.804006798713335},{\"selector\":\".primary\",\"ratio\":4.83750467123581}]",
+          "name": "系统深/light页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/light主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".masthead .brand-name\",\"ratio\":14.054042682817393},{\"selector\":\".masthead-date\",\"ratio\":7.313594900259887},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".guide p\",\"ratio\":8.270314459673724},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".panel legend\",\"ratio\":14.054042682817393},{\"selector\":\".scene-label\",\"ratio\":14.054042682817393},{\"selector\":\".scene-value\",\"ratio\":5.781122297012072},{\"selector\":\".foot\",\"ratio\":8.270314459673724},{\"selector\":\".settings\",\"ratio\":8.270314459673724},{\"selector\":\".about h2\",\"ratio\":15.892506216395185},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about p\",\"ratio\":8.270314459673724},{\"selector\":\".about legend\",\"ratio\":15.892506216395185},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".share-note\",\"ratio\":8.270314459673724},{\"selector\":\".card h2\",\"ratio\":14.054042682817393},{\"selector\":\".first-label\",\"ratio\":5.781122297012072},{\"selector\":\".first-text\",\"ratio\":14.054042682817393},{\"selector\":\".detail\",\"ratio\":5.781122297012072},{\"selector\":\".cat\",\"ratio\":5.781122297012072},{\"selector\":\".gauge-label\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".feedback button\",\"ratio\":5.781122297012072},{\"selector\":\".swap\",\"ratio\":14.054042682817393},{\"selector\":\".primary\",\"ratio\":7.786294128163162}]",
+          "name": "系统深/dark页外与票面普通文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark仅浅色票面有黑色8px投影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark按压态米白字对深橙≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark场景主题与换票不扩散橙色",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark/页脚焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark/票面焦点对表面≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "系统深/dark主题单选外圈对页底≥3",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "切换主题不改票据或提交请求",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%双主题结构矩形完全一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%关于入口与主题热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%双主题结构矩形完全一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%关于入口与主题热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%双主题结构矩形完全一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%关于入口与主题热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%双主题结构矩形完全一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%关于入口与主题热区≥44无横滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%/3分钟保留两端点和完整时长",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%/5分钟保留两端点和完整时长",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%/10分钟保留两端点和完整时长",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%/15分钟保留两端点和完整时长",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "ix",
+      "passed": 65,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通推荐生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "V3主按钮可见文案与互动无障碍名称一致",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "互动开场沿用V3出票中与忙碌状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "实际主按钮只请求互动并保留图片声明",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改条件不自动生成互动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "互动换票带replaces及当前条件且不提交反馈",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "互动开场重试保留UUID和失败条件快照",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "互动503明确原因并提供普通推荐降级",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "503降级使用完整V3票卡与时长而非对话卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "503降级完成盖章且确认后允许分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "普通建议换票只请求当前条件推荐且不提交反馈",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "开场生成可聊互动卡",
+          "passed": true
+        },
+        {
+          "detail": "{\"turnCalls\":1,\"msgs\":1,\"sending\":true}",
+          "name": "发送中防双击",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "第一轮回复上卡且版本推进",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "第二轮使用第一次回复的版本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模型不可用保留消息与重试入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重试复用同一UUID版本与内容",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换卡后迟到响应不污染新卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "结束204收起输入并提供重新开始",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重新开始使用新互动ID且无旧消息",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "抽到小行动卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "小行动反馈绑定本卡且保留互动状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "小行动乐观盖章保留互动并在确认前禁分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "小行动完成失败回滚印章与布局且保留互动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "小行动完成态沿用分享行",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "小行动完成保留V3票头刻度并允许分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成小行动换一张退出票卡且重置完成高度",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "候选原文与三键出现",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode\",\"ratio\":5.236127537393848},{\"selector\":\".badge\",\"ratio\":5.236127537393848},{\"selector\":\".msg-text\",\"ratio\":12.741349672010195},{\"selector\":\".msg-text\",\"ratio\":11.934215622701043},{\"selector\":\".turn-input\",\"ratio\":14.804006798713335},{\"selector\":\".candidate-label\",\"ratio\":12.741349672010195},{\"selector\":\".candidate-text\",\"ratio\":12.741349672010195},{\"selector\":\".candidate-keys button\",\"ratio\":14.804006798713335},{\"selector\":\".candidate-keys button\",\"ratio\":14.804006798713335},{\"selector\":\".candidate-keys button\",\"ratio\":14.804006798713335},{\"selector\":\".ix-actions button\",\"ratio\":6.495246115300597},{\"selector\":\".ix-actions button\",\"ratio\":14.804006798713335}]",
+          "name": "对话与候选/light文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode\",\"ratio\":4.909132666723611},{\"selector\":\".badge\",\"ratio\":4.909132666723611},{\"selector\":\".msg-text\",\"ratio\":12.344983255037427},{\"selector\":\".msg-text\",\"ratio\":11.934215622701043},{\"selector\":\".turn-input\",\"ratio\":14.054042682817393},{\"selector\":\".candidate-label\",\"ratio\":12.344983255037427},{\"selector\":\".candidate-text\",\"ratio\":12.344983255037427},{\"selector\":\".candidate-keys button\",\"ratio\":14.054042682817393},{\"selector\":\".candidate-keys button\",\"ratio\":14.054042682817393},{\"selector\":\".candidate-keys button\",\"ratio\":14.054042682817393},{\"selector\":\".ix-actions button\",\"ratio\":5.781122297012072},{\"selector\":\".ix-actions button\",\"ratio\":14.054042682817393}]",
+          "name": "对话与候选/dark文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "确认使用候选自身版本并显示回执",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改一下再保存提交修改文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "跳过收起确认按钮",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "候选过期收起按钮并提示",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "设置打开加载记忆列表",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关于入口无障碍名称包含记忆管理",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mem-count\",\"ratio\":6.0130105422364135},{\"selector\":\".mem-head .textbtn\",\"ratio\":13.704892373255847},{\"selector\":\".mem-text\",\"ratio\":14.804006798713335},{\"selector\":\".mem-text\",\"ratio\":14.804006798713335},{\"selector\":\".mem-meta\",\"ratio\":6.495246115300597},{\"selector\":\".mem-meta\",\"ratio\":6.495246115300597},{\"selector\":\".mem-keys .textbtn\",\"ratio\":14.804006798713335},{\"selector\":\".mem-keys .textbtn\",\"ratio\":4.992693590154347},{\"selector\":\".mem-keys .textbtn\",\"ratio\":14.804006798713335},{\"selector\":\".mem-keys .textbtn\",\"ratio\":4.992693590154347}]",
+          "name": "记忆管理/light文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mem-count\",\"ratio\":8.270314459673724},{\"selector\":\".mem-head .textbtn\",\"ratio\":15.892506216395185},{\"selector\":\".mem-text\",\"ratio\":14.054042682817393},{\"selector\":\".mem-text\",\"ratio\":14.054042682817393},{\"selector\":\".mem-meta\",\"ratio\":5.781122297012072},{\"selector\":\".mem-meta\",\"ratio\":5.781122297012072},{\"selector\":\".mem-keys .textbtn\",\"ratio\":14.054042682817393},{\"selector\":\".mem-keys .textbtn\",\"ratio\":4.739766049307441},{\"selector\":\".mem-keys .textbtn\",\"ratio\":14.054042682817393},{\"selector\":\".mem-keys .textbtn\",\"ratio\":4.739766049307441}]",
+          "name": "记忆管理/dark文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "版本冲突刷新列表保留待修改文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "冲突后按新版本保存成功",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "删除需二次确认",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "删除204移除条目",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "空列表有引导文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "加载失败区别于空列表",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mem-empty\",\"ratio\":6.0130105422364135}]",
+          "name": "记忆空态与错误/light文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mem-empty\",\"ratio\":8.270314459673724}]",
+          "name": "记忆空态与错误/dark文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片互动先上传再续聊且不套完成态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片类型拒绝后保留上传入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "服务端拒绝损坏图片后可重新上传",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "真实上传入口歧义时先问不伪造词卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "歧义时重拍推进版本并保留会话",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode-photo\",\"ratio\":5.714764518425971},{\"selector\":\".photo-pick\",\"ratio\":12.741349672010195},{\"selector\":\".photo-hint\",\"ratio\":6.495246115300597}]",
+          "name": "图片上传/light文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode-photo\",\"ratio\":7.352919903383393},{\"selector\":\".photo-pick\",\"ratio\":12.344983255037427},{\"selector\":\".photo-hint\",\"ratio\":5.781122297012072}]",
+          "name": "图片上传/dark文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片澄清续聊呈现完整词卡",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode-photo\",\"ratio\":5.714764518425971},{\"selector\":\".word-en\",\"ratio\":14.804006798713335},{\"selector\":\".word-ipa\",\"ratio\":6.495246115300597},{\"selector\":\".word-meaning\",\"ratio\":14.804006798713335},{\"selector\":\".word-practice\",\"ratio\":6.495246115300597}]",
+          "name": "图片词卡/light文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "[{\"selector\":\".mode-photo\",\"ratio\":7.352919903383393},{\"selector\":\".word-en\",\"ratio\":14.054042682817393},{\"selector\":\".word-ipa\",\"ratio\":5.781122297012072},{\"selector\":\".word-meaning\",\"ratio\":14.054042682817393},{\"selector\":\".word-practice\",\"ratio\":5.781122297012072}]",
+          "name": "图片词卡/dark文字对比度≥4.5",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片对话320px/100%无横滚且输入上传可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片对话390px/100%无横滚且输入上传可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片对话768px/100%无横滚且输入上传可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片对话320px/200%无横滚且输入上传可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "图片结束仅显示结束状态及16px图标而无印章",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

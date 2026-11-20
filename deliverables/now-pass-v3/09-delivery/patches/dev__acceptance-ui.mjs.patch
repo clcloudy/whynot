@@ -1,0 +1,59 @@
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -697,12 +697,55 @@
+     const manifestResponse = await native('/manifest.webmanifest');
+     const manifest = await manifestResponse.json();
+     check('manifest类型、入口与显示模式', manifestResponse.headers.get('content-type').includes('application/manifest+json') && manifest.start_url === '/' && manifest.scope === '/' && manifest.display === 'standalone');
++    check('manifest身份与语言保持稳定', manifest.id === '/' && manifest.name === 'WhyNot' && manifest.short_name === 'WhyNot' && manifest.lang === 'zh-CN');
++    check('安装启动主题采用夜色而非旧纸色', manifest.background_color === '#101827' && manifest.theme_color === '#101827');
++    check('manifest声明两种普通安装图标而非maskable', manifest.icons.length === 2 && [192, 512].every(size => manifest.icons.some(icon => icon.src === `/icon-${size}.png` && icon.sizes === `${size}x${size}` && icon.type === 'image/png' && icon.purpose === 'any')));
++    const faviconResponse = await native('/icon.svg'), svgText = await faviconResponse.text();
++    const svg = new w.DOMParser().parseFromString(svgText, 'image/svg+xml').documentElement;
++    check('favicon为夜色米白32px静态SVG', faviconResponse.ok && faviconResponse.headers.get('content-type').includes('image/svg+xml') && svg.getAttribute('viewBox') === '0 0 32 32' && svg.querySelector('rect')?.getAttribute('fill') === '#101827' && svg.querySelector('path')?.getAttribute('stroke') === '#f6f2e8' && !svg.querySelector('script,image,use,animate,parsererror'));
++    check('favicon包含三笔圆头圆接锁齿图形', svg.querySelectorAll('path').length === 1 && svg.querySelector('path').getAttribute('d').match(/M/g)?.length === 3 && svg.querySelector('path').getAttribute('stroke-width') === '2' && svg.querySelector('path').getAttribute('stroke-linecap') === 'round' && svg.querySelector('path').getAttribute('stroke-linejoin') === 'round');
++    svg.querySelector('rect').setAttribute('rx', '0');
++    svg.querySelector('path').setAttribute('transform', 'translate(16 16) scale(.8) translate(-16 -16)');
+     for (const [path, size] of [['/apple-touch-icon.png', 180], ['/icon-192.png', 192], ['/icon-512.png', 512]]) {
+       const r = await native(path), image = await w.createImageBitmap(await r.blob());
+       check(`安装图标${size}px有效`, r.ok && r.headers.get('content-type').includes('image/png') && image.width === size && image.height === size);
+-      image.close();
++      const canvas = d.createElement('canvas'); canvas.width = canvas.height = size;
++      const context = canvas.getContext('2d', { willReadFrequently: true });
++      context.drawImage(image, 0, 0); image.close();
++      const pixels = context.getImageData(0, 0, size, size).data;
++      const center = (Math.floor(size / 2) * size + Math.floor(size / 2)) * 4;
++      check(`${size}px安装图标背景与中心笔画配色`, [16, 24, 39, 255].every((v, i) => pixels[i] === v) && [246, 242, 232, 255].every((v, i) => pixels[center + i] === v));
++      let opaque = true, margin = true;
++      for (let y = 0; y < size; y++) for (let x = 0; x < size; x++) {
++        const i = (y * size + x) * 4;
++        opaque &&= pixels[i + 3] === 255;
++        if (x < size * .16 || x >= size * .84 || y < size * .16 || y >= size * .84) margin &&= pixels[i] === 16 && pixels[i + 1] === 24 && pixels[i + 2] === 39;
++      }
++      check(`${size}px安装图标全不透明且外缘留白≥16%`, opaque && margin);
++      svg.setAttribute('width', String(size)); svg.setAttribute('height', String(size));
++      const reference = new w.Image(), url = w.URL.createObjectURL(new w.Blob([new w.XMLSerializer().serializeToString(svg)], { type: 'image/svg+xml' }));
++      try {
++        await new Promise((resolve, reject) => { reference.onload = resolve; reference.onerror = reject; reference.src = url; });
++        context.clearRect(0, 0, size, size); context.drawImage(reference, 0, 0);
++        const expected = context.getImageData(0, 0, size, size).data;
++        const meanError = pixels.reduce((sum, value, i) => sum + (i % 4 === 3 ? 0 : Math.abs(value - expected[i])), 0) / (size * size * 3);
++        check(`${size}px PNG与favicon主体几何一致`, meanError < 3, String(meanError));
++        const corners = [[4, 12], [28, 12], [4, 20], [28, 20], [11, 16], [21, 16], [4, 6], [8, 6], [10, 8], [12, 6], [16, 6], [18, 8], [20, 6], [28, 6], [4, 26], [28, 26]];
++        const localErrors = corners.map(([x, y]) => {
++          const cx = ((x - 16) * .8 + 16) * size / 32, cy = ((y - 16) * .8 + 16) * size / 32, radius = size * .8 / 32 + 1;
++          let total = 0, count = 0;
++          for (let py = Math.floor(cy - radius); py <= Math.ceil(cy + radius); py++) for (let px = Math.floor(cx - radius); px <= Math.ceil(cx + radius); px++) {
++            const index = (py * size + px) * 4;
++            for (let channel = 0; channel < 3; channel++) total += Math.abs(pixels[index + channel] - expected[index + channel]);
++            count += 3;
++          }
++          return total / count;
++        });
++        check(`${size}px PNG端点和锁齿圆角与SVG一致`, localErrors.every(error => error < 12), JSON.stringify(localErrors));
++      } finally { w.URL.revokeObjectURL(url); }
+     }
+     check('文档关联manifest及Apple图标', d.querySelector('link[rel="manifest"]').getAttribute('href') === '/manifest.webmanifest' && d.querySelector('link[rel="apple-touch-icon"]').getAttribute('sizes') === '180x180');
++    check('文档关联SVG favicon', d.querySelector('link[rel="icon"]').getAttribute('href') === '/icon.svg' && d.querySelector('link[rel="icon"]').getAttribute('type') === 'image/svg+xml');
+   }
+   w.fetch = native;
+   check('无脚本异常', errors.length === 0, errors.join(';'));

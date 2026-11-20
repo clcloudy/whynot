@@ -1,0 +1,83 @@
+{
+  "method": "sum of per-file gzip level 9, actual working tree bytes",
+  "files": [
+    {
+      "name": "app.js",
+      "raw": 61115,
+      "gzip9": 16346
+    },
+    {
+      "name": "apple-touch-icon.png",
+      "raw": 510,
+      "gzip9": 531
+    },
+    {
+      "name": "icon-192.png",
+      "raw": 634,
+      "gzip9": 657
+    },
+    {
+      "name": "icon-512.png",
+      "raw": 1594,
+      "gzip9": 1478
+    },
+    {
+      "name": "icon.svg",
+      "raw": 288,
+      "gzip9": 215
+    },
+    {
+      "name": "index.html",
+      "raw": 6563,
+      "gzip9": 2534
+    },
+    {
+      "name": "manifest.webmanifest",
+      "raw": 419,
+      "gzip9": 225
+    },
+    {
+      "name": "style.css",
+      "raw": 29083,
+      "gzip9": 5828
+    }
+  ],
+  "core": {
+    "raw": 97049,
+    "gzip9": 24923
+  },
+  "full": {
+    "raw": 100206,
+    "gzip9": 27814
+  },
+  "budgets": [
+    {
+      "name": "original core raw",
+      "actual": 97049,
+      "limit": 34000,
+      "excess": 63049,
+      "passed": false
+    },
+    {
+      "name": "original core gzip 14KiB",
+      "actual": 24923,
+      "limit": 14336,
+      "excess": 10587,
+      "passed": false
+    },
+    {
+      "name": "original full gzip 16KiB",
+      "actual": 27814,
+      "limit": 16384,
+      "excess": 11430,
+      "passed": false
+    },
+    {
+      "name": "assistant-selected full gzip 24KiB",
+      "actual": 27814,
+      "limit": 24576,
+      "excess": 3238,
+      "passed": false
+    }
+  ]
+}

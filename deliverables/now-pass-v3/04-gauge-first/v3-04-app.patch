@@ -1,0 +1,31 @@
+--- source-before/app.js	2026-11-20 17:11:43.180057000 +0800
++++ source-after/app.js	2026-11-20 17:21:50.160077500 +0800
+@@ -288,20 +288,25 @@
+     cat.setAttribute('aria-label', `类别：${CATEGORY_NAMES[card.category]}`);
+     meta.append(cat);
+   }
+-  meta.append(el('span', 'badge', `约 ${card.minutes} 分钟`), el('span', 'condition-note'));
++  meta.append(el('span', 'condition-note'));
++  const gap = card.minutes <= 3 ? 3 : card.minutes <= 5 ? 5 : card.minutes <= 10 ? 9 : 13;
++  const gauge = el('div', 'gauge');
++  gauge.setAttribute('aria-hidden', 'true');
++  gauge.innerHTML = `<svg class="g-dot" viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><circle cx="6" cy="10" r="4"/></svg><span class="gauge-label">约 ${card.minutes} 分钟</span><svg class="g-line" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true"><line x1="1" y1="1" x2="99" y2="1" stroke-dasharray="3 ${gap}"/></svg><svg class="g-ring" viewBox="0 0 14 20" width="14" height="20" aria-hidden="true"><circle cx="7" cy="10" r="5"/></svg>`;
+   const title = el('h2', null, card.title);
+   title.id = 'card-title';
+   title.tabIndex = -1;
+   title.setAttribute('aria-label', `新的建议：${card.title}，约 ${card.minutes} 分钟`);
+   const first = el('div', 'first');
+   first.id = 'card-first';
+-  first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
+-  body.append(meta, title, first, el('p', 'detail', card.detail));
++  first.append(el('span', 'first-label', '从这一步开始'), el('p', 'first-text', card.first_step));
++  body.append(meta, title, gauge, first, el('p', 'detail', card.detail));
+   const stub = el('div', 'ticket-stub');
+   stub.setAttribute('aria-hidden', 'true');
+   stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'));
+   const sep = el('div', 'ticket-sep');
+   sep.setAttribute('aria-hidden', 'true');
++  if (card.completed) article.classList.add('ticket-done');
+   article.append(head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {

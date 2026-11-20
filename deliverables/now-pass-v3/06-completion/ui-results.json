@@ -1,0 +1,837 @@
+{
+  "base": "http://127.0.0.1:8875",
+  "error": null,
+  "generatedAt": "2026-11-20T10:04:52.396Z",
+  "notes": [
+    "Completion animation sampled at 0/100/200/300ms with Web Animations API.",
+    "Reduced motion simulated through CSS media rules and matchMedia; no real OS/phone verification.",
+    "Native sharing/clipboard branches are stubs; API requests otherwise use local real routes except explicit fault injection."
+  ],
+  "reports": [
+    {
+      "failed": [],
+      "group": "completion",
+      "passed": 46,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主按钮生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成在途双击只发一次且禁止分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "乐观完成同步印章打孔编号与刻度",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成状态不可点且保留焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "印章出现时出票按钮不可见",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成失败完整回滚且按钮恢复",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[521.3333740234375,16,288,328.44793701171875],[578.8333740234375,36.66666793823242,246.6666717529297,190.28125],[881.78125,16,288,44]],\"after\":[[521.3333740234375,16,288,328.44793701171875],[578.8333740234375,36.66666793823242,246.6666717529297,190.28125],[881.78125,16,288,44]]}",
+          "name": "320px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[465.3333435058594,20,350,326.85418701171875],[522.8333740234375,40.66666793823242,308.66668701171875,188.6875],[824.1875,20,350,44]],\"after\":[[465.3333435058594,20,350,326.85418701171875],[522.8333740234375,40.66666793823242,308.66668701171875,188.6875],[824.1875,20,350,44]]}",
+          "name": "390px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[465.3333435058594,164,440,326.85418701171875],[522.8333740234375,184.6666717529297,398.66668701171875,188.6875],[824.1875,164,440,44]],\"after\":[[465.3333435058594,164,440,326.85418701171875],[522.8333740234375,184.6666717529297,398.66668701171875,188.6875],[824.1875,164,440,44]]}",
+          "name": "768px/100%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px/100%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%只播放300ms印章不重播整卡入场",
+          "passed": true
+        },
+        {
+          "detail": "{\"before\":[[44.21875,32,256,939.8125],[156.55209350585938,72.66667175292969,174.6666717529297,536.1458740234375],[1048.03125,32,256,44]],\"after\":[[44.21875,32,256,939.8125],[156.55209350585938,72.66667175292969,174.6666717529297,536.1458740234375],[1048.03125,32,256,44]]}",
+          "name": "320px/200%盖章前后及300ms内布局不位移",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%固定负8度且无回弹",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%印章在票面内且不盖正文",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%完成操作无横向滚动且热区≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%确认后不重复盖章且开放分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "确认后再次完成不发请求且不可撤销",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成操作显示换一张与分享此刻且名称含可见文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享只含实际分钟与干净链接不含票号",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改条件两行操作区完成后不收缩",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成票退场期间主按钮仍隐藏",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成票实际播放160ms退场动画",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "骨架接管后主按钮恢复且在途禁用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换票失败保留完成票及重试入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换票失败回显保留完成区高度",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成后失败重试仍重放条件快照",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模拟减少动态立即呈现静态完成态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "模拟减少动态跳过旧票退场",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "state",
+      "passed": 32,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主按钮生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈焦点保留",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈在途仍可换卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换卡后焦点在换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "换卡使新卡反馈立即可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧反馈不能覆盖新卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧反馈 finally 不能解锁新反馈",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "5秒旧反馈失败不回滚新卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "会话等待前快照条件",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "改条件不自动提交",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧条件标注与新条件按钮",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "编辑表单期间返回不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "新条件生成不超3分钟",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "失败保留旧卡与当前条件",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "网络错误不自动重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重试仍使用失败请求快照",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效编号实际API返回404，仅留换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "反馈401重建会话并重放一次",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "重复401恢复有上限且回滚",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "503只重试一次且退避800ms",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "409只重试一次且退避800ms",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "非法反馈只允许一次手动再试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "服务端权威完成态覆盖乐观状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "INVALID_CONTEXT不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "JSON_REQUIRED不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "INVALID_BODY不重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效响应可手动重试",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "未知category安全降级",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "timing",
+      "passed": 12,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主按钮生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "生成中aria-busy且条件可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "8秒只更新视觉文案",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "真实25秒超时文案且保留旧卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "结束清理加载状态",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "离线保留卡片并禁用换一个",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "网络恢复就地提示，不自动提交",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "恢复后手动重试成功且只有一张卡",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "layout",
+      "passed": 20,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主按钮生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[55.66666793823242,44],[55.66666793823242,44],[55.66666793823242,44],[55.66666793823242,44]]",
+          "name": "320px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[71.16667175292969,44],[71.16667175292969,44],[71.16667175292969,44],[71.16667175292969,44]]",
+          "name": "390px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "390px卡宽350",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "[[93.66667175292969,44],[93.66667175292969,44],[93.66667175292969,44],[93.66667175292969,44]]",
+          "name": "768px四键一行且均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px四键等宽",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "768px单列480居中",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%四键2×2且≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%分段2×2",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "200%第一步与耗时不裁切",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    },
+    {
+      "failed": [],
+      "group": "b4",
+      "passed": 48,
+      "results": [
+        {
+          "detail": "",
+          "name": "首屏不抢焦点",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主按钮生成后焦点到标题",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "整卡不是 live region",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "卡片关联标题与第一步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关于可展开且主题为原生单选组",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择system",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题system/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择light",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题light/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统浅色/选择dark",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题dark/系统false同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择system",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题system/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择light",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题light/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "CSS系统深色/选择dark",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题dark/系统true同步meta及阴影",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "显式主题写入存储",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "跟随系统清除覆盖值",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "写入被拒静默回到系统",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "关闭关于后焦点回入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "首屏脚本≤400B且早于样式",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "外部app运行前已是深色且回访引导隐藏",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "外部app运行前主题meta已同步",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无效主题忽略且首访引导无需app即可见",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "存储读取被拒仍能生成及反馈，主题跟随系统",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "未完成卡无分享入口",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成反馈在途不允许提前分享",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "完成后分享可用",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生分享优先且不落剪贴板（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享标题≤40字且链接不带查询、片段、编号",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "分享取消安静结束且不复制",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生拒绝后剪贴板降级（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "复制提示2秒清除",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "剪贴板拒绝后传统复制（stub）",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "全部复制受限提供只读可选文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "320px/200%关于及分享无横向滚动",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "主题触摸目标均≥44",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "所有分享分支不调用API",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "原生分享在途防重复",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "旧分享完成不污染新卡或显示旧文本",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "离线分享有提示且不发请求",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "manifest类型、入口与显示模式",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标180px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标192px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "安装图标512px有效",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "文档关联manifest及Apple图标",
+          "passed": true
+        },
+        {
+          "detail": "",
+          "name": "无脚本异常",
+          "passed": true
+        }
+      ]
+    }
+  ]
+}

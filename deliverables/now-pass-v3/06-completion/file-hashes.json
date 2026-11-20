@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-11-20T10:04:52.975Z",
+  "baseline": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "hashes": {
+    "source-before": {
+      "app.js": "1b5c222e78c667b1be0e9b9284cfb1e300e21e405b5e5e1062f0d109f34b4d9c",
+      "style.css": "cfb38909749ba542f58b39687fecbc8f538d4c6b1301f60b71af8ce6534e3e0c",
+      "index.html": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+      "acceptance-ui.mjs": "71ba3d1b9034df9a1b7b93efe1bfabcbcd6ac71f43bc84c1a7ee9fb84a636f8f"
+    },
+    "source-after": {
+      "app.js": "d814e86e29070740572f1523f13174a329fd6cb8c6bcc50319be92855d756d6c",
+      "style.css": "945835f0f786097c273525c00e84b2a65c5ab631d7f62d3433b4d6e110b89f20",
+      "index.html": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+      "acceptance-ui.mjs": "a6efa5688f246a36d67ff71cdcc000cf7a5738fa07c932d6f4a18f605797596a"
+    }
+  }
+}

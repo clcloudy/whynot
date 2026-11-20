@@ -1,0 +1,128 @@
+diff --git a/E:/whynot/deliverables/now-pass-v3/07-legends/source-before/acceptance-ui.mjs b/E:/whynot/deliverables/now-pass-v3/07-legends/source-after/acceptance-ui.mjs
+index e2fdf5a..5bfbd7f 100644
+--- a/E:/whynot/deliverables/now-pass-v3/07-legends/source-before/acceptance-ui.mjs
++++ b/E:/whynot/deliverables/now-pass-v3/07-legends/source-after/acceptance-ui.mjs
+@@ -209,6 +209,123 @@ export default async function run(group = 'state') {
+     check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
+     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
+   }
++  if (group === 'legends') {
++    const css = node => w.getComputedStyle(node);
++    const visibleMarks = () => [...d.querySelectorAll('.preference-mark svg')].filter(node => node.getBoundingClientRect().width > 0);
++    const geometry = () => ['.card', '.ticket-body', '.ticket-stub', '.card-actions'].map(selector => {
++      const r = d.querySelector(selector).getBoundingClientRect();
++      return [r.top, r.left, r.width, r.height];
++    });
++    const sameGeometry = (a, b) => a.every((r, i) => r.every((v, j) => Math.abs(v - b[i][j]) < 1));
++    const originals = new Map();
++    frame.style.width = '320px';
++    for (const [category, label, name] of [['rest', '歇', '休息'], ['observe', '看', '观察'], ['listen', '听', '聆听'], ['tidy', '归', '整理'], ['explore', '探', '探索']]) {
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (!String(url).endsWith('/api/recommendations')) return r;
++        return w.Response.json({ ...await r.json(), category });
++      };
++      await w.ask();
++      const icon = d.querySelector('.category-icon'), rect = icon.getBoundingClientRect();
++      originals.set(category, icon.innerHTML);
++      check(`${category}图例16px且位于票头编号旁`, rect.width === 16 && rect.height === 16 && icon.parentElement.className === 'ticket-head' && icon.nextElementSibling.className === 'ticket-code' && icon.getAttribute('viewBox') === '0 0 20 20');
++      check(`${category}装饰隐藏且类别文字保留`, icon.getAttribute('aria-hidden') === 'true' && icon.getAttribute('focusable') === 'false' && d.querySelector('.cat').textContent === label && d.querySelector('.cat').getAttribute('aria-label') === `类别：${name}`);
++      for (const theme of ['light', 'dark']) {
++        w.applyTheme(theme);
++        check(`${category}/${theme}静态中性色且320px无横向滚动`, css(icon).animationName === 'none' && css(icon).color === css(d.querySelector('.cat')).color && d.documentElement.scrollWidth === d.documentElement.clientWidth);
++      }
++    }
++    check('五类几何不同且均不依赖外部图像', new Set(originals.values()).size === 5 && [...d.querySelectorAll('.category-icon use, .category-icon image')].length === 0);
++    for (const category of [undefined, null, 'toString', '<svg onload=alert(1)>', ['rest'], {}]) {
++      let id;
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (!String(url).endsWith('/api/recommendations')) return r;
++        const body = await r.json(); id = body.id;
++        if (category === undefined) delete body.category; else body.category = category;
++        return w.Response.json(body);
++      };
++      await w.ask();
++      check(`异常类别${JSON.stringify(category) ?? '缺失'}仅隐藏图例`, state().card.id === id && state().card.category === null && !d.querySelector('.category-icon, .cat') && !!d.querySelector('#card-first') && d.querySelectorAll('.card-actions button').length === 4);
++    }
++    w.fetch = native;
++    await w.ask();
++    check('未反馈时预留标记位但没有图形', d.querySelectorAll('.preference-mark').length === 2 && !d.querySelector('.preference-mark svg'));
++    await pause(280);
++    const gate = deferred();
++    let requests = 0;
++    w.fetch = async (url, init) => {
++      if (!String(url).endsWith('/feedback')) return native(url, init);
++      requests++;
++      const r = await native(url, init); await gate.promise; return r;
++    };
++    d.querySelector('[data-focus="like"]').focus({ preventScroll: true });
++    const feedbackCardId = state().card.id;
++    const before = geometry(), pending = w.sendFeedback('like');
++    const heart = visibleMarks()[0];
++    check('乐观喜欢显示单枚12px心形且120ms一次淡入', visibleMarks().length === 1 && heart.getBoundingClientRect().width === 12 && css(heart).animationName === 'feedbackIn' && css(heart).animationDuration === '0.12s' && css(heart).animationIterationCount === '1');
++    check('反馈不重播整卡且布局不位移', css(d.querySelector('.card')).animationName === 'none' && sameGeometry(before, geometry()));
++    await w.sendFeedback('like'); await w.sendFeedback('dislike');
++    check('反馈在途防连点且焦点保留', requests === 1 && state().card.preference === 'like' && d.activeElement.dataset.focus === 'like' && d.querySelector('[data-focus="like"]').getAttribute('aria-disabled') === 'true');
++    gate.resolve(); await pending;
++    await w.sendFeedback('like');
++    check('确认不重建标记且同选项不重发', heart === visibleMarks()[0] && requests === 1 && d.querySelector('[data-focus="like"]').getAttribute('aria-disabled') === 'false');
++    await pause(160);
++    d.documentElement.style.fontSize = '32px';
++    check('完成淡入后切换窄版不重播隐藏副本', visibleMarks().length === 1 && css(visibleMarks()[0]).animationName === 'none');
++    d.documentElement.style.fontSize = '16px';
++    check('切回副券仍不重播且动画类已清理', visibleMarks().length === 1 && !d.querySelector('.preference-mark .feedback-in'));
++    w.fetch = native;
++    await feedback('dislike');
++    const fold = visibleMarks()[0].innerHTML;
++    check('可改选折角且两按钮pressed互斥', fold !== heart.innerHTML && d.querySelector('[data-focus="like"]').getAttribute('aria-pressed') === 'false' && d.querySelector('[data-focus="dislike"]').getAttribute('aria-pressed') === 'true' && d.getElementById('feedback-status').textContent.includes('可以改'));
++    await feedback('like');
++    check('可再次改回心形且反馈归属不变', visibleMarks()[0].innerHTML === heart.innerHTML && state().card.preference === 'like' && state().card.id === feedbackCardId);
++    w.fetch = (url, init) => String(url).endsWith('/feedback') ? Promise.resolve(response('test_failure', 500)) : native(url, init);
++    await feedback('dislike');
++    check('失败还原心形pressed及焦点且不重播动画', state().card.preference === 'like' && visibleMarks()[0].innerHTML === heart.innerHTML && css(visibleMarks()[0]).animationName === 'none' && d.querySelector('[data-focus="like"]').getAttribute('aria-pressed') === 'true' && d.activeElement.dataset.focus === 'dislike' && !!d.getElementById('feedback-status').textContent);
++    w.fetch = native;
++    for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
++      frame.style.width = `${width}px`; d.documentElement.style.fontSize = `${font}px`;
++      await pause(50);
++      const key = `${width}px/${font / 16 * 100}%`, marks = visibleMarks();
++      const keys = [...d.querySelectorAll('.card-actions button')].map(node => node.getBoundingClientRect());
++      check(`${key}只显示一个标记且热区≥44无横滚`, marks.length === 1 && keys.every(r => r.width >= 44 && r.height >= 44) && d.documentElement.scrollWidth === d.documentElement.clientWidth);
++      const a = marks[0].getBoundingClientRect(), b = d.querySelector('.card').getBoundingClientRect();
++      check(`${key}标记在票内且不覆盖正文`, a.left >= b.left && a.right <= b.right && a.top >= b.top && a.bottom <= b.bottom && ![...d.querySelectorAll('#card-title, .first, .detail')].some(node => { const r = node.getBoundingClientRect(); return a.left < r.right && a.right > r.left && a.top < r.bottom && a.bottom > r.top; }));
++      const kind = state().card.preference === 'like' ? 'dislike' : 'like';
++      d.querySelector(`[data-focus="${kind}"]`).focus({ preventScroll: true });
++      const beforeChange = geometry();
++      await w.sendFeedback(kind);
++      check(`${key}改选图形不引发布局位移`, sameGeometry(beforeChange, geometry()));
++    }
++    frame.style.width = '390px'; d.documentElement.style.fontSize = '16px';
++    for (const theme of ['light', 'dark']) {
++      w.applyTheme(theme); d.querySelector('.card').style.filter = 'grayscale(1)';
++      await pause(200);
++      const selected = d.querySelector('.feedback [aria-pressed="true"]'), other = d.querySelector('.feedback [aria-pressed="false"]');
++      check(`${theme}灰度仍有填充边框字重与形状区分`, css(selected).backgroundColor !== css(other).backgroundColor && css(selected).borderColor !== css(other).borderColor && css(selected).fontWeight === '600' && css(visibleMarks()[0].parentElement).color === 'rgb(27, 35, 52)');
++      d.querySelector('.card').style.removeProperty('filter');
++    }
++    const media = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]).filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
++    const saved = media.map(rule => rule.media.mediaText);
++    media.forEach(rule => { rule.media.mediaText = 'all'; });
++    await feedback(state().card.preference === 'like' ? 'dislike' : 'like');
++    check('模拟减少动态显示静态标记', css(visibleMarks()[0]).animationName === 'none' && css(visibleMarks()[0]).opacity === '1');
++    media.forEach((rule, i) => { rule.media.mediaText = saved[i]; });
++    const oldGate = deferred();
++    w.fetch = async (url, init) => { if (String(url).endsWith('/feedback')) { await oldGate.promise; return response('test_failure', 500); } return native(url, init); };
++    const stale = feedback(state().card.preference === 'like' ? 'dislike' : 'like');
++    await w.ask(w.conditions(), 'swap');
++    const nextId = state().card.id;
++    oldGate.resolve(); await stale;
++    check('旧反馈失败不会把标记带到新票', state().card.id === nextId && state().card.preference === null && !d.querySelector('.preference-mark svg') && !d.getElementById('feedback-status').textContent);
++    w.fetch = native;
++    await feedback('like'); await feedback('completed');
++    check('完成仪式保留已确认偏好且无反馈按钮', state().card.preference === 'like' && visibleMarks().length === 1 && !!d.querySelector('.ticket-stamp') && !d.querySelector('.feedback'));
++    const markRect = visibleMarks()[0].getBoundingClientRect(), stampRect = d.querySelector('.ticket-stamp').getBoundingClientRect();
++    check('完成后偏好标记与印章不重叠', markRect.right <= stampRect.left || markRect.left >= stampRect.right || markRect.bottom <= stampRect.top || markRect.top >= stampRect.bottom);
++  }
+   if (group === 'completion') {
+     const css = node => w.getComputedStyle(node);
+     const geometry = () => ['.card', '.ticket-body', '.foot'].map(selector => {

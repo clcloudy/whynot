@@ -1,0 +1,332 @@
+{
+  "method": "Pillow RGB screenshot pixels; warm classifier R>=140 && R-G>=40 && G-B>=25; iframe viewport crop at recorded DPR; excludes surrounding host and offscreen page. Includes orange accent, deep press or alert shades if visible; does not count beige. Sampled states only, not every scroll or device.",
+  "results": [
+    {
+      "name": "first-dark-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "dark",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 50665,
+      "totalPixels": 740610,
+      "percentage": 6.841,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "first-light-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "light",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 51492,
+      "totalPixels": 740610,
+      "percentage": 6.9526,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "first-dark-320",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "16px",
+      "theme": "dark",
+      "scrollY": 23.33333396911621,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 42560,
+      "totalPixels": 408960,
+      "percentage": 10.4069,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "first-light-320",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "16px",
+      "theme": "light",
+      "scrollY": 23.33333396911621,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 42990,
+      "totalPixels": 408960,
+      "percentage": 10.512,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "card-dark-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "dark",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 52188,
+      "totalPixels": 740610,
+      "percentage": 7.0466,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "card-light-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "light",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 52274,
+      "totalPixels": 740610,
+      "percentage": 7.0582,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "about-dark-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "dark",
+      "scrollY": 464.6666564941406,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 2328,
+      "totalPixels": 740610,
+      "percentage": 0.3143,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "card-dark-320-200",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "32px",
+      "theme": "dark",
+      "scrollY": 1273.3333740234375,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 2235,
+      "totalPixels": 408960,
+      "percentage": 0.5465,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "card-light-320-200",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "32px",
+      "theme": "light",
+      "scrollY": 1273.3333740234375,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 2304,
+      "totalPixels": 408960,
+      "percentage": 0.5634,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "controls-light-320-200",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "32px",
+      "theme": "light",
+      "scrollY": 478,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 42818,
+      "totalPixels": 408960,
+      "percentage": 10.47,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "controls-dark-320-200",
+      "viewportCss": [
+        320,
+        568
+      ],
+      "rootFont": "32px",
+      "theme": "dark",
+      "scrollY": 478,
+      "sourcePixels": [
+        762,
+        852
+      ],
+      "cropPixels": [
+        0,
+        0,
+        480,
+        852
+      ],
+      "orangePixels": 42928,
+      "totalPixels": 408960,
+      "percentage": 10.4969,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "completed-dark-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "dark",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 10868,
+      "totalPixels": 740610,
+      "percentage": 1.4674,
+      "limitPercentage": 12,
+      "passed": true
+    },
+    {
+      "name": "completed-light-390",
+      "viewportCss": [
+        390,
+        844
+      ],
+      "rootFont": "16px",
+      "theme": "light",
+      "scrollY": 0,
+      "sourcePixels": [
+        762,
+        1266
+      ],
+      "cropPixels": [
+        0,
+        0,
+        585,
+        1266
+      ],
+      "orangePixels": 10919,
+      "totalPixels": 740610,
+      "percentage": 1.4743,
+      "limitPercentage": 12,
+      "passed": true
+    }
+  ],
+  "maximumPercentage": 10.512,
+  "allSamplesPassed": true
+}

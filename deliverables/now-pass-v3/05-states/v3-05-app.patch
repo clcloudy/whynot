@@ -1,0 +1,59 @@
+--- source-before/app.js	2026-11-20 17:43:44.717722900 +0800
++++ source-after/app.js	2026-11-20 17:43:31.243161300 +0800
+@@ -128,12 +128,16 @@
+   const card = el('article', 'skeleton');
+   card.setAttribute('aria-hidden', 'true');
+   card.append(el('p', 'sk-text', '正在找建议'));
+-  for (const name of ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2']) card.append(el('div', `sk sk-${name}`));
++  ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2'].forEach((name, i) => {
++    const block = el('div', `sk sk-${name}`);
++    block.style.animationDelay = `${i * 60}ms`;
++    card.append(block);
++  });
+   result.replaceChildren(card);
+ }
+ function errorText(error) {
+   if (NO_RETRY.includes(error.code)) return '这次没成功，刷新页面再试。';
+-  return ERRORS[error.code] || '这次没找到，再试一次。';
++  return ERRORS[error.code] || '这次没出票，再试一次。';
+ }
+ function renderNotice(error, snapshot) {
+   const notice = el('div', 'notice');
+@@ -343,6 +347,12 @@
+     askButton.insertAdjacentHTML('beforeend', '<span class="ask-dots" aria-hidden="true"><i></i><i></i><i></i></span>');
+   } else askButton.textContent = '出一张现在';
+ }
++function exitCard() {
++  const old = result.querySelector('.card');
++  if (!old || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
++  old.classList.add('card-out');
++  return new Promise(res => setTimeout(res, 160));
++}
+ async function ask(snapshot = conditions(), source = 'primary') {
+   if (state.busy) return;
+   snapshot = { ...snapshot };
+@@ -351,11 +361,12 @@
+   status.textContent = '正在找建议';
+   focus(result);
+   setBusy(true);
+-  renderLoading();
+   const timer = setTimeout(() => {
+     const text = result.querySelector('.sk-text');
+     if (text) text.textContent = '还在找，再等一下';
+   }, 8000);
++  await exitCard();
++  renderLoading();
+   try {
+     if (navigator.onLine === false) throw new RequestError('network_error', 0);
+     await ensureSession();
+@@ -371,9 +382,9 @@
+     if (!state.conditionsMatch) console.warn('Recommendation context mismatch');
+     state.feedbackPending = false;
+     state.feedbackAttempts = {};
+-    setBusy(false);
+     result.replaceChildren();
+     dismissGuide();
++    setBusy(false);
+     renderCard();
+     status.textContent = '';
+     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));

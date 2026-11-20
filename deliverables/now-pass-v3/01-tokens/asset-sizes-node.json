@@ -1,0 +1,49 @@
+{
+  "method": "Node zlib gzipSync level 9",
+  "files": [
+    {
+      "file": "web/app.js",
+      "raw": 23309,
+      "gzip9": 7040
+    },
+    {
+      "file": "web/apple-touch-icon.png",
+      "raw": 487,
+      "gzip9": 510
+    },
+    {
+      "file": "web/icon-192.png",
+      "raw": 500,
+      "gzip9": 521
+    },
+    {
+      "file": "web/icon-512.png",
+      "raw": 1256,
+      "gzip9": 1049
+    },
+    {
+      "file": "web/icon.svg",
+      "raw": 299,
+      "gzip9": 223
+    },
+    {
+      "file": "web/index.html",
+      "raw": 6198,
+      "gzip9": 2367
+    },
+    {
+      "file": "web/manifest.webmanifest",
+      "raw": 404,
+      "gzip9": 221
+    },
+    {
+      "file": "web/style.css",
+      "raw": 15572,
+      "gzip9": 3419
+    }
+  ],
+  "allWebRaw": 48025,
+  "allWebGzip9": 15350,
+  "coreRaw": 45378,
+  "coreGzip9": 13049
+}

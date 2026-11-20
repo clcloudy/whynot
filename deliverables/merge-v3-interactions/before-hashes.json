@@ -1,0 +1,78 @@
+{
+  "mainCommit": "73e0d61d722c55b5666f1d5c694bafee66840e65",
+  "v3Commit": "397a8dac09b99e80db8891a5e4189fc971a5397e",
+  "files": [
+    {
+      "path": "README.md",
+      "snapshotName": "README.md",
+      "mainSha256": "232a2a022f46b3038f645567887092d0ac1b7094b9dcbccd1aa423e6efcd5136",
+      "v3Sha256": "3bd00734e13b5eb03589f06eb6d15d28880d217f984f5601e837c78d041d423a"
+    },
+    {
+      "path": "产品说明.md",
+      "snapshotName": "产品说明.md",
+      "mainSha256": "6e84d6b2ccc6020d514cf947a19987b8dd2bb19515199c1a0d9746e1028e6931",
+      "v3Sha256": "472c41e0d3bc5c6afb64acc40aa2a4f63da99e7b99764350fac12d2adcdec455"
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "snapshotName": "dev__acceptance-ui.mjs",
+      "mainSha256": "750122b92a23ac1e3fd1f5b33e965f2e505397ca8a1617f8129cb9ed2d7cd2ac",
+      "v3Sha256": "bfc4b0ade4713e5ad7d01d6d8c759f10969de060a6d09abe1644446faeb60e31"
+    },
+    {
+      "path": "dev/generate-icons.mjs",
+      "snapshotName": "dev__generate-icons.mjs",
+      "mainSha256": "b3a09637af932df4f7e60cdf7c94f074c75fedd7d061a23b07a68d400baebfe5",
+      "v3Sha256": "7ea99391f77ade8de796bc742fd16dd06b0ae81039317cc942deca565767da50"
+    },
+    {
+      "path": "web/app.js",
+      "snapshotName": "web__app.js",
+      "mainSha256": "51f70fbc0e2ef7c37e5e7022eec1c804ac7cba2a2112d3bc320e9d74227b61a9",
+      "v3Sha256": "00f9a9930d3852d868588e9abddb72640ff3be39e728969b8b8332d88ab952f2"
+    },
+    {
+      "path": "web/style.css",
+      "snapshotName": "web__style.css",
+      "mainSha256": "2135c4c0182a4b62106d67f228ed07fb3ca5c835322340d1ffe9811103041052",
+      "v3Sha256": "6a241ae8ebfebcb8ca18405eb620d554a676f37c3dabbaed437f5827c04b724c"
+    },
+    {
+      "path": "web/index.html",
+      "snapshotName": "web__index.html",
+      "mainSha256": "2c6a4d11173c2adf204ee4aefe86d9216d7723c5d4783a26b78f43dd24298896",
+      "v3Sha256": "050f07c1e754153c7725155d65f77577678d38a7912ab1689491c3be2837ede3"
+    },
+    {
+      "path": "web/icon.svg",
+      "snapshotName": "web__icon.svg",
+      "mainSha256": "620c8dbc9230ed9bee89e0a395979917b9b44e19f6f154ab740661787fdee418",
+      "v3Sha256": "e058826f81bb9b8fe13d1306ceddd72ea0de1f7e0c4dec76c9348ad2ba368676"
+    },
+    {
+      "path": "web/manifest.webmanifest",
+      "snapshotName": "web__manifest.webmanifest",
+      "mainSha256": "5b758b8988626574d7d12a615333cd3c31cb446645555bb06495d4526eec08ac",
+      "v3Sha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb"
+    },
+    {
+      "path": "web/apple-touch-icon.png",
+      "snapshotName": "web__apple-touch-icon.png",
+      "mainSha256": "e7837ff6fd78a6950bc3267ecfecaa3bd6344fd321baed495c29fb3280e93692",
+      "v3Sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "web/icon-192.png",
+      "snapshotName": "web__icon-192.png",
+      "mainSha256": "755be23f5b9d8c0504799c34a6433119dc7a7256716721ecc854f9594fc47f57",
+      "v3Sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "web/icon-512.png",
+      "snapshotName": "web__icon-512.png",
+      "mainSha256": "d1cbb056c601fee0b9e1bc84daa33e15d6433d4167172f30fd926bca80b15dd7",
+      "v3Sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    }
+  ]
+}

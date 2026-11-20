@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-11-20T09:06:45.130Z",
+  "tool": "node zlib gzipSync level 9",
+  "fourFiles": {
+    "web/index.html": {
+      "raw": 6227,
+      "gzip9": 2382
+    },
+    "web/app.js": {
+      "raw": 24251,
+      "gzip9": 7401
+    },
+    "web/style.css": {
+      "raw": 17886,
+      "gzip9": 3982
+    },
+    "web/icon.svg": {
+      "raw": 299,
+      "gzip9": 223
+    }
+  },
+  "fourRawTotal": 48663,
+  "fourRawLimit": 34000,
+  "fourRawOver": 14663,
+  "webGzipTotal": 13988,
+  "webGzipLimit": 16384,
+  "webGzipMargin": 95,
+  "webAllFilesGzipTotal": 16289,
+  "webOtherFiles": [
+    {
+      "file": "apple-touch-icon.png",
+      "gzip9": 510
+    },
+    {
+      "file": "icon-192.png",
+      "gzip9": 521
+    },
+    {
+      "file": "icon-512.png",
+      "gzip9": 1049
+    },
+    {
+      "file": "manifest.webmanifest",
+      "gzip9": 221
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "generatedAt": "2026-11-20T10:18:52.774Z",
+  "baseline": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "snapshots": [
+    {
+      "path": "web/app.js",
+      "before": "d814e86e29070740572f1523f13174a329fd6cb8c6bcc50319be92855d756d6c",
+      "after": "8e497c6eb8838f132011ee9f41aa10dce5dc9c9e3dd501a507b70ebf81ff5526",
+      "matchesWorkingTree": true
+    },
+    {
+      "path": "web/style.css",
+      "before": "945835f0f786097c273525c00e84b2a65c5ab631d7f62d3433b4d6e110b89f20",
+      "after": "dcbd83310db2aa23a1e39bc8b0d5e4b8c2926d01c18249383cad708a5c08ce77",
+      "matchesWorkingTree": true
+    },
+    {
+      "path": "web/index.html",
+      "before": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+      "after": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+      "matchesWorkingTree": true
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "before": "a6efa5688f246a36d67ff71cdcc000cf7a5738fa07c932d6f4a18f605797596a",
+      "after": "68f56729da9b4397cd332588fad3bb7df69cb855469f7df38d6ea405f7f422b2",
+      "matchesWorkingTree": true
+    }
+  ]
+}

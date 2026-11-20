@@ -1,0 +1,395 @@
+{
+  "verifiedAt": "2026-11-20T11:55:00.235Z",
+  "scope": "Current local archive bytes; not a fresh execution of API/UI tests or a checkout-normalization guarantee.",
+  "mainCommit": "73e0d61d722c55b5666f1d5c694bafee66840e65",
+  "v3Commit": "397a8dac09b99e80db8891a5e4189fc971a5397e",
+  "beforeSnapshotsVerified": 24,
+  "afterSnapshotsVerified": 12,
+  "liveSourceMatchesAfterSnapshots": true,
+  "patchMatchesCurrentSourceDiff": true,
+  "backendUnchangedFromMain": true,
+  "installAssetsUnchangedFromV3": true,
+  "originalWorkspaceClean": true,
+  "unresolvedGitConflicts": 0,
+  "mergeInProgress": true,
+  "mergeCommitted": false,
+  "pushed": false,
+  "functionalRegressionPassed": true,
+  "apiPassed": 274,
+  "localPassed": 36,
+  "uiPassed": 375,
+  "browserChecksPassed": 6,
+  "uiGroups": [
+    {
+      "group": "state",
+      "passed": 32
+    },
+    {
+      "group": "timing",
+      "passed": 12
+    },
+    {
+      "group": "layout",
+      "passed": 20
+    },
+    {
+      "group": "b4",
+      "passed": 66
+    },
+    {
+      "group": "completion",
+      "passed": 46
+    },
+    {
+      "group": "legends",
+      "passed": 60
+    },
+    {
+      "group": "polish",
+      "passed": 74
+    },
+    {
+      "group": "ix",
+      "passed": 65
+    }
+  ],
+  "sourceWhitespaceCheckPassed": true,
+  "fullStagedWhitespaceCheckPassed": false,
+  "archiveWhitespaceFileCount": 22,
+  "whitespaceNote": "Full staged check reports archive patch context whitespace and Markdown line breaks; original archive bytes retained. No warning paths outside deliverables.",
+  "sizesRemeasured": true,
+  "core": {
+    "raw": 97049,
+    "gzip9": 24923
+  },
+  "full": {
+    "raw": 100206,
+    "gzip9": 27814
+  },
+  "budgets": [
+    {
+      "name": "original core raw",
+      "actual": 97049,
+      "limit": 34000,
+      "excess": 63049,
+      "passed": false
+    },
+    {
+      "name": "original core gzip 14KiB",
+      "actual": 24923,
+      "limit": 14336,
+      "excess": 10587,
+      "passed": false
+    },
+    {
+      "name": "original full gzip 16KiB",
+      "actual": 27814,
+      "limit": 16384,
+      "excess": 11430,
+      "passed": false
+    },
+    {
+      "name": "assistant-selected full gzip 24KiB",
+      "actual": 27814,
+      "limit": 24576,
+      "excess": 3238,
+      "passed": false
+    }
+  ],
+  "allDeliveryGatesPassed": false,
+  "screenshots": [
+    {
+      "name": "01-chat-candidate-light.png",
+      "width": 771,
+      "height": 1779,
+      "sha256": "40b903e835ef133c0e108ad4a1a36a5caba63bd4071d27e08ea6ca981a6dc6c9"
+    },
+    {
+      "name": "02-memory-dark.png",
+      "width": 771,
+      "height": 2810,
+      "sha256": "9a21f948345e599a889db28769c75a6a1e3ade84cc2bf4a2356756a3f7a823e6"
+    },
+    {
+      "name": "03-micro-ticket-light.png",
+      "width": 771,
+      "height": 1389,
+      "sha256": "7b2f608b65cf89f93fd9965c925c60072696a31d2d5b149b873bce750b9d660d"
+    },
+    {
+      "name": "04-micro-completed-dark.png",
+      "width": 771,
+      "height": 1389,
+      "sha256": "4a2e1d5cf4f4afcfe5fd5c715276378ee8fea280fcafbc0d4a0e96e69b18bbf2"
+    },
+    {
+      "name": "05-photo-word-dark.png",
+      "width": 771,
+      "height": 1947,
+      "sha256": "4fb0a9c9b786db07ae65198fff14a693af31d9cbbe588e3552cefd52a1aa5e22"
+    }
+  ],
+  "archiveFileCountExcludingThisReport": 52,
+  "artifacts": [
+    {
+      "path": "合并验收日志.md",
+      "bytes": 11071,
+      "sha256": "bff7ea3a4d5fe02968c320b273c801c25dadfc6517ce305f69f5418791eb8345"
+    },
+    {
+      "path": "api-results.json",
+      "bytes": 27370,
+      "sha256": "32edf4539b4278480ece68fab231d17d63b47870189e92a1b68a0846468a8869"
+    },
+    {
+      "path": "before-hashes.json",
+      "bytes": 3378,
+      "sha256": "2d1312152ea817e6dd316eea815735a809ae46f8b519768cfa581e12ee48371d"
+    },
+    {
+      "path": "browser-checks.json",
+      "bytes": 1512,
+      "sha256": "475277118c0b7b4c7b710d4e31b51e85266569e93a98d6e9fd78d43b9e5525e9"
+    },
+    {
+      "path": "file-hashes.json",
+      "bytes": 4681,
+      "sha256": "4dedb1fda8fb9e255899f0d41c17064e7cff99d760debe454960e758cf687943"
+    },
+    {
+      "path": "merged-source.patch",
+      "bytes": 172777,
+      "sha256": "5237e0006cc702f2b9d44d9c22ec20ddbd944790278f6c575fdb1d0af8e1c023"
+    },
+    {
+      "path": "screens/01-chat-candidate-light.png",
+      "bytes": 112351,
+      "sha256": "40b903e835ef133c0e108ad4a1a36a5caba63bd4071d27e08ea6ca981a6dc6c9"
+    },
+    {
+      "path": "screens/02-memory-dark.png",
+      "bytes": 177612,
+      "sha256": "9a21f948345e599a889db28769c75a6a1e3ade84cc2bf4a2356756a3f7a823e6"
+    },
+    {
+      "path": "screens/03-micro-ticket-light.png",
+      "bytes": 86374,
+      "sha256": "7b2f608b65cf89f93fd9965c925c60072696a31d2d5b149b873bce750b9d660d"
+    },
+    {
+      "path": "screens/04-micro-completed-dark.png",
+      "bytes": 89008,
+      "sha256": "4a2e1d5cf4f4afcfe5fd5c715276378ee8fea280fcafbc0d4a0e96e69b18bbf2"
+    },
+    {
+      "path": "screens/05-photo-word-dark.png",
+      "bytes": 105956,
+      "sha256": "4fb0a9c9b786db07ae65198fff14a693af31d9cbbe588e3552cefd52a1aa5e22"
+    },
+    {
+      "path": "size-audit.json",
+      "bytes": 1453,
+      "sha256": "787d39eb0b39d6cb6199aa94f71b6e53e109b8b90f05f005b6afa9aa533b1b15"
+    },
+    {
+      "path": "source-after/产品说明.md",
+      "bytes": 21950,
+      "sha256": "13452d0b7270440a22e05224199f6f2e061c1dbdbd0b82da50184d66f1ef6e10"
+    },
+    {
+      "path": "source-after/dev__acceptance-ui.mjs",
+      "bytes": 83123,
+      "sha256": "6162c3ecf9b4d735c71420db1375f343d5021ea06b5532742745a3547b4e9016"
+    },
+    {
+      "path": "source-after/dev__generate-icons.mjs",
+      "bytes": 3339,
+      "sha256": "ae4c60c3654d3b5d6b95637e91fc518d130cf1a19c05a82d1b8577bfa1da97f4"
+    },
+    {
+      "path": "source-after/README.md",
+      "bytes": 21978,
+      "sha256": "5f7497788213170477a8382feb2e5c05401a99cd3756fcc0e286a0e906475a81"
+    },
+    {
+      "path": "source-after/web__app.js",
+      "bytes": 61115,
+      "sha256": "235e6f1cc64f50f43773f0a1a14ebb2c9e64844ed94680d23d8b9210cb0d83d6"
+    },
+    {
+      "path": "source-after/web__apple-touch-icon.png",
+      "bytes": 510,
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "source-after/web__icon-192.png",
+      "bytes": 634,
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "source-after/web__icon-512.png",
+      "bytes": 1594,
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    },
+    {
+      "path": "source-after/web__icon.svg",
+      "bytes": 288,
+      "sha256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a"
+    },
+    {
+      "path": "source-after/web__index.html",
+      "bytes": 6563,
+      "sha256": "e69740ae6ab18b024c51b2293b5b2c5bbc364fb99f11e9745126b66b0cd1232a"
+    },
+    {
+      "path": "source-after/web__manifest.webmanifest",
+      "bytes": 419,
+      "sha256": "74c2eabe0946c23b7afe489d0a1a1a5ed57409e0f6fe9ebc5eb6a1f76dd8876a"
+    },
+    {
+      "path": "source-after/web__style.css",
+      "bytes": 29083,
+      "sha256": "9af61140bb35c0f11c540c0259efc3518b2d3479ab03cfd5333427e80a1039f0"
+    },
+    {
+      "path": "source-main/产品说明.md",
+      "bytes": 9647,
+      "sha256": "6e84d6b2ccc6020d514cf947a19987b8dd2bb19515199c1a0d9746e1028e6931"
+    },
+    {
+      "path": "source-main/dev__acceptance-ui.mjs",
+      "bytes": 37614,
+      "sha256": "750122b92a23ac1e3fd1f5b33e965f2e505397ca8a1617f8129cb9ed2d7cd2ac"
+    },
+    {
+      "path": "source-main/dev__generate-icons.mjs",
+      "bytes": 3294,
+      "sha256": "b3a09637af932df4f7e60cdf7c94f074c75fedd7d061a23b07a68d400baebfe5"
+    },
+    {
+      "path": "source-main/README.md",
+      "bytes": 15346,
+      "sha256": "232a2a022f46b3038f645567887092d0ac1b7094b9dcbccd1aa423e6efcd5136"
+    },
+    {
+      "path": "source-main/web__app.js",
+      "bytes": 55940,
+      "sha256": "51f70fbc0e2ef7c37e5e7022eec1c804ac7cba2a2112d3bc320e9d74227b61a9"
+    },
+    {
+      "path": "source-main/web__apple-touch-icon.png",
+      "bytes": 487,
+      "sha256": "e7837ff6fd78a6950bc3267ecfecaa3bd6344fd321baed495c29fb3280e93692"
+    },
+    {
+      "path": "source-main/web__icon-192.png",
+      "bytes": 500,
+      "sha256": "755be23f5b9d8c0504799c34a6433119dc7a7256716721ecc854f9594fc47f57"
+    },
+    {
+      "path": "source-main/web__icon-512.png",
+      "bytes": 1256,
+      "sha256": "d1cbb056c601fee0b9e1bc84daa33e15d6433d4167172f30fd926bca80b15dd7"
+    },
+    {
+      "path": "source-main/web__icon.svg",
+      "bytes": 299,
+      "sha256": "620c8dbc9230ed9bee89e0a395979917b9b44e19f6f154ab740661787fdee418"
+    },
+    {
+      "path": "source-main/web__index.html",
+      "bytes": 6487,
+      "sha256": "2c6a4d11173c2adf204ee4aefe86d9216d7723c5d4783a26b78f43dd24298896"
+    },
+    {
+      "path": "source-main/web__manifest.webmanifest",
+      "bytes": 419,
+      "sha256": "5b758b8988626574d7d12a615333cd3c31cb446645555bb06495d4526eec08ac"
+    },
+    {
+      "path": "source-main/web__style.css",
+      "bytes": 22202,
+      "sha256": "2135c4c0182a4b62106d67f228ed07fb3ca5c835322340d1ffe9811103041052"
+    },
+    {
+      "path": "source-v3/产品说明.md",
+      "bytes": 12849,
+      "sha256": "472c41e0d3bc5c6afb64acc40aa2a4f63da99e7b99764350fac12d2adcdec455"
+    },
+    {
+      "path": "source-v3/dev__acceptance-ui.mjs",
+      "bytes": 60278,
+      "sha256": "bfc4b0ade4713e5ad7d01d6d8c759f10969de060a6d09abe1644446faeb60e31"
+    },
+    {
+      "path": "source-v3/dev__generate-icons.mjs",
+      "bytes": 3254,
+      "sha256": "7ea99391f77ade8de796bc742fd16dd06b0ae81039317cc942deca565767da50"
+    },
+    {
+      "path": "source-v3/README.md",
+      "bytes": 13747,
+      "sha256": "3bd00734e13b5eb03589f06eb6d15d28880d217f984f5601e837c78d041d423a"
+    },
+    {
+      "path": "source-v3/web__app.js",
+      "bytes": 27549,
+      "sha256": "00f9a9930d3852d868588e9abddb72640ff3be39e728969b8b8332d88ab952f2"
+    },
+    {
+      "path": "source-v3/web__apple-touch-icon.png",
+      "bytes": 510,
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "source-v3/web__icon-192.png",
+      "bytes": 634,
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "source-v3/web__icon-512.png",
+      "bytes": 1594,
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    },
+    {
+      "path": "source-v3/web__icon.svg",
+      "bytes": 284,
+      "sha256": "e058826f81bb9b8fe13d1306ceddd72ea0de1f7e0c4dec76c9348ad2ba368676"
+    },
+    {
+      "path": "source-v3/web__index.html",
+      "bytes": 6119,
+      "sha256": "050f07c1e754153c7725155d65f77577678d38a7912ab1689491c3be2837ede3"
+    },
+    {
+      "path": "source-v3/web__manifest.webmanifest",
+      "bytes": 404,
+      "sha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb"
+    },
+    {
+      "path": "source-v3/web__style.css",
+      "bytes": 20434,
+      "sha256": "6a241ae8ebfebcb8ca18405eb620d554a676f37c3dabbaed437f5827c04b724c"
+    },
+    {
+      "path": "ui-before-keyboard-mode.json",
+      "bytes": 72450,
+      "sha256": "e5421192b73ade4dbe4fe163f963da89f6833e80b1532adb8c57c44d9f315c0b"
+    },
+    {
+      "path": "ui-diagnostic.json",
+      "bytes": 83535,
+      "sha256": "5b1cc21bdf4c5a4b2f84bfdd4c74407d8a884c33f98350d33b1d025184a11281"
+    },
+    {
+      "path": "ui-first-run.json",
+      "bytes": 69762,
+      "sha256": "c028ffbfb682c0a1766965f3f9e4bedd02abcbe1d1ad1005c09611526a1c5517"
+    },
+    {
+      "path": "ui-results.json",
+      "bytes": 70286,
+      "sha256": "0200998cf350e7d1435ae2ab8715297fe7a4f2df8125c0e8d7bad80008f0f39e"
+    }
+  ]
+}

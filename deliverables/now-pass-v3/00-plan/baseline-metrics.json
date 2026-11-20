@@ -1,0 +1,48 @@
+{
+  "date": "2026-11-20",
+  "stage": "V3-00",
+  "gitHead": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "sourceDocument": {
+    "file": "WhyNot前端方案-此刻车票V3.docx",
+    "bytes": 8283510,
+    "sha256": "b7c1db3a9b5c35a79e726f91abe82668b71ee0434d46d35267209e3ea78d52fe"
+  },
+  "measurement": {
+    "method": "Python gzip.compress, compresslevel=9, mtime=0, per-file sum",
+    "provisional": true,
+    "formalMethod": "Node zlib gzip level 9, per-file sum",
+    "note": "Node not found in current Git Bash PATH. Python and historical Node measurements are not directly comparable as an optimization delta."
+  },
+  "files": [
+    { "file": "web/app.js", "raw": 23309, "gzip9": 6947 },
+    { "file": "web/apple-touch-icon.png", "raw": 487, "gzip9": 510 },
+    { "file": "web/icon-192.png", "raw": 500, "gzip9": 516 },
+    { "file": "web/icon-512.png", "raw": 1256, "gzip9": 1040 },
+    { "file": "web/icon.svg", "raw": 299, "gzip9": 222 },
+    { "file": "web/index.html", "raw": 6198, "gzip9": 2330 },
+    { "file": "web/manifest.webmanifest", "raw": 404, "gzip9": 215 },
+    { "file": "web/style.css", "raw": 14636, "gzip9": 3358 }
+  ],
+  "totals": { "allWebRaw": 47089, "allWebGzip9Provisional": 15138, "coreRaw": 44442, "coreGzip9Provisional": 12857 },
+  "budgets": {
+    "allWebGzip9": 16384,
+    "coreGzip9Reference": 14336,
+    "coreRaw": 34000,
+    "rawByFile": { "web/app.js": 12000, "web/index.html": 4500, "web/style.css": 14000, "web/icon.svg": 500 }
+  },
+  "historicalB4NodeGzip9": { "allWeb": 15291, "core": 12990 },
+  "contrastCalculations": [
+    { "foreground": "#221204", "background": "#D95F0E", "ratio": 4.838 },
+    { "foreground": "#221204", "background": "#C43A15", "ratio": 3.428 },
+    { "foreground": "#F6F2E8", "background": "#C43A15", "ratio": 4.740 }
+  ],
+  "validation": {
+    "sourceTextAndTablesRead": true,
+    "embeddedReferenceImagesVisuallyReviewed": false,
+    "devServerStarted": false,
+    "uiTestsRun": false,
+    "apiTestsRun": false,
+    "browserVisuallyReviewed": false,
+    "implementationStarted": false
+  }
+}

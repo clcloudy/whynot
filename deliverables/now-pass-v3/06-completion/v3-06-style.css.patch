@@ -1,0 +1,59 @@
+diff --git a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/style.css b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/style.css
+index 8e2869e..a76a055 100644
+--- a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/style.css
++++ b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/style.css
+@@ -66,6 +66,7 @@ legend{padding:0;margin-bottom:var(--wn-s2);font-size:1rem;font-weight:600;line-
+ .primary{width:100%;min-height:56px;margin-top:var(--wn-s6);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:background var(--wn-m1) ease,transform var(--wn-m1) ease}
+ .primary:active{background:var(--wn-accent-press);transform:translateY(1px)}
+ .primary:disabled{opacity:0.35;cursor:default;transform:none}
++.page:has(.ticket-done) .primary{visibility:hidden}
+ .ask-dots{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}
+ .ask-dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:0;animation:dotIn 240ms ease forwards}
+ .ask-dots i:nth-child(2){animation-delay:120ms}
+@@ -99,6 +100,20 @@ to{opacity:1;transform:none}
+ .g-line line{stroke:var(--wn-line);stroke-width:2;vector-effect:non-scaling-stroke}
+ .g-ring circle{fill:none;stroke:var(--wn-ink-2);stroke-width:1.5}
+ .ticket-done .g-line line{stroke-dasharray:none}
++.ticket-done .ticket-head .ticket-code{color:var(--wn-accent)}
++.ticket-done{mask-image:radial-gradient(circle 5px at calc(100% - 48px) 14px,transparent 4.5px,#000 5px)}
++.card-refresh:not(.card-out){animation:none}
++.ticket-stamp{position:absolute;top:72px;right:12px;width:64px;height:64px;color:var(--wn-accent);transform:rotate(-8deg);pointer-events:none;overflow:visible}
++.ticket-stamp circle{fill:none;stroke:currentColor;stroke-width:1.5}
++.ticket-stamp text{fill:currentColor;text-anchor:middle}
++.stamp-ring{font-family:var(--wn-mono);font-size:8px;letter-spacing:2px}
++.stamp-center{font-family:var(--wn-font);font-size:18px;font-weight:700}
++.stamp-in{animation:stampIn 300ms ease-out}
++@keyframes stampIn{
++from{opacity:0;transform:rotate(-8deg) scale(1.06)}
++to{opacity:1;transform:rotate(-8deg) scale(1)}
++}
++.ticket-done .ticket-stub{top:144px}
+ .card h2{margin:var(--wn-s3) 0 0;font-size:1.25rem;font-weight:700;line-height:1.4;letter-spacing:0.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+ .ticket-head{display:flex;align-items:baseline;justify-content:space-between;gap:var(--wn-s2);min-height:28px;margin-bottom:var(--wn-s2);padding-bottom:var(--wn-s2);border-bottom:1px solid var(--wn-hairline)}
+ .ticket-code{min-width:0;font-family:var(--wn-mono);font-size:0.75rem;font-weight:500;letter-spacing:0.08em;color:var(--wn-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@@ -134,10 +149,9 @@ to{opacity:1;transform:none}
+ }
+ .swap:active{background:var(--wn-well)}
+ .swap:disabled{opacity:0.7;cursor:default}
+-.done-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
+-.done-state{display:flex;align-items:center;gap:6px;color:var(--wn-accent);font-size:0.75rem;font-weight:500}
+-.done-state svg{display:block;width:16px;height:16px}
+-.done-spacer{flex:1}
++.done-row{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
++.done-state{color:var(--wn-ink-2);font-size:0.75rem;font-weight:500}
++.done-row .textbtn{min-width:0}
+ .textbtn{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:400;cursor:pointer}
+ .share-note{margin:var(--wn-s2) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
+ .share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
+@@ -198,6 +212,11 @@ from{opacity:0}
+ .card-actions.changed .swap{grid-column:1 / -1;grid-row:3}
+ .ticket-body{padding-right:0}
+ .ticket-stub,.ticket-sep{display:none}
++.ticket-head{padding-right:44px}
++.ticket-valid{display:none}
++.ticket-stamp{top:16px;right:16px;width:40px;height:40px}
++.done-row{grid-template-columns:repeat(2,minmax(0,1fr))}
++.done-state{grid-column:1 / -1}
+ }
+ @container (max-width:13em){
+ .seg{grid-template-columns:repeat(2,minmax(0,1fr));border-radius:var(--wn-r2)}

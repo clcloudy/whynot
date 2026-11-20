@@ -1,0 +1,85 @@
+{
+  "sourceAfterMatchesWorkingTree": true,
+  "screenshots": 13,
+  "apiPassed": 274,
+  "uiPassed": 291,
+  "patchAndWhitespaceChecks": [
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "diff",
+        "--check"
+      ],
+      "exitCode": 0,
+      "output": "warning: in the working copy of 'dev/acceptance-ui.mjs', LF will be replaced by CRLF the next time Git touches it\n"
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "apply",
+        "--reverse",
+        "--check",
+        "E:\\whynot\\deliverables\\now-pass-v3\\08-polish\\v3-08-app.js.patch"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "apply",
+        "--reverse",
+        "--check",
+        "E:\\whynot\\deliverables\\now-pass-v3\\08-polish\\v3-08-style.css.patch"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "apply",
+        "--reverse",
+        "--check",
+        "E:\\whynot\\deliverables\\now-pass-v3\\08-polish\\v3-08-index.html.patch"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "apply",
+        "--reverse",
+        "--check",
+        "E:\\whynot\\deliverables\\now-pass-v3\\08-polish\\v3-08-acceptance-ui.mjs.patch"
+      ],
+      "exitCode": 0,
+      "output": ""
+    },
+    {
+      "command": [
+        "git",
+        "-C",
+        "E:\\whynot",
+        "apply",
+        "--reverse",
+        "--check",
+        "E:\\whynot\\deliverables\\now-pass-v3\\08-polish\\v3-08-cumulative.patch"
+      ],
+      "exitCode": 0,
+      "output": ""
+    }
+  ],
+  "notes": "git apply --reverse --check only validates patches; no patch was applied. Raw and reference gzip limits remain exceeded as logged."
+}

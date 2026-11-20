@@ -1,0 +1,53 @@
+{
+  "stage": "V3-09",
+  "date": "2026-11-20",
+  "base": "http://127.0.0.1:8879",
+  "environment": "Desktop embedded Chromium, DPR 1.5; not a physical phone",
+  "trustedInput": {
+    "generateByMouse": true,
+    "tabFocusLike": true,
+    "spaceActivatesLike": true,
+    "likePressedAfterConfirmation": true,
+    "completeByMouse": true,
+    "confirmedCompletedLayout": true,
+    "confirmedShareEnabled": true,
+    "swapCompletedByMouse": true,
+    "replacementReturnsToNormalLayout": true,
+    "replacementPreferenceUnset": true,
+    "normalSwapLabel": "换一个",
+    "completedSwapLabel": "换一张",
+    "shareSystemPanelOpened": false,
+    "enterActivationVerified": false
+  },
+  "observedNetworkSequence": [
+    {"method":"POST","path":"/functions/v1/app/api/session","status":200},
+    {"method":"POST","path":"/functions/v1/app/api/recommendations","status":201},
+    {"method":"POST","path":"/functions/v1/app/api/recommendations/:id/feedback","status":200,"action":"like"},
+    {"method":"POST","path":"/functions/v1/app/api/recommendations/:id/feedback","status":200,"action":"completed"},
+    {"method":"POST","path":"/functions/v1/app/api/recommendations","status":201,"action":"swap; no additional feedback request"}
+  ],
+  "console": {"errors":0,"warnings":0,"scope":"Clean reload through trusted-input flow and screenshot capture; excludes preceding automated test harness"},
+  "visualReview": {
+    "screenshotsOpened": 7,
+    "svgDisplaySizes": [16,32,64],
+    "threeStrokeMarkRecognizableAt16px": true,
+    "pngSources": [180,192,512],
+    "pngOpaqueSquareBackground": true,
+    "lightFirstVisit390x844": true,
+    "sameCardLightAndDark390x844": true,
+    "darkCompleted390x844": true,
+    "darkCompleted320x568RootFont32px": true,
+    "sampledHorizontalOverflow": false,
+    "narrowCompletedActionsReachableByVerticalScroll": true,
+    "notes": [
+      "Gallery uses actual served assets, not an OS install screen.",
+      "Product screenshots use a same-origin iframe and programmatic DOM actions against real local API routes.",
+      "The local fixture model key was cleared after automated tests, so screenshots use built-in suggestions rather than model output.",
+      "Root font size 32px is text-scaling simulation, not native browser zoom.",
+      "Decorative ticket heading truncates in narrow large-text layout; action labels wrap and remain visible.",
+      "Completed card's existing mask clips external shadow; not changed in V3-09."
+    ]
+  },
+  "notVerified": ["Physical devices","Native installation or OS masking","Native share panel and real clipboard permissions","Spoken screen reader","Native Enter activation","Multiple browser engines","Performance benchmarks","Cloud deployment and public access"],
+  "privacy": "No tokens, request/response bodies, user text, database dumps, or raw model responses archived; recommendation path IDs redacted."
+}

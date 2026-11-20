@@ -1,0 +1,94 @@
+{
+  "generatedAt": "2026-11-20T10:38:21.959Z",
+  "method": "Node zlib.gzipSync level 9, each web asset individually",
+  "assets": [
+    {
+      "name": "app.js",
+      "raw": 28104,
+      "gzip9": 8662
+    },
+    {
+      "name": "apple-touch-icon.png",
+      "raw": 487,
+      "gzip9": 510
+    },
+    {
+      "name": "icon-192.png",
+      "raw": 500,
+      "gzip9": 521
+    },
+    {
+      "name": "icon-512.png",
+      "raw": 1256,
+      "gzip9": 1049
+    },
+    {
+      "name": "icon.svg",
+      "raw": 299,
+      "gzip9": 223
+    },
+    {
+      "name": "index.html",
+      "raw": 6232,
+      "gzip9": 2356
+    },
+    {
+      "name": "manifest.webmanifest",
+      "raw": 404,
+      "gzip9": 221
+    },
+    {
+      "name": "style.css",
+      "raw": 20673,
+      "gzip9": 4646
+    }
+  ],
+  "coreRaw": {
+    "bytes": 55308,
+    "limit": 34000,
+    "excess": 21308,
+    "deltaFromV307": 465
+  },
+  "coreGzip": {
+    "bytes": 15887,
+    "referenceLimit": 14336,
+    "excess": 1551
+  },
+  "webRaw": 57955,
+  "webGzip": {
+    "bytes": 18188,
+    "limit": 24576,
+    "margin": 6388,
+    "deltaFromV307": 140
+  },
+  "rawBudgets": [
+    {
+      "name": "app.js",
+      "raw": 28104,
+      "gzip9": 8662,
+      "limit": 12000,
+      "passed": false
+    },
+    {
+      "name": "icon.svg",
+      "raw": 299,
+      "gzip9": 223,
+      "limit": 500,
+      "passed": true
+    },
+    {
+      "name": "index.html",
+      "raw": 6232,
+      "gzip9": 2356,
+      "limit": 4500,
+      "passed": false
+    },
+    {
+      "name": "style.css",
+      "raw": 20673,
+      "gzip9": 4646,
+      "limit": 14000,
+      "passed": false
+    }
+  ]
+}

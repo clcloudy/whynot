@@ -1,0 +1,1296 @@
+[
+  {
+    "suite": "acceptance",
+    "exitCode": 0,
+    "passed": 42,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "health"
+      },
+      {
+        "passed": true,
+        "name": "无会话推荐被拒绝"
+      },
+      {
+        "passed": true,
+        "name": "创建会话"
+      },
+      {
+        "passed": true,
+        "name": "重复会话复用"
+      },
+      {
+        "passed": true,
+        "name": "返回 201"
+      },
+      {
+        "passed": true,
+        "name": "耗时不超过 3 分钟"
+      },
+      {
+        "passed": true,
+        "name": "含第一步"
+      },
+      {
+        "passed": true,
+        "name": "场景为空"
+      },
+      {
+        "passed": true,
+        "name": "初始无反馈"
+      },
+      {
+        "passed": true,
+        "name": "推荐响应含 category"
+      },
+      {
+        "passed": true,
+        "name": "category 属于 5 类集合"
+      },
+      {
+        "passed": true,
+        "name": "新建议编号不同"
+      },
+      {
+        "passed": true,
+        "name": "换一个不产生反馈"
+      },
+      {
+        "passed": true,
+        "name": "低精力不含 explore"
+      },
+      {
+        "passed": true,
+        "name": "无模型 Key 时走内置兜底"
+      },
+      {
+        "passed": true,
+        "name": "已完成两次都成功"
+      },
+      {
+        "passed": true,
+        "name": "已完成只生效一次"
+      },
+      {
+        "passed": true,
+        "name": "喜欢"
+      },
+      {
+        "passed": true,
+        "name": "改选不喜欢"
+      },
+      {
+        "passed": true,
+        "name": "再改选喜欢"
+      },
+      {
+        "passed": true,
+        "name": "无效反馈类型"
+      },
+      {
+        "passed": true,
+        "name": "反馈多余字段"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "无效条件"
+      },
+      {
+        "passed": true,
+        "name": "他人建议反馈 404"
+      },
+      {
+        "passed": true,
+        "name": "非法编号 404"
+      },
+      {
+        "passed": true,
+        "name": "原记录保持正确"
+      },
+      {
+        "passed": true,
+        "name": "非 JSON 请求 415"
+      },
+      {
+        "passed": true,
+        "name": "未知路由 404"
+      },
+      {
+        "passed": true,
+        "name": "60 种组合全部合规"
+      },
+      {
+        "passed": true,
+        "name": "合法输出通过"
+      },
+      {
+        "passed": true,
+        "name": "超预算拒绝"
+      },
+      {
+        "passed": true,
+        "name": "低精力 explore 拒绝"
+      },
+      {
+        "passed": true,
+        "name": "缺第一步拒绝"
+      },
+      {
+        "passed": true,
+        "name": "超长标题拒绝"
+      },
+      {
+        "passed": true,
+        "name": "非整数耗时拒绝"
+      },
+      {
+        "passed": true,
+        "name": "未知类型拒绝"
+      },
+      {
+        "passed": true,
+        "name": "控制字符拒绝"
+      }
+    ],
+    "stderrPresent": false
+  },
+  {
+    "suite": "acceptance-model",
+    "exitCode": 0,
+    "passed": 11,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "返回 201"
+      },
+      {
+        "passed": true,
+        "name": "来源为模型"
+      },
+      {
+        "passed": true,
+        "name": "输出经过修剪与校验"
+      },
+      {
+        "passed": true,
+        "name": "超预算输出 → 内置兜底"
+      },
+      {
+        "passed": true,
+        "name": "非 JSON 输出 → 内置兜底"
+      },
+      {
+        "passed": true,
+        "name": "5xx → 兜底"
+      },
+      {
+        "passed": true,
+        "name": "5xx 重试一次为止"
+      },
+      {
+        "passed": true,
+        "name": "401 → 兜底且不重试"
+      },
+      {
+        "passed": true,
+        "name": "超时 → 兜底"
+      },
+      {
+        "passed": true,
+        "name": "有限等待（两次 7 秒超时）"
+      },
+      {
+        "passed": true,
+        "name": "无 Key → 内置建议"
+      }
+    ],
+    "stderrPresent": false
+  },
+  {
+    "suite": "acceptance-interactions",
+    "exitCode": 0,
+    "passed": 112,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "无会话开场 401"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "无效输入"
+      },
+      {
+        "passed": true,
+        "name": "超 2KiB 请求体 413"
+      },
+      {
+        "passed": true,
+        "name": "非 JSON 415"
+      },
+      {
+        "passed": true,
+        "name": "无会话续聊 401"
+      },
+      {
+        "passed": true,
+        "name": "chat 下界 命中"
+      },
+      {
+        "passed": true,
+        "name": "chat 上界内 命中"
+      },
+      {
+        "passed": true,
+        "name": "discuss 下界 命中"
+      },
+      {
+        "passed": true,
+        "name": "discuss 上界内 命中"
+      },
+      {
+        "passed": true,
+        "name": "micro 下界 命中"
+      },
+      {
+        "passed": true,
+        "name": "micro 上界内 命中"
+      },
+      {
+        "passed": true,
+        "name": "响应含方式/话题/版本/期望输入"
+      },
+      {
+        "passed": true,
+        "name": "互动编号复用卡片编号"
+      },
+      {
+        "passed": true,
+        "name": "第 1 次强制聊天"
+      },
+      {
+        "passed": true,
+        "name": "第 2 次强制聊天"
+      },
+      {
+        "passed": true,
+        "name": "第 3 次强制聊天"
+      },
+      {
+        "passed": true,
+        "name": "三连聊天后权重 7/20/20"
+      },
+      {
+        "passed": true,
+        "name": "降权后抽到讨论而非聊天"
+      },
+      {
+        "passed": true,
+        "name": "恢复序列强制 discuss"
+      },
+      {
+        "passed": true,
+        "name": "恢复序列强制 micro"
+      },
+      {
+        "passed": true,
+        "name": "恢复序列强制 discuss"
+      },
+      {
+        "passed": true,
+        "name": "聊天滑出三轮后权重恢复 35"
+      },
+      {
+        "passed": true,
+        "name": "恢复后可再抽中聊天"
+      },
+      {
+        "passed": true,
+        "name": "低精力 3 分钟不含讨论"
+      },
+      {
+        "passed": true,
+        "name": "取得微行动开场"
+      },
+      {
+        "passed": true,
+        "name": "换一个排除当前方式"
+      },
+      {
+        "passed": true,
+        "name": "再换不含上一方式"
+      },
+      {
+        "passed": true,
+        "name": "取得聊天卡"
+      },
+      {
+        "passed": true,
+        "name": "多方式时逐次换一个必换方式"
+      },
+      {
+        "passed": true,
+        "name": "链上话题允许重复"
+      },
+      {
+        "passed": true,
+        "name": "单候选时抽取返回唯一项（单元）"
+      },
+      {
+        "passed": true,
+        "name": "多方式时换一个跳过当前方式"
+      },
+      {
+        "passed": true,
+        "name": "换一个不产生反馈"
+      },
+      {
+        "passed": true,
+        "name": "换一个计入历史"
+      },
+      {
+        "passed": true,
+        "name": "换卡后旧互动已结束"
+      },
+      {
+        "passed": true,
+        "name": "换卡后旧卡仍可反馈"
+      },
+      {
+        "passed": true,
+        "name": "换非法编号 404"
+      },
+      {
+        "passed": true,
+        "name": "换他人卡片 404"
+      },
+      {
+        "passed": true,
+        "name": "重试返回同一张卡"
+      },
+      {
+        "passed": true,
+        "name": "重试不新增记录"
+      },
+      {
+        "passed": true,
+        "name": "同键异载荷 409"
+      },
+      {
+        "passed": true,
+        "name": "换一个重试同样幂等"
+      },
+      {
+        "passed": true,
+        "name": "无模型时续聊 503 且保留轮次"
+      },
+      {
+        "passed": true,
+        "name": "取得可续聊的开场"
+      },
+      {
+        "passed": true,
+        "name": "首轮回复 201 且版本推进"
+      },
+      {
+        "passed": true,
+        "name": "断线重发复用同一回复"
+      },
+      {
+        "passed": true,
+        "name": "重发不再推进版本"
+      },
+      {
+        "passed": true,
+        "name": "同键异文本 409"
+      },
+      {
+        "passed": true,
+        "name": "过期版本 409"
+      },
+      {
+        "passed": true,
+        "name": "并发回复只有一条推进"
+      },
+      {
+        "passed": true,
+        "name": "并发后版本只加一"
+      },
+      {
+        "passed": true,
+        "name": "续聊不重新抽签"
+      },
+      {
+        "passed": true,
+        "name": "跨会话续聊 404"
+      },
+      {
+        "passed": true,
+        "name": "跨会话换卡 404"
+      },
+      {
+        "passed": true,
+        "name": "非法互动编号 404"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "无效轮次输入"
+      },
+      {
+        "passed": true,
+        "name": "取得微行动卡"
+      },
+      {
+        "passed": true,
+        "name": "微行动不接受续聊"
+      },
+      {
+        "passed": true,
+        "name": "微行动沿用卡片反馈"
+      },
+      {
+        "passed": true,
+        "name": "模型开场生效"
+      },
+      {
+        "passed": true,
+        "name": "模型回复生效"
+      },
+      {
+        "passed": true,
+        "name": "模型 chat 开场按数据库契约入库"
+      },
+      {
+        "passed": true,
+        "name": "模型 discuss 开场按数据库契约入库"
+      },
+      {
+        "passed": true,
+        "name": "开启模型后微行动仍落实抽中的条目"
+      },
+      {
+        "passed": true,
+        "name": "超预算开场 → 同方式内置兜底"
+      },
+      {
+        "passed": true,
+        "name": "非 JSON 开场 → 同方式内置兜底"
+      },
+      {
+        "passed": true,
+        "name": "开场 5xx → 兜底"
+      },
+      {
+        "passed": true,
+        "name": "开场 5xx 重试一次为止"
+      },
+      {
+        "passed": true,
+        "name": "开场 401 → 兜底且不重试"
+      },
+      {
+        "passed": true,
+        "name": "无效回复保留原轮次"
+      },
+      {
+        "passed": true,
+        "name": "回复超时 → 503 保留轮次"
+      },
+      {
+        "passed": true,
+        "name": "回复有限等待（两次 7 秒超时）"
+      },
+      {
+        "passed": true,
+        "name": "失败后重试成功"
+      },
+      {
+        "passed": true,
+        "name": "模型并发回复只有一条推进"
+      },
+      {
+        "passed": true,
+        "name": "旧推荐入口仍 201"
+      },
+      {
+        "passed": true,
+        "name": "旧入口不写互动表"
+      },
+      {
+        "passed": true,
+        "name": "互动卡可喜欢"
+      },
+      {
+        "passed": true,
+        "name": "互动卡可完成"
+      },
+      {
+        "passed": true,
+        "name": "他人互动卡反馈 404"
+      },
+      {
+        "passed": true,
+        "name": "60 种组合全部合规"
+      },
+      {
+        "passed": true,
+        "name": "抽样全部成功"
+      },
+      {
+        "passed": true,
+        "name": "聊天频率接近 35/75"
+      },
+      {
+        "passed": true,
+        "name": "讨论频率接近 20/75"
+      },
+      {
+        "passed": true,
+        "name": "微行动频率接近 20/75"
+      },
+      {
+        "passed": true,
+        "name": "开场第二次写入失败时推荐和互动一起回滚"
+      },
+      {
+        "passed": true,
+        "name": "开场相同请求重试成功"
+      },
+      {
+        "passed": true,
+        "name": "推进版本失败时已插入轮次回滚"
+      },
+      {
+        "passed": true,
+        "name": "相同请求重试可继续对话"
+      },
+      {
+        "passed": true,
+        "name": "第 B 句可继续接话"
+      },
+      {
+        "passed": true,
+        "name": "第 C 句可继续接话"
+      },
+      {
+        "passed": true,
+        "name": "第 D 句可继续接话"
+      },
+      {
+        "passed": true,
+        "name": "第 E 句可继续接话"
+      },
+      {
+        "passed": true,
+        "name": "发给模型的是最新三轮、当前发言和实际开场"
+      },
+      {
+        "passed": true,
+        "name": "送模包含已保存的场景、精力和时间"
+      },
+      {
+        "passed": true,
+        "name": "旧轮次重试返回初次响应版本"
+      },
+      {
+        "passed": true,
+        "name": "同键只改版本也冲突"
+      },
+      {
+        "passed": true,
+        "name": "换卡成功即清除旧轮次正文"
+      },
+      {
+        "passed": true,
+        "name": "结束的互动不可重放或续聊"
+      },
+      {
+        "passed": true,
+        "name": "主动结束互动返回 204"
+      }
+    ],
+    "stderrPresent": false
+  },
+  {
+    "suite": "acceptance-photos",
+    "exitCode": 0,
+    "passed": 46,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "无模型 Key 时不抽中看图"
+      },
+      {
+        "passed": true,
+        "name": "客户端不支持传图时不抽中看图"
+      },
+      {
+        "passed": true,
+        "name": "在路上不抽中看图"
+      },
+      {
+        "passed": true,
+        "name": "资格函数排除在路上"
+      },
+      {
+        "passed": true,
+        "name": "强制命中看图开场"
+      },
+      {
+        "passed": true,
+        "name": "看图卡等待图片"
+      },
+      {
+        "passed": true,
+        "name": "无会话上传 401"
+      },
+      {
+        "passed": true,
+        "name": "文字互动不接受图片 409"
+      },
+      {
+        "passed": true,
+        "name": "跨会话上传 404"
+      },
+      {
+        "passed": true,
+        "name": "缺版本参数 400"
+      },
+      {
+        "passed": true,
+        "name": "过期版本上传 409"
+      },
+      {
+        "passed": true,
+        "name": "非图片字节 415"
+      },
+      {
+        "passed": true,
+        "name": "截断 PNG 400"
+      },
+      {
+        "passed": true,
+        "name": "尺寸正确但 IDAT 已坏的 PNG 400"
+      },
+      {
+        "passed": true,
+        "name": "超大尺寸 400"
+      },
+      {
+        "passed": true,
+        "name": "超 4MiB 413"
+      },
+      {
+        "passed": true,
+        "name": "未传图先接话 409"
+      },
+      {
+        "passed": true,
+        "name": "合法上传 201 返回短期引用"
+      },
+      {
+        "passed": true,
+        "name": "识图成功 201 含词与音标"
+      },
+      {
+        "passed": true,
+        "name": "识图后进入练习状态"
+      },
+      {
+        "passed": true,
+        "name": "识别完成后释放原图"
+      },
+      {
+        "passed": true,
+        "name": "断线重发复用同一识图结果"
+      },
+      {
+        "passed": true,
+        "name": "同键异引用 409"
+      },
+      {
+        "passed": true,
+        "name": "练习轮沿用已保存的词"
+      },
+      {
+        "passed": true,
+        "name": "识别后不再接受上传"
+      },
+      {
+        "passed": true,
+        "name": "看图卡可反馈"
+      },
+      {
+        "passed": true,
+        "name": "跨会话引用图片 404"
+      },
+      {
+        "passed": true,
+        "name": "歧义时先问用户"
+      },
+      {
+        "passed": true,
+        "name": "歧义后仍等待图片且保留原图"
+      },
+      {
+        "passed": true,
+        "name": "文字澄清后识图成功"
+      },
+      {
+        "passed": true,
+        "name": "澄清成功后释放原图"
+      },
+      {
+        "passed": true,
+        "name": "无效识图输出 503 保留轮次"
+      },
+      {
+        "passed": true,
+        "name": "失败后重拍入口仍可用（同引用重试）"
+      },
+      {
+        "passed": true,
+        "name": "引用过期 409"
+      },
+      {
+        "passed": true,
+        "name": "没有新的图片请求时也会清理到期图像内容"
+      },
+      {
+        "passed": true,
+        "name": "过期后可重新上传"
+      },
+      {
+        "passed": true,
+        "name": "放弃上传的残留图片到期清理"
+      },
+      {
+        "passed": true,
+        "name": "并发识图只有一条推进"
+      },
+      {
+        "passed": true,
+        "name": "并发后版本只加一"
+      },
+      {
+        "passed": true,
+        "name": "换一个排除看图方式"
+      },
+      {
+        "passed": true,
+        "name": "识图超时 503 保留轮次"
+      },
+      {
+        "passed": true,
+        "name": "识图有限等待（两次 7 秒超时）"
+      },
+      {
+        "passed": true,
+        "name": "抽样全部成功"
+      },
+      {
+        "passed": true,
+        "name": "四类频率接近配置权重"
+      },
+      {
+        "passed": true,
+        "name": "降权使相邻重复保持低位"
+      },
+      {
+        "passed": true,
+        "name": "每十次开场覆盖多种方式"
+      }
+    ],
+    "stderrPresent": false
+  },
+  {
+    "suite": "acceptance-memories",
+    "exitCode": 0,
+    "passed": 63,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "非法摘要不通过校验（单元）"
+      },
+      {
+        "passed": true,
+        "name": "取得聊天开场"
+      },
+      {
+        "passed": true,
+        "name": "模型候选附在回复上"
+      },
+      {
+        "passed": true,
+        "name": "候选随重发复用"
+      },
+      {
+        "passed": true,
+        "name": "明确「帮我记住」生成候选"
+      },
+      {
+        "passed": true,
+        "name": "无值得记的内容不产生候选"
+      },
+      {
+        "passed": true,
+        "name": "跳过候选成功"
+      },
+      {
+        "passed": true,
+        "name": "跳过后列表为空"
+      },
+      {
+        "passed": true,
+        "name": "重复跳过返回同一结果"
+      },
+      {
+        "passed": true,
+        "name": "跳过后当前互动仍可继续聊"
+      },
+      {
+        "passed": true,
+        "name": "已跳过的候选不能再确认"
+      },
+      {
+        "passed": true,
+        "name": "并发确认只保存一次"
+      },
+      {
+        "passed": true,
+        "name": "确认保存用户看过的文字"
+      },
+      {
+        "passed": true,
+        "name": "重复确认返回同一结果"
+      },
+      {
+        "passed": true,
+        "name": "同键异文字 409"
+      },
+      {
+        "passed": true,
+        "name": "候选版本不符 409"
+      },
+      {
+        "passed": true,
+        "name": "无会话确认 401"
+      },
+      {
+        "passed": true,
+        "name": "跨会话确认 404"
+      },
+      {
+        "passed": true,
+        "name": "跨会话列表为空"
+      },
+      {
+        "passed": true,
+        "name": "候选挂在别的互动上 404"
+      },
+      {
+        "passed": true,
+        "name": "编辑后确认保存最终文字"
+      },
+      {
+        "passed": true,
+        "name": "非法确认输入 400"
+      },
+      {
+        "passed": true,
+        "name": "列表含两条有效条目"
+      },
+      {
+        "passed": true,
+        "name": "列表展示期限与版本"
+      },
+      {
+        "passed": true,
+        "name": "分页生效"
+      },
+      {
+        "passed": true,
+        "name": "非法分页 400"
+      },
+      {
+        "passed": true,
+        "name": "更正递增版本"
+      },
+      {
+        "passed": true,
+        "name": "旧版本更正 409"
+      },
+      {
+        "passed": true,
+        "name": "更正重发幂等"
+      },
+      {
+        "passed": true,
+        "name": "并发更正只有一条成功"
+      },
+      {
+        "passed": true,
+        "name": "跨会话更正 404"
+      },
+      {
+        "passed": true,
+        "name": "跨会话删除 404"
+      },
+      {
+        "passed": true,
+        "name": "删除返回 204"
+      },
+      {
+        "passed": true,
+        "name": "重复删除同样 204"
+      },
+      {
+        "passed": true,
+        "name": "删除后列表只剩一条"
+      },
+      {
+        "passed": true,
+        "name": "删除后重放旧确认不能重建"
+      },
+      {
+        "passed": true,
+        "name": "删除后旧版本更正 404"
+      },
+      {
+        "passed": true,
+        "name": "命中回访只提及确认的文字"
+      },
+      {
+        "passed": true,
+        "name": "卡片只保存通用开场"
+      },
+      {
+        "passed": true,
+        "name": "回访计入开场历史"
+      },
+      {
+        "passed": true,
+        "name": "冷却期内再次开场用普通开场"
+      },
+      {
+        "passed": true,
+        "name": "回访互动可续聊"
+      },
+      {
+        "passed": true,
+        "name": "续聊记录记忆依赖"
+      },
+      {
+        "passed": true,
+        "name": "更正后重新加载不再取用旧版本"
+      },
+      {
+        "passed": true,
+        "name": "更正记忆后重放隐去旧回复正文"
+      },
+      {
+        "passed": true,
+        "name": "删除记忆后仍可普通接话"
+      },
+      {
+        "passed": true,
+        "name": "无记录时说明没有并推进版本"
+      },
+      {
+        "passed": true,
+        "name": "主动检索返回已保存条目"
+      },
+      {
+        "passed": true,
+        "name": "检索走普通轮次的版本与幂等约束"
+      },
+      {
+        "passed": true,
+        "name": "候选消费失败时记忆写入回滚"
+      },
+      {
+        "passed": true,
+        "name": "确认相同请求重试成功"
+      },
+      {
+        "passed": true,
+        "name": "回访开场失败不占用冷却"
+      },
+      {
+        "passed": true,
+        "name": "回访失败后同一请求可重试"
+      },
+      {
+        "passed": true,
+        "name": "模型生成中删除记忆后只提交通用回复"
+      },
+      {
+        "passed": true,
+        "name": "并发删除后的重放没有旧记忆"
+      },
+      {
+        "passed": true,
+        "name": "到期测试起始开场包含记忆"
+      },
+      {
+        "passed": true,
+        "name": "冷却期过后可再回访"
+      },
+      {
+        "passed": true,
+        "name": "到期回访在查询列表前重放也隐去记忆"
+      },
+      {
+        "passed": true,
+        "name": "空闲过期阻止续聊"
+      },
+      {
+        "passed": true,
+        "name": "到期条目退出列表"
+      },
+      {
+        "passed": true,
+        "name": "到期条目不可回访"
+      },
+      {
+        "passed": true,
+        "name": "定时清理移除到期记忆和轮次正文"
+      },
+      {
+        "passed": true,
+        "name": "候选到期不可确认"
+      }
+    ],
+    "stderrPresent": false
+  },
+  {
+    "suite": "acceptance-local",
+    "exitCode": 0,
+    "passed": 36,
+    "failed": 0,
+    "checks": [
+      {
+        "passed": true,
+        "name": "本地状态与无密钥提示"
+      },
+      {
+        "passed": true,
+        "name": "不暴露 /__local/db"
+      },
+      {
+        "passed": true,
+        "name": "不暴露 /__local/env"
+      },
+      {
+        "passed": true,
+        "name": "不暴露 /__local/fault"
+      },
+      {
+        "passed": true,
+        "name": "不暴露 /__local/acceptance-ui.mjs"
+      },
+      {
+        "passed": true,
+        "name": "不暴露 /.env"
+      },
+      {
+        "passed": true,
+        "name": "拒绝跨站请求"
+      },
+      {
+        "passed": true,
+        "name": "拒绝伪造 Host"
+      },
+      {
+        "passed": true,
+        "name": "拒绝跨站导航"
+      },
+      {
+        "passed": true,
+        "name": "无会话被拒绝"
+      },
+      {
+        "passed": true,
+        "name": "创建会话"
+      },
+      {
+        "passed": true,
+        "name": "无密钥内置建议可用"
+      },
+      {
+        "passed": true,
+        "name": "完成反馈幂等"
+      },
+      {
+        "passed": true,
+        "name": "事务互动可用"
+      },
+      {
+        "passed": true,
+        "name": "无模型手动记忆候选"
+      },
+      {
+        "passed": true,
+        "name": "确认保存记忆"
+      },
+      {
+        "passed": true,
+        "name": "重复保存不重复写入"
+      },
+      {
+        "passed": true,
+        "name": "无模型自由聊天明确报错"
+      },
+      {
+        "passed": true,
+        "name": "其他会话看不到记忆"
+      },
+      {
+        "passed": true,
+        "name": "其他会话不能修改记忆"
+      },
+      {
+        "passed": true,
+        "name": "非法参数被拒绝"
+      },
+      {
+        "passed": true,
+        "name": "防止两个进程同时使用同一数据库"
+      },
+      {
+        "passed": true,
+        "name": "重启后原会话与记忆保留"
+      },
+      {
+        "passed": true,
+        "name": "重启后反馈保留"
+      },
+      {
+        "passed": true,
+        "name": "重启后继续对话并调用测试模型"
+      },
+      {
+        "passed": true,
+        "name": "对话重试幂等"
+      },
+      {
+        "passed": true,
+        "name": "旧版本对话被拒绝"
+      },
+      {
+        "passed": true,
+        "name": "连续第二轮对话"
+      },
+      {
+        "passed": true,
+        "name": "编辑记忆"
+      },
+      {
+        "passed": true,
+        "name": "旧版本记忆被拒绝"
+      },
+      {
+        "passed": true,
+        "name": "再次启动不重跑迁移且修改保留"
+      },
+      {
+        "passed": true,
+        "name": "删除记忆"
+      },
+      {
+        "passed": true,
+        "name": "结束互动"
+      },
+      {
+        "passed": true,
+        "name": "删除结果跨重启保留"
+      },
+      {
+        "passed": true,
+        "name": "异常停止后并发重启只有一个进程取得数据库"
+      },
+      {
+        "passed": true,
+        "name": "并发启动失败不损坏已有数据"
+      }
+    ],
+    "stderrPresent": false
+  }
+]

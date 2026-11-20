@@ -1,0 +1,36 @@
+{
+  "base": "http://127.0.0.1:8877",
+  "generatedAt": "2026-11-20T10:15:57.174Z",
+  "reports": [
+    {
+      "suite": "acceptance",
+      "passed": 42,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "suite": "acceptance-model",
+      "passed": 11,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "suite": "acceptance-interactions",
+      "passed": 112,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "suite": "acceptance-photos",
+      "passed": 46,
+      "failed": 0,
+      "exitCode": 0
+    },
+    {
+      "suite": "acceptance-memories",
+      "passed": 63,
+      "failed": 0,
+      "exitCode": 0
+    }
+  ]
+}

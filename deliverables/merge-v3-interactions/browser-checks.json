@@ -1,0 +1,53 @@
+{
+  "checks": [
+    {
+      "name": "native primary opened chat and candidate save appears in server-backed memory list",
+      "passed": true
+    },
+    {
+      "name": "theme label activates dark",
+      "passed": true
+    },
+    {
+      "name": "micro uses V3 ticket with gauge",
+      "passed": true
+    },
+    {
+      "name": "native completion confirms micro stamp and enables sharing",
+      "passed": true
+    },
+    {
+      "name": "server-backed photo upload and fake vision word card render",
+      "passed": true
+    },
+    {
+      "name": "share uses safe link and actual duration in text (native share stub)",
+      "passed": true
+    }
+  ],
+  "fixture": "http://127.0.0.1:8881",
+  "limits": [
+    "All photo/model content is a synthetic local fixture; no real model accuracy claim.",
+    "Native share was stubbed; no real share panel, clipboard permissions, phone, or screen-reader speech validation.",
+    "All five screenshots were opened and visually inspected."
+  ],
+  "probeCorrections": [
+    {
+      "name": "share click uses safe link and actual duration (native share stub)",
+      "passed": false,
+      "reason": "Probe expected a separate url field, but implementation intentionally embeds the sanitized URL in text."
+    }
+  ],
+  "screenshots": [
+    "01-chat-candidate-light.png",
+    "02-memory-dark.png",
+    "03-micro-ticket-light.png",
+    "04-micro-completed-dark.png",
+    "05-photo-word-dark.png"
+  ],
+  "viewport": {
+    "dpr": 1.5,
+    "height": 559,
+    "width": 524
+  }
+}
