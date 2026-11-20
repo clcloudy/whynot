@@ -1,0 +1,14 @@
+{
+  "private": true,
+  "scripts": {
+    "build:function": "node dev/build-function.mjs"
+  },
+  "dependencies": {
+    "@imagemagick/magick-wasm": "0.0.46",
+    "postgres": "3.4.9"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.17",
+    "esbuild": "0.28.2"
+  }
+}

@@ -39,7 +39,7 @@
 
 ## 本地开发与验收
 
-使用 Node.js，在仓库根目录 `E:\whynot` 的 Git Bash 中运行；分别保留服务终端：
+使用 Node.js 22 或更新版本，在仓库根目录 `E:\whynot` 的 Git Bash 中运行；先执行 `npm ci`，再分别保留服务终端：
 
 ```sh
 # 终端 1：当前前端 + 实际 functions 路由，内存数据库
@@ -69,6 +69,22 @@ for (const group of ['state', 'timing', 'layout', 'b4']) console.log(await run(g
 
 全量 `web/`（包括安装图标和 manifest）gzip 上限放宽至 **16 KiB（16384 B）**；原四项资源同时对照初定的 14 KiB。逐文件使用 gzip level 9 求和，不是当前本地服务器的实际传输量；raw 上限未放宽，超限单独报告。
 
+## 后端与互动验收
+
+验收服务启动时会从 `schema.sql` 和 `migrations/` 建库，默认使用嵌入式 PostgreSQL。设置 `WHYNOT_TEST_DATABASE_URL` 可改用原生 PostgreSQL 的空白测试库。
+
+互动套件共享本机模型和验收服务的控制参数，请按顺序运行：
+
+```sh
+node dev/acceptance.mjs
+node dev/acceptance-model.mjs
+node dev/acceptance-interactions.mjs
+node dev/acceptance-photos.mjs
+node dev/acceptance-memories.mjs
+```
+
+真实视觉模型验收时，在启动本地验收服务前向服务端设置 `MODEL_API_KEY`，按需设置 `MODEL_ENDPOINT`。使用一张单个日常物品清晰入镜的照片运行 `node dev/acceptance-vision-real.mjs <照片路径> <英文词> <中文词义> <带重音的音标>`。程序通过上传和续聊接口检查识别结果。
+
 ## 当前 API 契约
 
 代码入口为 `functions/index.ts` → `functions/routes.mjs`；浏览器统一基址为 **`/functions/v1/app`**。以下路径均接在该基址后：
@@ -79,8 +95,15 @@ for (const group of ['state', 'timing', 'layout', 'b4']) console.log(await run(g
 | `POST /api/recommendations` | JSON 条件生成一条建议，成功为 201。 |
 | `POST /api/recommendations/:id/feedback` | JSON `{kind:"like"}`／`dislike`／`completed`，成功为 200 并返回更新后的卡片。 |
 | `GET /api/health` | 健康检查，返回 `{ok:true}`。 |
+| `POST /api/interactions` | 开始一次随机互动，返回开场白与可聊话题。 |
+| `DELETE /api/interactions/:id` | 结束互动，成功为 204。 |
+| `POST /api/interactions/:id/turns` | 追加一轮对话，可能返回词卡或回忆。 |
+| `POST /api/interactions/:id/images` | 上传一张照片作为识别候选，上限 4 MiB。 |
+| `POST /api/interactions/:id/memories` | 把候选词义确认为一条记忆。 |
+| `GET /api/memories` | 列出当前会话的记忆。 |
+| `PATCH`／`DELETE /api/memories/:id` | 修改或删除一条记忆。 |
 
-三个业务端点之外仅有上述健康检查；当前 Functions **没有 `/api/history`**。
+推荐与反馈之外，互动、图片与记忆端点依赖直连 PostgreSQL（`WHYNOT_DATABASE_URL`）；未配置时这些入口返回 503 `STORAGE_UNAVAILABLE`，推荐与反馈不受影响。当前 Functions **没有 `/api/history`**。
 
 会话流程：前端把 token 存于 `localStorage` 的 `whynot-session`，后续通过 `x-whynot-session` 请求头携带；存储不可用时仍可在当前页面内存中使用。服务端按 token 的 SHA-256 摘要识别归属，不信任请求 JSON 中的用户身份。前端保留 `credentials: 'same-origin'`，但 Sites 网关不转发应用 cookie，当前路由不靠 cookie 认证。
 
@@ -101,3 +124,8 @@ for (const group of ['state', 'timing', 'layout', 'b4']) console.log(await run(g
 详细交互与验收目标见 [产品说明](产品说明.md)。云端部署、公网链接验收、真实手机与有声屏幕阅读器测试、性能基准均不在此声明通过。后续部署及公开访问须另行授权执行。
 
 **每阶段记录实际改动、测试结果与未验项，然后停止，等待下一条指令；不自动提交、发布或进入下一阶段。** 日志只记录验证摘要，不记录密钥、用户原文或模型原始响应。
+## 后端发布配置
+
+1. 在同一 PostgreSQL 数据库中保留或迁移现有 `app` 数据。全新数据库先创建 `app` schema 再应用 `schema.sql`，然后按编号应用尚未执行的迁移。新版互动使用支持事务的直连 PostgreSQL。使用服务端密钥 `WHYNOT_DATABASE_URL` 配置运行时连接；若连接角色和迁移角色不同，向运行角色授予所需表、序列及 `app.clear_interaction`、`app.redact_invalid_memory_turns` 的访问权限。未配置该连接时，原推荐和反馈继续使用托管数据库客户端，互动入口返回存储不可用。
+2. 在同库启用 `pg_cron` 后，由迁移角色运行 `ops/schedule-cleanup.sql`；也可以使用现有数据库调度器每五分钟执行 `SELECT app.purge_expired()`。清理在无访客时也会执行。
+3. 运行 `npm run build:function`，将生成的 `.local/function` 作为 Function 源目录。目录包含入口和解码所需的 WASM。托管平台在发布时提供 `_qoder/backend.mjs`。在 Function 环境中配置模型密钥后即可开启模型开场和图片识别。
