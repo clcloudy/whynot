@@ -16,10 +16,28 @@ let passed = 0;
 const check = (name, condition) => { assert.ok(condition, name); passed++; console.log(`ok ${name}`); };
 
 const model = createServer(async (request, response) => {
+  const custom = request.url.startsWith('/v1/');
+  if (request.url === '/redirect/models') {
+    response.writeHead(302, { location: '/v1/models' }).end();
+    return;
+  }
+  if (custom && request.headers.authorization !== 'Bearer custom-fixture-key') {
+    response.writeHead(401).end();
+    return;
+  }
+  if (request.url === '/v1/models') {
+    response.setHeader('content-type', 'application/json');
+    response.end(JSON.stringify({ data: [{ id: 'fixture-large' }, { id: 'fixture-small' }, { id: 'fixture-large' }, { id: 'bad model name' }] }));
+    return;
+  }
+  if (!['/', '/v1/chat/completions'].includes(request.url)) {
+    response.writeHead(404).end();
+    return;
+  }
   let raw = '';
   for await (const chunk of request) raw += chunk;
   const body = JSON.parse(raw);
-  if (body.thinking?.type !== 'disabled') {
+  if (custom ? body.model !== 'fixture-large' || body.thinking : body.thinking?.type !== 'disabled') {
     response.writeHead(400, { 'content-type': 'application/json' });
     response.end(JSON.stringify({ error: 'thinking_must_be_disabled' }));
     return;
@@ -33,9 +51,12 @@ const model = createServer(async (request, response) => {
     return;
   }
   const opening = body.messages[0].content.includes('开场生成器');
-  const content = opening
+  const card = body.messages[0].content.includes('建议生成器');
+  const content = card
+    ? { title: '自定义模型建议', first_step: '先深呼吸一次。', detail: '仅用于自动验收。', minutes: 2, category: 'rest' }
+    : opening
     ? { title: '本地测试开场', first_step: '最近在忙什么？', detail: '仅用于自动验收。', minutes: 2 }
-    : { text: '本地测试回复：你想先完成哪一部分？' };
+    : { text: `${custom ? '自定义模型' : '启动配置模型'}回复：你想先完成哪一部分？` };
   response.writeHead(200, { 'content-type': 'application/json' });
   response.end(JSON.stringify({ choices: [{ message: { content: JSON.stringify(content) } }] }));
 });
@@ -95,7 +116,7 @@ function jar() {
 try {
   let child = await start();
   const page = await (await fetch(base)).text();
-  check('本地状态与无密钥提示', page.includes('本地版 · 数据保存在这台电脑') && page.includes('尚未配置 AI 密钥') && page.includes('data-image="0"'));
+  check('本地页面提供 AI 模型设置', page.includes('本地版 · 数据保存在这台电脑') && page.includes('data-local-settings="1"') && page.includes('id="model-form"'));
   for (const path of ['/__local/db', '/__local/env', '/__local/fault', '/__local/acceptance-ui.mjs', '/.env']) {
     check(`不暴露 ${path}`, (await fetch(base + path)).status === 404);
   }
@@ -111,8 +132,11 @@ try {
   check('拒绝伪造 Host', forgedHostStatus === 403);
   check('拒绝跨站导航', (await fetch(base, { headers: { 'sec-fetch-site': 'cross-site' } })).status === 403);
   const a = jar(), b = jar();
+  const modelPath = '/api/model-settings';
   check('无会话被拒绝', (await a('GET', '/api/memories')).status === 401);
+  check('AI 设置要求会话', (await a('GET', modelPath)).status === 401 && (await a('POST', `${modelPath}/models`, {})).status === 401);
   check('创建会话', (await a('POST', '/api/session')).status === 200);
+  check('无模型配置使用内置建议', (await a('GET', modelPath)).data.source === 'builtin');
   const context = { scene: 'desk', energy: 'steady', budget: 5 };
   const card = await a('POST', '/api/recommendations', context);
   check('无密钥内置建议可用', card.status === 201 && card.data.minutes <= 5);
@@ -136,6 +160,24 @@ try {
   check('其他会话看不到记忆', (await b('GET', '/api/memories')).data.total === 0);
   check('其他会话不能修改记忆', (await b('PATCH', `/api/memories/${saved.data.id}`, { text: '不能修改', version: 1 })).status === 404);
   check('非法参数被拒绝', (await a('POST', '/api/interactions', { budget: 7, energy: 'low', request_id: randomUUID() })).status === 400);
+  const modelSettings = { endpoint: `${modelEndpoint}/v1/`, api_key: 'custom-fixture-key', model: 'fixture-small', image_enabled: false };
+  const modelsPath = `${modelPath}/models`;
+  const discovered = await a('POST', modelsPath, { endpoint: modelSettings.endpoint, api_key: modelSettings.api_key });
+  check('获取并校验服务商模型列表', discovered.status === 200 && discovered.data.models.join(',') === 'fixture-large,fixture-small');
+  check('获取列表不会保存设置', (await a('GET', modelPath)).data.source === 'builtin');
+  check('地址要求 HTTPS 或本机 HTTP', (await a('PUT', modelPath, { ...modelSettings, endpoint: 'http://example.com/v1' })).data.error === 'INVALID_MODEL_SETTINGS');
+  check('拒绝模型列表重定向', (await a('POST', modelsPath, { endpoint: `${modelEndpoint}/redirect`, api_key: modelSettings.api_key })).data.error === 'MODEL_LIST_UNAVAILABLE');
+  check('首次保存要求密钥', (await a('PUT', modelPath, { ...modelSettings, api_key: '' })).data.error === 'MODEL_KEY_REQUIRED');
+  const storedModel = await a('PUT', modelPath, modelSettings);
+  check('保存设置且不返回密钥', storedModel.status === 200 && storedModel.data.endpoint === `${modelEndpoint}/v1/chat/completions` && !JSON.stringify(storedModel.data).includes(modelSettings.api_key));
+  const getModel = await a('GET', modelPath);
+  check('读取设置只返回非敏感字段', Object.keys(getModel.data).sort().join(',') === 'endpoint,image_enabled,model,source');
+  check('其他会话没有该模型设置', (await b('GET', modelPath)).data.source === 'builtin');
+  check('其他会话无法沿用已存密钥', (await b('POST', modelsPath, { endpoint: modelSettings.endpoint })).data.error === 'MODEL_KEY_REQUIRED');
+  check('换地址不能沿用旧密钥', (await a('PUT', modelPath, { ...modelSettings, endpoint: 'https://example.com/v1', api_key: '' })).data.error === 'MODEL_KEY_REQUIRED');
+  check('同地址可以沿用密钥获取列表', (await a('POST', modelsPath, { endpoint: storedModel.data.endpoint })).status === 200);
+  check('同地址换模型可以保留密钥', (await a('PUT', modelPath, { ...modelSettings, api_key: '', model: 'fixture-large' })).data.model === 'fixture-large');
+  check('推荐立即使用已选模型', (await a('POST', '/api/recommendations', context)).data.title === '自定义模型建议');
   const duplicate = launch(false, port + 1);
   const duplicateExit = await Promise.race([
     once(duplicate, 'exit').then(([code]) => code),
@@ -145,20 +187,24 @@ try {
 
   await stop(child);
   child = await start(true);
+  check('重启后自定义模型保留并优先于启动配置', (await a('GET', modelPath)).data.model === 'fixture-large' && (await b('GET', modelPath)).data.source === 'environment');
   const restored = await a('GET', '/api/memories');
   check('重启后原会话与记忆保留', restored.status === 200 && restored.data.total === 1 && restored.data.memories[0].id === saved.data.id && restored.data.memories[0].text === saved.data.text);
   check('重启后反馈保留', (await a('POST', feedbackPath, { kind: 'like' })).data.completed === true);
   const turnBody = { request_id: randomUUID(), version: 2, text: '继续本地测试' };
   const modelTurn = await a('POST', turnPath, turnBody);
-  check('重启后继续对话并调用测试模型', modelTurn.status === 201 && modelTurn.data.version === 3);
+  check('重启后继续对话并调用自定义模型', modelTurn.status === 201 && modelTurn.data.version === 3 && modelTurn.data.reply.startsWith('自定义模型'));
   check('对话重试幂等', (await a('POST', turnPath, turnBody)).status === 200);
   check('旧版本对话被拒绝', (await a('POST', turnPath, { ...turnBody, request_id: randomUUID() })).status === 409);
-  check('连续第二轮对话', (await a('POST', turnPath, { request_id: randomUUID(), version: 3, text: '第二轮本地测试' })).status === 201);
+  check('移除自定义模型后恢复启动配置', (await a('DELETE', modelPath)).data.source === 'environment');
+  const secondTurn = await a('POST', turnPath, { request_id: randomUUID(), version: 3, text: '第二轮本地测试' });
+  check('连续第二轮对话调用启动配置模型', secondTurn.status === 201 && secondTurn.data.reply.startsWith('启动配置模型'));
   const edited = await a('PATCH', `/api/memories/${saved.data.id}`, { text: '本地修改后保留', version: 1 });
   check('编辑记忆', edited.status === 200 && edited.data.version === 2);
   check('旧版本记忆被拒绝', (await a('PATCH', `/api/memories/${saved.data.id}`, { text: '过时修改', version: 1 })).status === 409);
   await stop(child);
   child = await start();
+  check('移除自定义模型跨重启保留', (await a('GET', modelPath)).data.source === 'builtin');
   const afterEdit = await a('GET', '/api/memories');
   check('再次启动不重跑迁移且修改保留', afterEdit.data.memories[0].text === '本地修改后保留' && afterEdit.data.memories[0].version === 2);
   check('删除记忆', (await a('DELETE', `/api/memories/${saved.data.id}`)).status === 204);

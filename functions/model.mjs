@@ -1,8 +1,6 @@
 // Server-only model call. Never log the key, the prompt context or raw responses.
 
 const ENDPOINT = 'https://api.deepseek.com/chat/completions';
-const MODEL = 'deepseek-flash';
-const VISION_MODEL = 'deepseek-flash';
 const TIMEOUT_MS = 7000;
 const MAX_ATTEMPTS = 2;
 
@@ -45,12 +43,34 @@ export function validateCard(raw, budget, energy) {
   return { action: 'model', title, first, detail, minutes: raw.minutes, category: raw.category };
 }
 
-async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, model = MODEL }) {
+export const validModelName = value => typeof value === 'string' && /^[\x21-\x7e]{1,128}$/.test(value);
+
+export async function listModels({ endpoint, apiKey }) {
+  try {
+    const response = await fetch(endpoint.replace(/\/chat\/completions$/, '/models'), {
+      headers: { authorization: `Bearer ${apiKey}` },
+      redirect: 'error',
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      await response.body?.cancel();
+      return null;
+    }
+    const { data } = await response.json();
+    if (!Array.isArray(data)) return null;
+    return [...new Set(data.map(item => item?.id).filter(validModelName))].sort();
+  } catch {
+    return null;
+  }
+}
+
+async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, model = 'deepseek-flash', custom }) {
   if (!apiKey) return null;
+  const deepSeek = !custom || new URL(endpoint).hostname === 'api.deepseek.com';
   const body = JSON.stringify({
     model,
     messages,
-    thinking: { type: 'disabled' },
+    ...(deepSeek ? { thinking: { type: 'disabled' } } : {}),
     temperature: 0.9,
     max_tokens: maxTokens,
     response_format: { type: 'json_object' },
@@ -61,6 +81,7 @@ async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, mode
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
         body,
+        redirect: 'error',
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!response.ok) {
@@ -79,7 +100,7 @@ async function chatJSON({ apiKey, messages, maxTokens, endpoint = ENDPOINT, mode
   return null;
 }
 
-export async function generateSuggestion({ apiKey, budget, energy, scene, recentTitles = [], liked = [], disliked = [], endpoint = ENDPOINT }) {
+export async function generateSuggestion({ budget, energy, scene, recentTitles = [], liked = [], disliked = [], ...modelOptions }) {
   const lines = [
     `时间预算：${budget} 分钟`,
     `精力：${ENERGY_TEXT[energy]}`,
@@ -90,7 +111,7 @@ export async function generateSuggestion({ apiKey, budget, energy, scene, recent
   if (disliked.length) lines.push(`用户不喜欢的类型，避免：${disliked.join('、')}`);
   lines.push('请给一条新的建议。');
   const parsed = await chatJSON({
-    apiKey, maxTokens: 400, endpoint,
+    ...modelOptions, maxTokens: 400,
     messages: [{ role: 'system', content: SYSTEM }, { role: 'user', content: lines.join('\n') }],
   });
   return parsed ? validateCard(parsed, budget, energy) : null;
@@ -124,7 +145,7 @@ export function validateOpening(raw, budget) {
   return { title, first, detail, minutes: raw.minutes };
 }
 
-export async function generateOpening({ apiKey, mode, topic, budget, energy, scene, endpoint = ENDPOINT }) {
+export async function generateOpening({ mode, topic, budget, energy, scene, ...modelOptions }) {
   const system = OPENING_SYSTEM[mode];
   if (!system) return null;
   const lines = [
@@ -135,7 +156,7 @@ export async function generateOpening({ apiKey, mode, topic, budget, energy, sce
     '请围绕这个话题生成开场。',
   ];
   const parsed = await chatJSON({
-    apiKey, maxTokens: 400, endpoint,
+    ...modelOptions, maxTokens: 400,
     messages: [{ role: 'system', content: system }, { role: 'user', content: lines.join('\n') }],
   });
   return parsed ? validateOpening(parsed, budget) : null;
@@ -183,7 +204,7 @@ export function validateReply(raw, allowCandidate = false) {
   return { text, candidate };
 }
 
-export async function generateReply({ apiKey, mode, opening, history, text, budget, energy, scene, word = null, memory = null, allowCandidate = false, endpoint = ENDPOINT }) {
+export async function generateReply({ mode, opening, history, text, budget, energy, scene, word = null, memory = null, allowCandidate = false, ...modelOptions }) {
   const system = REPLY_SYSTEM[mode];
   if (!system) return null;
   const lines = [
@@ -203,7 +224,7 @@ export async function generateReply({ apiKey, mode, opening, history, text, budg
     messages.push({ role: 'assistant', content: JSON.stringify({ text: turn.reply_text }) });
   }
   messages.push({ role: 'user', content: text });
-  const parsed = await chatJSON({ apiKey, messages, maxTokens: 300, endpoint });
+  const parsed = await chatJSON({ ...modelOptions, messages, maxTokens: 300 });
   return parsed ? validateReply(parsed, allowCandidate && mode === 'chat') : null;
 }
 
@@ -235,7 +256,7 @@ export function validateVision(raw) {
   return { word, ipa, meaning, practice };
 }
 
-export async function generateVisionWord({ apiKey, mime, base64, hint = null, endpoint = ENDPOINT }) {
+export async function generateVisionWord({ mime, base64, hint = null, ...modelOptions }) {
   const messages = [
     { role: 'system', content: VISION_SYSTEM },
     {
@@ -246,6 +267,6 @@ export async function generateVisionWord({ apiKey, mime, base64, hint = null, en
       ],
     },
   ];
-  const parsed = await chatJSON({ apiKey, messages, maxTokens: 400, endpoint, model: VISION_MODEL });
+  const parsed = await chatJSON({ ...modelOptions, messages, maxTokens: 400 });
   return parsed ? validateVision(parsed) : null;
 }

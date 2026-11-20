@@ -114,6 +114,7 @@ const scenePanel = document.getElementById('scene-panel');
 const sceneValueText = document.getElementById('scene-value-text');
 const settingsToggle = document.getElementById('settings-toggle');
 const about = document.getElementById('about');
+const localSettings = document.documentElement.dataset.localSettings === '1';
 const SVG_OPEN_64 = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 7.2 H7.2 V40.8 H40.8 V19.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 32 H38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
 const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
@@ -1258,15 +1259,105 @@ about.addEventListener('change', event => {
   } catch { theme = 'system'; }
   applyTheme(theme);
 });
+const modelSettingsPath = '/api/model-settings';
+const modelForm = document.getElementById('model-form');
+const modelFields = document.getElementById('model-fields');
+const modelEndpoint = document.getElementById('model-endpoint');
+const modelKey = document.getElementById('model-key');
+const modelName = document.getElementById('model-name');
+const modelImage = document.getElementById('model-image');
+const modelChoices = document.getElementById('model-choices');
+const modelSelect = document.getElementById('model-select');
+const modelReset = document.getElementById('model-reset');
+const modelNotice = document.getElementById('model-notice');
+let modelSettingsLoaded = false;
+let modelSettingsBusy = false;
+
+function renderModelSettings(settings) {
+  const custom = settings.source === 'custom';
+  modelEndpoint.value = settings.endpoint || '';
+  modelKey.value = '';
+  modelKey.placeholder = custom ? '留空以保留当前地址的密钥' : '';
+  modelName.value = settings.model || '';
+  modelImage.checked = settings.image_enabled === true;
+  modelReset.hidden = !custom;
+  document.getElementById('model-source').textContent = {
+    custom: '正在使用自定义模型。',
+    environment: '正在使用本地启动配置。',
+    builtin: '尚未配置 AI 密钥，目前可用内置建议。',
+  }[settings.source];
+  modelSettingsLoaded = true;
+}
+
+async function updateModelSettings(method, path = modelSettingsPath, body) {
+  if (modelSettingsBusy) return;
+  const discovering = path.endsWith('/models');
+  modelSettingsBusy = true;
+  modelFields.disabled = true;
+  modelNotice.textContent = discovering ? '正在获取模型列表…' : '正在处理…';
+  try {
+    const settings = await requestWithRecovery(path, {
+      method,
+      ...(body && { headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) }),
+    });
+    if (discovering) {
+      modelSelect.replaceChildren(new Option('选择模型', ''), ...settings.models.map(name => new Option(name, name)));
+      modelSelect.value = settings.models.includes(modelName.value) ? modelName.value : '';
+      modelChoices.hidden = settings.models.length === 0;
+      modelNotice.textContent = settings.models.length ? '请选择模型，也可以手动输入。' : '服务没有返回模型，请手动输入模型名称。';
+    } else {
+      if (method === 'DELETE') modelChoices.hidden = true;
+      renderModelSettings(settings);
+      modelNotice.textContent = { GET: '', PUT: '已保存，下次请求将使用所选模型。', DELETE: '已移除自定义设置。' }[method];
+    }
+  } catch (error) {
+    modelNotice.textContent = {
+      INVALID_MODEL_SETTINGS: '请检查 API 地址、密钥或模型名称。地址需使用 HTTPS，本机模型可用 HTTP。',
+      MODEL_KEY_REQUIRED: '请填写这个 API 地址的密钥。',
+      MODEL_LIST_UNAVAILABLE: '获取模型列表失败。请检查地址和密钥，或手动输入模型名称。',
+    }[error.code] || (discovering ? '暂时无法获取模型列表，请稍后重试。' : '暂时无法处理 AI 设置，请稍后重试。');
+  } finally {
+    modelSettingsBusy = false;
+    modelFields.disabled = !modelSettingsLoaded;
+  }
+}
+
+function modelCredentials() {
+  return { endpoint: modelEndpoint.value.trim(), api_key: modelKey.value.trim() };
+}
+
+document.getElementById('model-discover').addEventListener('click', () => {
+  if (!modelEndpoint.reportValidity()) return;
+  modelChoices.hidden = true;
+  updateModelSettings('POST', `${modelSettingsPath}/models`, modelCredentials());
+});
+modelForm.addEventListener('submit', event => {
+  event.preventDefault();
+  updateModelSettings('PUT', modelSettingsPath, {
+    ...modelCredentials(), model: modelName.value.trim(), image_enabled: modelImage.checked,
+  });
+});
+modelEndpoint.addEventListener('input', () => { modelChoices.hidden = true; });
+modelSelect.addEventListener('change', () => { if (modelSelect.value) modelName.value = modelSelect.value; });
+modelName.addEventListener('input', () => {
+  modelSelect.value = modelName.value;
+  if (modelSelect.selectedIndex < 0) modelSelect.value = '';
+});
+modelReset.addEventListener('click', () => updateModelSettings('DELETE'));
+
 settingsToggle.addEventListener('click', () => {
   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
   settingsToggle.setAttribute('aria-expanded', String(!expanded));
-  const label = expanded ? '关于与数据' : '收起关于与数据';
+  const section = localSettings ? '设置' : '关于与数据';
+  const label = expanded ? section : `收起${section}`;
   settingsToggle.textContent = label;
-  settingsToggle.setAttribute('aria-label', `${label}，主题设置与记忆管理`);
+  settingsToggle.setAttribute('aria-label', `${label}，${localSettings ? 'AI 模型、' : ''}主题设置与记忆管理`);
   about.hidden = expanded;
   if (expanded) focus(settingsToggle);
-  else loadMemories();
+  else {
+    if (localSettings && !modelSettingsLoaded) updateModelSettings('GET');
+    loadMemories();
+  }
 });
 for (const event of ['offline', 'online']) window.addEventListener(event, () => {
   syncConditions();
@@ -1282,6 +1373,12 @@ askButton.addEventListener('click', () => startInteraction());
   const now = new Date();
   document.getElementById('masthead-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日`;
   guide.hidden = document.documentElement.dataset.guided === '1';
+  if (localSettings) {
+    document.getElementById('model-settings').hidden = false;
+    document.getElementById('about-title').textContent = '设置';
+    settingsToggle.textContent = '设置';
+    settingsToggle.setAttribute('aria-label', '设置，AI 模型、主题设置与记忆管理');
+  }
   applyTheme(document.documentElement.dataset.theme || 'system');
   syncSceneRow();
   renderEmpty();

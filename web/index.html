@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="zh-CN" data-image="0">
+<html lang="zh-CN" data-image="0" data-local-settings="0">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -94,6 +94,32 @@
     <section class="about" id="about" aria-labelledby="about-title" hidden>
       <h2 id="about-title">关于与数据</h2>
       <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
+      <section id="model-settings" aria-labelledby="model-settings-title" hidden>
+        <h3 id="model-settings-title">AI 模型</h3>
+        <p id="model-source"></p>
+        <form id="model-form" autocomplete="off">
+          <fieldset id="model-fields" aria-labelledby="model-settings-title" disabled>
+            <label for="model-endpoint">API 地址</label>
+            <input id="model-endpoint" type="url" placeholder="https://api.deepseek.com" maxlength="512" spellcheck="false" required>
+            <label for="model-key">API 密钥</label>
+            <input id="model-key" type="password" maxlength="1024" aria-describedby="model-key-note">
+            <p id="model-key-note">密钥保存在本机，聊天内容会发送给所选服务。</p>
+            <button id="model-discover" type="button" class="retry">获取模型列表</button>
+            <div id="model-choices" hidden>
+              <label for="model-select">可用模型</label>
+              <select id="model-select"></select>
+            </div>
+            <label for="model-name">模型名称</label>
+            <input id="model-name" type="text" placeholder="选择模型或手动输入" maxlength="128" spellcheck="false" required>
+            <label class="model-image"><input id="model-image" type="checkbox">模型支持图片输入</label>
+            <div class="model-actions">
+              <button type="submit" class="retry">保存设置</button>
+              <button id="model-reset" type="button" class="retry" hidden>移除自定义设置</button>
+            </div>
+          </fieldset>
+        </form>
+        <p id="model-notice" role="status"></p>
+      </section>
       <fieldset>
         <legend>主题</legend>
         <div class="chips">

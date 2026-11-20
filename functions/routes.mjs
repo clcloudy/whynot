@@ -1,5 +1,5 @@
 import { SCENES, ENERGIES, BUDGETS, pickBuiltin } from './suggestions.mjs';
-import { generateSuggestion, generateOpening, generateReply, generateVisionWord } from './model.mjs';
+import { generateSuggestion, generateOpening, generateReply, generateVisionWord, listModels, validModelName } from './model.mjs';
 import { pickOpening, builtinOpening, CHAT_TOPICS, DISCUSS_TOPICS } from './interactions.mjs';
 
 const SCENE_SET = new Set(SCENES);
@@ -24,7 +24,7 @@ const REVISIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
 const RECALL_INTENT = /(上次|之前).{0,12}(说|提到|讲|记住)/;
 
 // Ownership comes from the verified session header, never from client JSON.
-export function application({ db, BackendError, env, validateImage, random = Math.random, now = Date.now }) {
+export function application({ db, BackendError, env, validateImage, localModelSettings = false, random = Math.random, now = Date.now }) {
   const fail = (code, status) => { throw new BackendError(code, status); };
   const rows = result => {
     if (result?.error) fail(result.error.code || 'STORAGE_UNAVAILABLE', result.error.status || 503);
@@ -65,7 +65,7 @@ export function application({ db, BackendError, env, validateImage, random = Mat
     return new Response(JSON.stringify(data), { status, headers });
   }
 
-  async function input(request) {
+  async function input(request, limit = 2048) {
     if (!request.headers.get('content-type')?.startsWith('application/json')) fail('JSON_REQUIRED', 415);
     const reader = request.body?.getReader();
     if (!reader) fail('INVALID_BODY', 400);
@@ -76,7 +76,7 @@ export function application({ db, BackendError, env, validateImage, random = Mat
         const { done, value } = await reader.read();
         if (done) break;
         size += value.length;
-        if (size > 2048) { await reader.cancel(); fail('INVALID_BODY', 413); }
+        if (size > limit) { await reader.cancel(); fail('INVALID_BODY', 413); }
         chunks.push(value);
       }
     } finally { reader.releaseLock(); }
@@ -151,6 +151,72 @@ export function application({ db, BackendError, env, validateImage, random = Mat
     return { scene, energy, budget };
   }
 
+  async function savedModelSettings(db, owner, key = false) {
+    const columns = key ? 'endpoint,model,image_enabled,api_key' : 'endpoint,model,image_enabled';
+    return rows(await db.from('model_settings').select(columns).eq('owner', owner).limit(1))[0];
+  }
+
+  async function modelOptions(owner) {
+    const saved = localModelSettings && await savedModelSettings(db, owner, true);
+    if (saved) return {
+      apiKey: saved.api_key, endpoint: saved.endpoint, model: saved.model, imageEnabled: saved.image_enabled, custom: true,
+    };
+    const apiKey = env?.get('MODEL_API_KEY');
+    return { apiKey, endpoint: env?.get('MODEL_ENDPOINT') || undefined, imageEnabled: Boolean(apiKey) };
+  }
+
+  function validateModelSettings(data, discovery) {
+    const allowed = discovery ? ['endpoint', 'api_key'] : ['endpoint', 'api_key', 'model', 'image_enabled'];
+    if (Object.keys(data).some(key => !allowed.includes(key))
+      || typeof data.endpoint !== 'string' || data.endpoint.length > 512
+      || /[\u0000-\u0020\u007f]/.test(data.endpoint)
+      || (data.api_key !== undefined && (typeof data.api_key !== 'string' || !/^[\x21-\x7e]{0,1024}$/.test(data.api_key)))
+      || (!discovery && (!validModelName(data.model) || typeof data.image_enabled !== 'boolean'))) fail('INVALID_MODEL_SETTINGS', 400);
+    let url;
+    try { url = new URL(data.endpoint); } catch { fail('INVALID_MODEL_SETTINGS', 400); }
+    const loopback = ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
+    if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && loopback))
+      || url.username || url.password || url.href.includes('?') || url.href.includes('#')) fail('INVALID_MODEL_SETTINGS', 400);
+    const path = url.pathname.replace(/\/+$/, '');
+    if (!path.endsWith('/chat/completions')) url.pathname = path + '/chat/completions';
+    else url.pathname = path;
+    if (url.href.length > 512) fail('INVALID_MODEL_SETTINGS', 400);
+    return { endpoint: url.href, api_key: data.api_key, model: data.model, image_enabled: data.image_enabled };
+  }
+
+  function settingsKey(settings, saved) {
+    if (settings.api_key) return settings.api_key;
+    if (saved?.endpoint === settings.endpoint) return saved.api_key;
+    fail('MODEL_KEY_REQUIRED', 400);
+  }
+
+  async function getModelSettings(owner) {
+    const saved = await savedModelSettings(db, owner);
+    if (saved) return json({ source: 'custom', ...saved });
+    return json({ source: env?.get('MODEL_API_KEY') ? 'environment' : 'builtin' });
+  }
+
+  async function saveModelSettings(owner, request) {
+    const settings = validateModelSettings(await input(request, 4096), false);
+    return transaction(owner, async db => {
+      const saved = await savedModelSettings(db, owner, true);
+      settings.api_key = settingsKey(settings, saved);
+      const columns = 'endpoint,model,image_enabled';
+      const [updated] = rows(await (saved
+        ? db.from('model_settings').update(settings).eq('owner', owner)
+        : db.from('model_settings').insert({ owner, ...settings })).select(columns));
+      return json({ source: 'custom', ...updated });
+    });
+  }
+
+  async function discoverModels(owner, request) {
+    const settings = validateModelSettings(await input(request, 4096), true);
+    const saved = !settings.api_key && await savedModelSettings(db, owner, true);
+    const models = await listModels({ endpoint: settings.endpoint, apiKey: settingsKey(settings, saved) });
+    if (!models) fail('MODEL_LIST_UNAVAILABLE', 502);
+    return json({ models });
+  }
+
   async function recommend(owner, context) {
     const { scene, energy, budget } = context;
     const recent = rows(await db.from('recommendations').select('action,title,scene')
@@ -165,11 +231,10 @@ export function application({ db, BackendError, env, validateImage, random = Mat
     }
     let card = null;
     let source = 'builtin';
-    const apiKey = env?.get('MODEL_API_KEY');
-    if (apiKey) {
+    const model = await modelOptions(owner);
+    if (model.apiKey) {
       card = await generateSuggestion({
-        apiKey, budget, energy, scene,
-        endpoint: env?.get('MODEL_ENDPOINT') || undefined,
+        ...model, budget, energy, scene,
         recentTitles: recent.map(row => row.title),
         liked: Object.keys(scores).filter(category => scores[category] > 0),
         disliked: Object.keys(scores).filter(category => scores[category] < 0),
@@ -298,8 +363,8 @@ export function application({ db, BackendError, env, validateImage, random = Mat
   async function createInteraction(owner, request) {
     const { requestId, replaces, supports, ...context } = validateInteractionContext(await input(request));
     const payloadHash = await digest(JSON.stringify([context.scene, context.energy, context.budget, replaces, supports]));
-    const apiKey = env?.get('MODEL_API_KEY');
-    const imageReady = Boolean(apiKey) && supports.includes('image');
+    const model = await modelOptions(owner);
+    const imageReady = model.imageEnabled && supports.includes('image');
     const prepared = await transaction(owner, async db => {
       const replay = await openingReplay(db, owner, requestId, payloadHash, at());
       if (replay) return { replay };
@@ -315,9 +380,9 @@ export function application({ db, BackendError, env, validateImage, random = Mat
 
     const { mode, topic, revisit } = prepared;
     const builtin = builtinOpening(mode, topic, context);
-    const generated = apiKey && !revisit && (mode === 'chat' || mode === 'discuss')
+    const generated = model.apiKey && !revisit && (mode === 'chat' || mode === 'discuss')
       ? await generateOpening({
-        apiKey, mode, topic: topicFor(prepared), ...context, endpoint: env?.get('MODEL_ENDPOINT') || undefined,
+        ...model, mode, topic: topicFor(prepared), ...context,
       }) : null;
     const card = generated ?? builtin;
     const cardId = await uuidFrom(`${owner}:${requestId}`);
@@ -449,11 +514,10 @@ export function application({ db, BackendError, env, validateImage, random = Mat
 
     const { interaction, card, history, image, memory, dependencies = new Map() } = prepared;
     const recall = interaction.mode === 'chat' && !image && recallIntent;
-    const apiKey = env?.get('MODEL_API_KEY');
-    const endpoint = env?.get('MODEL_ENDPOINT') || undefined;
+    const model = await modelOptions(owner);
     let reply, word, candidate;
     if (image) {
-      const vision = apiKey && await generateVisionWord({ apiKey, mime: image.mime, base64: image.data, hint: turn.text, endpoint });
+      const vision = model.imageEnabled && await generateVisionWord({ ...model, mime: image.mime, base64: image.data, hint: turn.text });
       if (vision?.ambiguous) reply = vision.ambiguous;
       else if (vision) {
         word = vision;
@@ -468,12 +532,12 @@ export function application({ db, BackendError, env, validateImage, random = Mat
           dependencies.clear();
         }
       }
-      if (!reply && apiKey) {
+      if (!reply && model.apiKey) {
         const generated = await generateReply({
-          apiKey, mode: interaction.mode, opening: card, history, text: turn.text,
+          ...model, mode: interaction.mode, opening: card, history, text: turn.text,
           budget: interaction.budget, energy: interaction.energy, scene: interaction.scene,
           word: interaction.word, memory: memory?.text,
-          allowCandidate: interaction.mode === 'chat', endpoint,
+          allowCandidate: interaction.mode === 'chat',
         });
         reply = generated?.text;
         candidate = generated?.candidate;
@@ -693,6 +757,21 @@ export function application({ db, BackendError, env, validateImage, random = Mat
       const token = newToken();
       rows(await db.from('sessions').insertIfAbsent({ owner: await digest(token) }, { onConflict: 'owner' }).select('owner'));
       return json({ ok: true, token });
+    }
+
+    if (localModelSettings && path === '/api/model-settings' && ['GET', 'PUT', 'DELETE'].includes(request.method)) {
+      const owner = await sessionOwner(request);
+      if (!owner) fail('SESSION_REQUIRED', 401);
+      if (request.method === 'GET') return getModelSettings(owner);
+      if (request.method === 'PUT') return saveModelSettings(owner, request);
+      await transaction(owner, async db => rows(await db.from('model_settings').delete().eq('owner', owner).select('owner')));
+      return getModelSettings(owner);
+    }
+
+    if (localModelSettings && path === '/api/model-settings/models' && request.method === 'POST') {
+      const owner = await sessionOwner(request);
+      if (!owner) fail('SESSION_REQUIRED', 401);
+      return discoverModels(owner, request);
     }
 
     if (path === '/api/recommendations' && request.method === 'POST') {

@@ -132,7 +132,10 @@ const now = () => Date.now() + clockOffset;
 const { db, query, exec, close } = await localPostgres();
 const require = createRequire(import.meta.url);
 const validateImage = createImageValidator(() => readFile(require.resolve('@imagemagick/magick-wasm/magick.wasm')));
-const handle = application({ db, BackendError: LocalError, env: { get: name => process.env[name] }, random: () => rng(), now, validateImage });
+const handle = application({
+  db, BackendError: LocalError, env: { get: name => process.env[name] }, localModelSettings: localMode,
+  random: () => rng(), now, validateImage,
+});
 const maintenance = () => db.purgeExpired(new Date(now()).toISOString());
 const maintenanceInterval = setInterval(() => {
   maintenance().catch(() => console.error('Local cleanup failed'));
@@ -220,13 +223,12 @@ const server = createServer(async (incoming, outgoing) => {
     let bytes = await readFile(join(WEB, asset[0]));
     if (url.pathname === '/') {
       let html = bytes.toString('utf8');
-      if (!localMode || process.env.MODEL_API_KEY) html = html.replace('data-image="0"', 'data-image="1"');
+      html = html.replace('data-image="0"', 'data-image="1"');
       if (localMode) {
-        const modelStatus = process.env.MODEL_API_KEY
-          ? 'AI 密钥已配置；聊天与照片会发送给模型服务，实际可用性以请求结果为准。'
-          : '尚未配置 AI 密钥：普通建议、手动记忆可用，自由聊天与看图暂不可用。';
-        html = html.replace('<main class="page">', `<main class="page"><p class="share-note" role="status">本地版 · 数据保存在这台电脑，重启后保留。${modelStatus}</p>`)
+        html = html.replace('data-local-settings="0"', 'data-local-settings="1"')
+          .replace('<main class="page">', '<main class="page"><p class="share-note">本地版 · 数据保存在这台电脑，重启后保留。</p>')
           .replace('保存在服务端，用来生成回应和调整建议。', '保存在这台电脑的本地数据库，用来生成回应和调整建议。')
+          .replace('此设备只保存匿名会话、主题和引导状态。', '浏览器只保存匿名会话、主题和引导状态。')
           .replace('清除浏览器数据不会删除服务端记录。', '清除浏览器数据不会删除本地数据库记录，但会失去当前匿名会话的访问入口。');
       }
       bytes = Buffer.from(html);
@@ -258,6 +260,6 @@ server.listen(port, '127.0.0.1', () => {
   console.log(`WhyNot ${localMode ? '本地版' : 'local fixture'}  ${origin}/`);
   if (localMode) {
     console.log('数据已启用本地持久化。按 Ctrl+C 停止。');
-    console.log(process.env.MODEL_API_KEY ? 'AI 密钥已配置。' : '尚未配置 MODEL_API_KEY：编辑项目 .env 后重新启动以启用 AI。');
+    console.log('在网页的「设置 → AI 模型」中配置 API。');
   }
 });
