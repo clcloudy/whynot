@@ -1,0 +1,26 @@
+Suite: E:\whynot\dev\acceptance-model.mjs
+Node: v24.22.1
+BASE: http://127.0.0.1:8876
+Fake counts before: {"valid":15535,"schema-bad":55,"not-json":36,"http500":44,"http401":22,"slow":66,"capture":72,"ambiguous":16,"memory-candidate":143,"hold":11}
+Payloads and raw response/error bodies are suppressed.
+模型成功路径
+  ok  返回 201
+  ok  来源为模型
+  ok  输出经过修剪与校验
+无效输出兜底
+  ok  超预算输出 → 内置兜底
+  ok  非 JSON 输出 → 内置兜底
+上游错误与重试上限
+  ok  5xx → 兜底
+  ok  5xx 重试一次为止
+  ok  401 → 兜底且不重试
+超时兜底
+  ok  超时 → 兜底
+  ok  有限等待（两次 7 秒超时）
+未配置 Key
+  ok  无 Key → 内置建议
+11 passed, 0 failed
+Fake counts after: {"valid":15536,"schema-bad":56,"not-json":38,"http500":46,"http401":23,"slow":68,"capture":72,"ambiguous":16,"memory-candidate":143,"hold":11}
+Fake counts delta: {"valid":1,"schema-bad":1,"not-json":2,"http500":2,"http401":1,"slow":2,"capture":0,"ambiguous":0,"memory-candidate":0,"hold":0}
+Suppressed non-result lines: 0
+Runner result: {"name":"model","passed":11,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":14287}

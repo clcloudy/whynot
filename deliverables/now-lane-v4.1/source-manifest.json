@@ -1,0 +1,190 @@
+{
+  "baselineCommit": "5fda514dd966e1bfe316a97aad8358f0c78ced1b",
+  "snapshotScope": "web and dev only; not a complete standalone repository",
+  "files": [
+    {
+      "path": "dev/acceptance-deployed.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "c5a11046433fb94756b2892f22a74c51a13d783beb6dcb22f613ecae4fdc2204",
+      "afterSHA256": "c5a11046433fb94756b2892f22a74c51a13d783beb6dcb22f613ecae4fdc2204",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-interactions.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "b53548ecacb470da00eebc99b5ee85a485633c4422997508e3291594a283f2df",
+      "afterSHA256": "b53548ecacb470da00eebc99b5ee85a485633c4422997508e3291594a283f2df",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-local.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "8b0c70da103419d5322421d31d239de16e2f0b936afb0d1fbcf8e37fda89bce2",
+      "afterSHA256": "8b0c70da103419d5322421d31d239de16e2f0b936afb0d1fbcf8e37fda89bce2",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-memories.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "3748d3835f34cab6681eeccb598c4e42b2f782c447f68f8d0463abfb8ec8bd51",
+      "afterSHA256": "3748d3835f34cab6681eeccb598c4e42b2f782c447f68f8d0463abfb8ec8bd51",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-model.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "e3c77d7adaabfe7cede6c4738691022c5e924e306fcf1dcbf352b13610012bd1",
+      "afterSHA256": "e3c77d7adaabfe7cede6c4738691022c5e924e306fcf1dcbf352b13610012bd1",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-photos.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "55fa3a7cbe5aab29c16d5a2d54fe918279bb5c8762eb00017eb99986d134f5ae",
+      "afterSHA256": "55fa3a7cbe5aab29c16d5a2d54fe918279bb5c8762eb00017eb99986d134f5ae",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "6162c3ecf9b4d735c71420db1375f343d5021ea06b5532742745a3547b4e9016",
+      "afterSHA256": "c632056f9ba95161509e1910f7a8e1356132ddbeb70fad706d1515d16049d3fe",
+      "changed": true
+    },
+    {
+      "path": "dev/acceptance-vision-real.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "0351d8c86a2102d27371ce7cfeb7d1f25278d41ca543fc2e0b9bd7e390e6c3c0",
+      "afterSHA256": "0351d8c86a2102d27371ce7cfeb7d1f25278d41ca543fc2e0b9bd7e390e6c3c0",
+      "changed": false
+    },
+    {
+      "path": "dev/acceptance.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "655df6a3b30f65aae25f62f36ad932212fc8c8a047d2bbb34189e90b541f30f0",
+      "afterSHA256": "655df6a3b30f65aae25f62f36ad932212fc8c8a047d2bbb34189e90b541f30f0",
+      "changed": false
+    },
+    {
+      "path": "dev/build-function.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "d6f3e494effef8269316ba466805fd9717727b774c6639b55bc25fa721752f4d",
+      "afterSHA256": "d6f3e494effef8269316ba466805fd9717727b774c6639b55bc25fa721752f4d",
+      "changed": false
+    },
+    {
+      "path": "dev/fake-model.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "1caab0a67671f0cfbc1211dad8de5a1e65b388f84b891215a8e14afe6e94f10a",
+      "afterSHA256": "1caab0a67671f0cfbc1211dad8de5a1e65b388f84b891215a8e14afe6e94f10a",
+      "changed": false
+    },
+    {
+      "path": "dev/function-shim.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "46ddf9bb0d3f26e571ec65d7c5cfc53da8d28fbf0151ba9fa20ed0647e2d1666",
+      "afterSHA256": "46ddf9bb0d3f26e571ec65d7c5cfc53da8d28fbf0151ba9fa20ed0647e2d1666",
+      "changed": false
+    },
+    {
+      "path": "dev/generate-icons.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "ae4c60c3654d3b5d6b95637e91fc518d130cf1a19c05a82d1b8577bfa1da97f4",
+      "afterSHA256": "ae4c60c3654d3b5d6b95637e91fc518d130cf1a19c05a82d1b8577bfa1da97f4",
+      "changed": false
+    },
+    {
+      "path": "dev/probe-model.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "1bf8aa39318fcfe1db0c080ec02e1daaaf2dc6da3b1da172381f45610ba613df",
+      "afterSHA256": "1bf8aa39318fcfe1db0c080ec02e1daaaf2dc6da3b1da172381f45610ba613df",
+      "changed": false
+    },
+    {
+      "path": "dev/server.mjs",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "82640c6238b4f8ec18080476ef0159d77b2cbb7cc92d4f94ab1852f6e312cc0a",
+      "afterSHA256": "82640c6238b4f8ec18080476ef0159d77b2cbb7cc92d4f94ab1852f6e312cc0a",
+      "changed": false
+    },
+    {
+      "path": "web/app.js",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "7de98049d0f3df17e8b872525b3ebae825db515208a44498f331dc60ffaa7c4e",
+      "afterSHA256": "f660f97161658d9e239a21608fbf0e8ee4e9f009d850dccd0a32f0acdc30010b",
+      "changed": true
+    },
+    {
+      "path": "web/apple-touch-icon.png",
+      "beforeMatchesHEAD": true,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d",
+      "afterSHA256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d",
+      "changed": false
+    },
+    {
+      "path": "web/icon-192.png",
+      "beforeMatchesHEAD": true,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a",
+      "afterSHA256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a",
+      "changed": false
+    },
+    {
+      "path": "web/icon-512.png",
+      "beforeMatchesHEAD": true,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9",
+      "afterSHA256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9",
+      "changed": false
+    },
+    {
+      "path": "web/icon.svg",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a",
+      "afterSHA256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a",
+      "changed": false
+    },
+    {
+      "path": "web/index.html",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "5ab5ebcdef92187522e8df92cb5b51b5521211344cd1222b99566d2749a651a4",
+      "afterSHA256": "7ff7f095d8d52a3f8027c3663c0d00f75459a2be1985a993a35beff886c4ad33",
+      "changed": true
+    },
+    {
+      "path": "web/manifest.webmanifest",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "74c2eabe0946c23b7afe489d0a1a1a5ed57409e0f6fe9ebc5eb6a1f76dd8876a",
+      "afterSHA256": "74c2eabe0946c23b7afe489d0a1a1a5ed57409e0f6fe9ebc5eb6a1f76dd8876a",
+      "changed": false
+    },
+    {
+      "path": "web/style.css",
+      "beforeMatchesHEAD": false,
+      "beforeMatchesHEADIgnoringCRLF": true,
+      "beforeSHA256": "a4e2b6ae8dda25c41e359859229c220307b87f0fbc271857ba7d7439b3436bc7",
+      "afterSHA256": "ec440d15920311ad3fad5c5918a1a238026f0bb8a118b6c5ac0b8f1175d010cf",
+      "changed": true
+    }
+  ]
+}

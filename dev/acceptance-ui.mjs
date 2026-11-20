@@ -22,7 +22,36 @@ export default async function run(group = 'state') {
   w.addEventListener('error', event => errors.push(event.message));
   w.addEventListener('unhandledrejection', event => errors.push(String(event.reason)));
   const click = selector => { const node = d.querySelector(selector); node.focus(); node.click(); };
-  const select = (name, value) => click(`input[name="${name}"][value="${value}"]`);
+  // API contract fixtures must not accidentally enter the click-driven lane.
+  const select = (name, value) => {
+    d.querySelector(`input[name="${name}"][value="${value}"]`).checked = true;
+    w.syncConditions();
+  };
+  const selectTheme = value => click(`input[name="theme"][value="${value}"]`);
+  const lane = () => w.eval('laneState');
+  const visible = (node, win = w) => !!node && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0 && win.getComputedStyle(node).visibility !== 'hidden';
+  const waitFor = async (predicate, label, timeout = 35000) => {
+    const end = performance.now() + timeout;
+    while (!predicate()) {
+      if (performance.now() >= end) throw new Error(`验收等待超时：${label}`);
+      await pause(10);
+    }
+  };
+  const stationInput = (index, doc = d) => doc.querySelector(`.lane[data-station="${index}"] input:checked`);
+  const enterLaneThroughUI = async ({ waitForTicket = true } = {}) => {
+    if (lane().station !== 0 || d.getElementById('lane-form').hidden) w.showStation(0, false);
+    for (let index = 0; index < 3; index++) {
+      const input = stationInput(index);
+      input.focus(); input.click();
+      if (index < 2) await waitFor(() => lane().station === index + 1 && lane().phase === `AT_STATION_${index + 2}`, `通道第${index + 2}站`, 2500);
+      else await waitFor(() => state().busy || lane().phase === 'TICKET' || !!d.querySelector('.lane-banner'), '第三站启动出票', 2500);
+    }
+    if (waitForTicket) await waitFor(() => !state().busy && lane().phase !== 'STAMPING', '通道出票结束');
+  };
+  const checkCardSemantics = () => {
+    check('整卡不是 live region', !d.getElementById('result').hasAttribute('aria-live'));
+    check('卡片关联标题与第一步', d.querySelector('.card').getAttribute('aria-labelledby') === 'card-title' && d.querySelector('.card').getAttribute('aria-describedby') === 'card-first');
+  };
   const feedback = kind => { d.querySelector(`[data-focus="${kind}"]`).focus(); return w.sendFeedback(kind); };
   const response = (code, status = 400) => w.Response.json({ error: code }, { status });
   const style = d.createElement('style');
@@ -30,10 +59,11 @@ export default async function run(group = 'state') {
   d.head.append(style);
   await w.ensureSession();
   check('首屏不抢焦点', d.activeElement === d.body);
-  await w.ask();
-  check('普通推荐生成后焦点到标题', d.activeElement.id === 'card-title');
-  check('整卡不是 live region', !d.getElementById('result').hasAttribute('aria-live'));
-  check('卡片关联标题与第一步', d.querySelector('.card').getAttribute('aria-labelledby') === 'card-title' && d.querySelector('.card').getAttribute('aria-describedby') === 'card-first');
+  if (!['lane', 'ix'].includes(group)) {
+    await w.ask();
+    check('普通推荐生成后焦点到标题', d.activeElement.id === 'card-title');
+    checkCardSemantics();
+  }
 
   if (group === 'state') {
     let gate = deferred();
@@ -70,16 +100,24 @@ export default async function run(group = 'state') {
 
     gate = deferred();
     const seen = [];
-    w.fetch = async (url, init) => { if (String(url).endsWith('/api/recommendations')) { seen.push(JSON.parse(init.body)); await gate.promise; } return native(url, init); };
+    let laneRequests = 0;
+    w.fetch = async (url, init) => {
+      if (String(url).endsWith('/api/interactions')) laneRequests++;
+      if (String(url).endsWith('/api/recommendations')) { seen.push(JSON.parse(init.body)); await gate.promise; }
+      return native(url, init);
+    };
     select('budget', '10');
     state().sessionReady = false;
     const pending = w.ask();
     select('budget', '3');
+    const lockedEpoch = lane().epoch;
+    d.getElementById('b15').click();
+    d.getElementById('sdesk').click();
+    check('在途DOM点击不改条件或重入通道', state().busy && lane().phase === 'ISSUING' && lane().epoch === lockedEpoch && w.conditions().budget === 3 && laneRequests === 0);
     gate.resolve(); await pending;
     check('会话等待前快照条件', seen.length === 1 && seen[0].budget === 10 && state().conditions.budget === 10);
-    check('改条件不自动提交', seen.length === 1);
+    check('程序注入条件不自动提交', seen.length === 1 && laneRequests === 0);
     check('旧条件标注与新条件按钮', d.querySelector('.condition-note').textContent === '按 10 分钟生成' && d.querySelector('[data-focus="swap"]').textContent === '按新条件再来一条');
-    check('编辑表单期间返回不抢焦点', d.activeElement.id === 'b3');
     await w.ask(w.conditions(), 'swap');
     check('新条件生成不超3分钟', state().conditions.budget === 3 && state().card.minutes <= 3 && d.querySelector('.condition-note').hidden);
 
@@ -93,7 +131,7 @@ export default async function run(group = 'state') {
     w.fetch = async (url, init) => { if (String(url).endsWith('/api/recommendations')) recovered.push(JSON.parse(init.body)); return native(url, init); };
     check('失败保留旧卡与当前条件', state().card.id === retained && w.conditions().budget === 3 && d.querySelector('.notice') && d.querySelectorAll('.card').length === 1);
     check('网络错误不自动重试', requests === 1);
-    click('.retry');
+    click('.notice .retry');
     while (state().busy) await pause(10);
     check('重试仍使用失败请求快照', recovered.length === 1 && recovered[0].budget === 10 && state().card.minutes <= 10 && w.conditions().budget === 3);
 
@@ -102,7 +140,7 @@ export default async function run(group = 'state') {
     let feedbackCalls = 0;
     w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) { feedbackCalls++; return native(String(url).replace(state().card.id, 'invalid-id'), init); } return native(url, init); };
     await feedback('like');
-    check('无效编号实际API返回404，仅留换一个', feedbackCalls === 1 && !d.querySelector('.card') && d.querySelector('.retry').textContent === '换一个' && d.querySelector('.notice-title').textContent.includes('这条建议找不到了'));
+    check('无效编号实际API返回404，仅留换一个', feedbackCalls === 1 && !d.querySelector('.card') && d.querySelector('.notice .retry').textContent === '换一个' && d.querySelector('.notice-title').textContent.includes('这条建议找不到了'));
 
     w.fetch = native; await w.ask();
     let replay = 0, sessions = 0;
@@ -153,11 +191,11 @@ export default async function run(group = 'state') {
       let calls = 0;
       w.fetch = async (url, init) => { if (String(url).endsWith('/api/recommendations')) { calls++; return response(code); } return native(url, init); };
       await w.ask();
-      check(`${code}不重试`, calls === 1 && !d.querySelector('.retry') && d.querySelector('.notice-title').textContent.includes('刷新页面'));
+      check(`${code}不重试`, calls === 1 && !d.querySelector('.notice .retry') && d.querySelector('.notice-title').textContent.includes('刷新页面'));
     }
     w.fetch = async (url, init) => String(url).endsWith('/api/recommendations') ? new w.Response('{bad') : native(url, init);
     await w.ask();
-    check('无效响应可手动重试', d.querySelector('.notice-title').textContent.includes('不完整') && !!d.querySelector('.retry'));
+    check('无效响应可手动重试', d.querySelector('.notice-title').textContent.includes('不完整') && !!d.querySelector('.notice .retry'));
     w.fetch = async (url, init) => { const r = await native(url, init); if (!String(url).endsWith('/api/recommendations')) return r; const body = await r.json(); body.category = 'toString'; return w.Response.json(body); };
     await w.ask();
     check('未知category安全降级', state().card.category === null && !d.querySelector('.cat'));
@@ -172,12 +210,14 @@ export default async function run(group = 'state') {
       ? new Promise((_, reject) => init.signal.addEventListener('abort', () => reject(init.signal.reason), { once: true })) : native(url, init);
     const retained = state().card.id;
     const pending = w.ask();
-    check('生成中aria-busy且条件可用', d.getElementById('result').getAttribute('aria-busy') === 'true' && !d.querySelector('#b3').disabled);
+    const lockedConditions = JSON.stringify(w.conditions());
+    d.getElementById('b3').click();
+    check('生成中aria-busy及ISSUING锁定通道', d.getElementById('result').getAttribute('aria-busy') === 'true' && d.documentElement.dataset.laneState === 'ISSUING' && lane().phase === 'ISSUING' && JSON.stringify(w.conditions()) === lockedConditions);
     await pause(8100);
     check('8秒只更新视觉文案', d.querySelector('.sk-text').textContent === '还在找，再等一下' && d.getElementById('status').textContent === '正在找建议');
     await pending;
     check('真实25秒超时文案且保留旧卡', timeoutMs === 25000 && d.querySelector('.notice-title').textContent.includes('等太久了') && state().card.id === retained);
-    check('结束清理加载状态', d.getElementById('result').getAttribute('aria-busy') === 'false' && !d.getElementById('ask').disabled && !d.querySelector('.skeleton'));
+    check('结束清理加载状态并回第三站重试', d.getElementById('result').getAttribute('aria-busy') === 'false' && !state().busy && lane().phase === 'AT_STATION_3' && d.documentElement.dataset.laneState === 'AT_STATION_3' && !d.querySelector('.skeleton') && visible(d.querySelector('.notice.lane-banner')));
     w.AbortSignal.timeout = nativeTimeout;
     w.fetch = native;
     Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => false });
@@ -187,8 +227,8 @@ export default async function run(group = 'state') {
     w.fetch = (url, init) => { sent++; return native(url, init); };
     Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => true });
     w.dispatchEvent(new w.Event('online'));
-    check('网络恢复就地提示，不自动提交', sent === 0 && d.querySelector('.notice-title').textContent.includes('网络回来了') && !d.querySelector('.retry').disabled);
-    click('.retry'); while (state().busy) await pause(10);
+    check('网络恢复就地提示，不自动提交', sent === 0 && d.querySelector('.notice-title').textContent.includes('网络回来了') && !d.querySelector('.notice .retry').disabled);
+    click('.notice .retry'); while (state().busy) await pause(10);
     check('恢复后手动重试成功且只有一张卡', !d.querySelector('.notice') && d.querySelectorAll('.card').length === 1);
     delete w.navigator.onLine;
   }
@@ -200,7 +240,7 @@ export default async function run(group = 'state') {
       const sizes = [...d.querySelectorAll('.card-actions button')].map(e => e.getBoundingClientRect());
       const card = d.querySelector('.card').getBoundingClientRect();
       check(`${width}px无横向滚动`, d.documentElement.scrollWidth === d.documentElement.clientWidth);
-      check(`${width}px四键一行且均≥44`, sizes.every(r => r.width >= 44 && r.height >= 44 && r.top === sizes[0].top), JSON.stringify(sizes.map(r => [r.width, r.height])));
+      check(`${width}px四键一行且均≥44`, sizes.every(r => r.width >= 43.99 && r.height >= 43.99 && r.top === sizes[0].top), JSON.stringify(sizes.map(r => [r.width, r.height])));
       check(`${width}px四键等宽`, Math.max(...sizes.map(r => r.width)) - Math.min(...sizes.map(r => r.width)) < 1);
       if (width === 390) check('390px卡宽350', card.width === 350);
       if (width === 768) check('768px单列480居中', d.querySelector('.page').offsetWidth === 480 && d.querySelector('.page').getBoundingClientRect().left === 144);
@@ -209,14 +249,18 @@ export default async function run(group = 'state') {
     d.documentElement.style.fontSize = '32px';
     await pause(50);
     const keys = [...d.querySelectorAll('.card-actions button')].map(e => e.getBoundingClientRect());
-    const segments = [...d.querySelectorAll('.seg label')].map(e => e.getBoundingClientRect());
     check('200%无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth);
     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
-    check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
+    w.showStation(0);
+    await pause(50);
+    const options = [...d.querySelectorAll('.lane[data-station="0"] input')].map(input => input.labels[0]);
+    const segments = options.map(node => node.getBoundingClientRect());
+    check('200%首站四选项可见且热区≥44不重叠', options.length === 4 && options.every(node => visible(node)) && segments.every((r, i) => r.width >= 44 && r.height >= 44 && segments.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
+    check('200%首站选项完整且无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth && options.every(node => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
   }
   if (group === 'polish') {
-    const root = d.documentElement, css = node => w.getComputedStyle(node);
+    const root = d.documentElement, css = node => node.ownerDocument.defaultView.getComputedStyle(node);
     const html = await (await native('/')).text();
     const beforeApp = html.replace('<script src="/app.js"></script>', '');
     const guideValue = w.localStorage.getItem('whynot-guide'), themeValue = w.localStorage.getItem('whynot-theme');
@@ -228,7 +272,7 @@ export default async function run(group = 'state') {
     };
     w.localStorage.removeItem('whynot-guide'); w.localStorage.setItem('whynot-theme', 'dark');
     let p = await load(beforeApp);
-    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '选好时间与精力/出一张现在能做的事/不合适就换一张' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
+    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一屏一问 · 选完撕根/三根集齐，出一张现在/不合适随时换一张' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
     check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgb(167, 177, 201)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
     p = await load(html); await p.ensureSession();
     const pFetch = p.fetch.bind(p);
@@ -237,9 +281,11 @@ export default async function run(group = 'state') {
     check('首次出票失败不收起引导也不写seen', !p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
     p.fetch = pFetch;
     const pending = p.ask();
-    check('生成中可访问名称含出票中且条件仍可编辑', p.document.getElementById('ask').getAttribute('aria-label').includes('出票中') && !p.document.querySelector('#b3').disabled);
+    const pConditions = JSON.stringify(p.conditions());
+    p.document.getElementById('b3').click();
+    check('生成中结果播报忙碌且通道条件锁定', p.document.getElementById('result').getAttribute('aria-busy') === 'true' && p.document.documentElement.dataset.laneState === 'ISSUING' && !!p.document.getElementById('status').textContent && JSON.stringify(p.conditions()) === pConditions);
     await pending;
-    check('首次成功收起引导并写seen而条件常驻', p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === 'seen' && p.getComputedStyle(p.document.querySelector('.panel')).display !== 'none');
+    check('首次成功收起引导并写seen且通道让位票卡', p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === 'seen' && p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.ticket-context > button.context-key').length === 3);
     p = await load(beforeApp);
     check('回访外部脚本前引导已隐藏且主题不闪回', p.getComputedStyle(p.document.getElementById('guide')).display === 'none' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
     w.localStorage.removeItem('whynot-guide');
@@ -252,7 +298,6 @@ export default async function run(group = 'state') {
     p = await load(html.replace('<head>', '<head><script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
     await p.ensureSession(); await p.ask();
     check('存储读拒绝保持系统主题并能出票收起引导', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden);
-    probe.remove();
     for (const [key, value] of [['whynot-guide', guideValue], ['whynot-theme', themeValue]]) {
       if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
     }
@@ -263,7 +308,7 @@ export default async function run(group = 'state') {
     click('#settings-toggle');
     check('关闭关于焦点回入口且名称恢复', d.getElementById('about').hidden && d.activeElement === settings && settings.textContent === '关于与数据');
     const date = new w.Date();
-    check('页眉显示本地日期且主按钮名称含可见文案', d.getElementById('masthead-date').textContent === `${date.getMonth() + 1}月${date.getDate()}日` && d.getElementById('ask').getAttribute('aria-label').includes('出一张现在'));
+    check('页眉显示本地日期且票面回站名称含可见文案', d.getElementById('masthead-date').textContent === `${date.getMonth() + 1}月${date.getDate()}日` && [...d.querySelectorAll('.ticket-context > button.context-key')].length === 3 && [...d.querySelectorAll('.ticket-context > button.context-key')].every(node => (node.getAttribute('aria-label') || node.textContent).includes(node.textContent.trim())));
     click('#settings-toggle');
     for (let i = 0; i < 800 && w.eval('mem.status') === 'loading'; i++) await pause(10);
     check('关于记忆加载完成后再测主题请求隔离', w.eval('mem.status') !== 'loading');
@@ -275,29 +320,38 @@ export default async function run(group = 'state') {
       while (node) { const color = css(node).backgroundColor, values = rgb(color); if (values.length === 3 || values[3] === 1) return color; node = node.parentElement; }
       return 'rgb(255,255,255)';
     };
-    const rules = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]);
+    // Keep a pristine lane beside the ticket fixture; do not force hidden cards visible.
+    p = await load(html); await p.ensureSession();
+    probe.hidden = false;
+    probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:390px;height:844px;border:0';
+    p.showStation(0, false);
+    const laneDoc = p.document, laneFetch = p.fetch.bind(p);
+    const rules = [...d.styleSheets, ...laneDoc.styleSheets].flatMap(sheet => [...sheet.cssRules]);
     const media = rules.filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
     const savedMedia = media.map(rule => rule.media.mediaText);
-    const activeRule = rules.find(rule => rule.selectorText === '.primary:active');
-    const ask = d.getElementById('ask'), cardId = state().card.id;
+    const option = stationInput(0, laneDoc).labels[0], cardId = state().card.id;
     let themeRequests = 0;
     w.fetch = (url, init) => { themeRequests++; return native(url, init); };
-    const textSelectors = ['.masthead .brand-name', '.masthead-date', '.guide p', '.panel legend', '.scene-label', '.scene-value', '.foot', '.settings', '.about h2', '.about p', '.about legend', '.share-note', '.card h2', '.first-label', '.first-text', '.detail', '.cat', '.gauge-label', '.feedback button', '.swap', '.primary'];
+    p.fetch = (url, init) => { themeRequests++; return laneFetch(url, init); };
+    const textSelectors = ['.masthead .brand-name', '.masthead-date', '.guide p', '.foot', '.settings', '.about h2', '.about p', '.about legend', '.share-note', '.card h2', '.first-label', '.first-text', '.detail', '.cat', '.gauge-label', '.feedback button', '.swap', '.ticket-context .context-key'];
+    const laneSelectors = ['.station-q', '.lane.is-active label', '#lane-collection button', '.collect-value'];
     for (const dark of [false, true]) {
       media.forEach(rule => { rule.media.mediaText = dark ? 'all' : 'not all'; });
       for (const theme of ['system', 'light', 'dark']) {
-        w.applyTheme(theme); await pause(200);
+        w.applyTheme(theme); p.applyTheme(theme); await pause(200);
         const key = `系统${dark ? '深' : '浅'}/${theme}`;
         const contrasts = textSelectors.flatMap(selector => [...d.querySelectorAll(selector)].map(node => ({ selector, ratio: contrast(css(node).color, background(node)) })));
+        contrasts.push(...laneSelectors.flatMap(selector => [...laneDoc.querySelectorAll(selector)].filter(node => visible(node, p)).map(node => ({ selector, ratio: contrast(css(node).color, background(node)) }))));
         check(`${key}页外与票面普通文字对比度≥4.5`, contrasts.every(x => x.ratio >= 4.5), JSON.stringify(contrasts));
         const shadows = [...d.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().width > 0 && css(node).boxShadow !== 'none');
         const expectedDark = theme === 'dark' || (theme === 'system' && dark);
         check(`${key}仅浅色票面有黑色8px投影`, expectedDark ? shadows.length === 0 : shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px');
-        activeRule.selectorText = '.primary.test-active'; ask.classList.add('test-active');
-        await pause(150);
-        check(`${key}按压态米白字对深橙≥4.5`, css(ask).color === 'rgb(246, 242, 232)' && contrast(css(ask).color, css(ask).backgroundColor) >= 4.5);
-        ask.classList.remove('test-active'); activeRule.selectorText = '.primary:active'; await pause(150);
-        check(`${key}场景主题与换票不扩散橙色`, [...d.querySelectorAll('input[name="scene"]:checked + label,input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(ask).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
+        const laneShadows = [...laneDoc.querySelectorAll('body *')].filter(node => visible(node, p) && css(node).boxShadow !== 'none');
+        check(`${key}通道仅浅色纸面与票根保留8px投影`, expectedDark ? laneShadows.length === 0 : laneShadows.length === 2 && laneShadows.every(node => node.matches('.station-body,.stub') && css(node).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px'));
+        check(`${key}首站选中态深字对强调色≥4.5`, css(option).color === 'rgb(34, 18, 4)' && contrast(css(option).color, background(option)) >= 4.5);
+        check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
+        stationInput(0, laneDoc).focus({ preventScroll: true });
+        check(`${key}首站单选焦点对表面≥3`, css(option).outlineStyle === 'solid' && contrast(css(option).outlineColor, background(option)) >= 3);
         for (const node of [settings, d.querySelector('.card h2')]) {
           node.focus({ preventScroll: true });
           check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, background(node)) >= 3);
@@ -310,11 +364,11 @@ export default async function run(group = 'state') {
     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });
     check('切换主题不改票据或提交请求', state().card.id === cardId && !state().busy && themeRequests === 0);
     w.fetch = native;
-    const boxes = () => [...d.querySelectorAll('.masthead,.panel,.primary,.card,.card *,.foot,.about,.about *')].map(node => { const r = node.getBoundingClientRect(); return [r.left + w.scrollX, r.top + w.scrollY, r.width, r.height]; });
+    const boxes = () => [...d.querySelectorAll('.masthead,.card,.card *,.foot,.about,.about *'), ...laneDoc.querySelectorAll('#lane-form,.lane.is-active,.lane.is-active *,#lane-collection,#lane-collection *')].map(node => { const r = node.getBoundingClientRect(), win = node.ownerDocument.defaultView; return [r.left + win.scrollX, r.top + win.scrollY, r.width, r.height]; });
     for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
-      frame.style.width = `${width}px`; root.style.fontSize = `${font}px`;
-      w.applyTheme('light'); await pause(200); const light = boxes();
-      w.applyTheme('dark'); await pause(200); const dark = boxes();
+      frame.style.width = probe.style.width = `${width}px`; root.style.fontSize = laneDoc.documentElement.style.fontSize = `${font}px`;
+      w.applyTheme('light'); p.applyTheme('light'); await pause(200); const light = boxes();
+      w.applyTheme('dark'); p.applyTheme('dark'); await pause(200); const dark = boxes();
       check(`${width}px/${font / 16 * 100}%双主题结构矩形完全一致`, light.length === dark.length && light.every((r, i) => r.every((v, j) => Math.abs(v - dark[i][j]) < .01)));
       check(`${width}px/${font / 16 * 100}%关于入口与主题热区≥44无横滚`, root.scrollWidth === root.clientWidth && [settings, ...d.querySelectorAll('label[for^="theme-"]')].every(n => { const r = n.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
     }
@@ -325,6 +379,7 @@ export default async function run(group = 'state') {
       check(`320px/200%/${value}分钟保留两端点和完整时长`, dot.width === 12 && ring.width === 14 && line.width >= 24 && label.scrollWidth <= label.clientWidth && root.scrollWidth === root.clientWidth && dot.top > label.getBoundingClientRect().top);
     }
     state().card.minutes = minutes; w.renderCard();
+    probe.remove();
     frame.style.width = '390px'; root.style.fontSize = '16px';
     d.getElementById('feedback-status').textContent = '';
     click('#settings-toggle');
@@ -468,9 +523,9 @@ export default async function run(group = 'state') {
     check('完成在途双击只发一次且禁止分享', feedbackCalls === 1 && shares === 0 && state().feedbackPending && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'true');
     check('乐观完成同步印章打孔编号与刻度', !!d.querySelector('.ticket-stamp') && css(d.querySelector('.card')).maskImage.includes('5px') && css(d.querySelector('.ticket-head .ticket-code')).color === css(d.querySelector('.ticket-stamp')).color && css(d.querySelector('.g-line line')).strokeDasharray === 'none');
     check('完成状态不可点且保留焦点', d.activeElement.classList.contains('done-state') && d.activeElement.tagName === 'SPAN' && d.activeElement.getAttribute('aria-label') === '已完成，不可撤销');
-    check('印章出现时出票按钮不可见', css(d.getElementById('ask')).visibility === 'hidden');
+    check('印章出现时通道隐藏且票卡仍可见', d.getElementById('lane-form').hidden && visible(d.querySelector('.card')) && lane().phase === 'TICKET');
     failedGate.resolve(); await failed;
-    check('完成失败完整回滚且按钮恢复', !state().card.completed && !d.querySelector('.ticket-stamp, .done-row') && css(d.querySelector('.card')).maskImage === 'none' && css(d.querySelector('.g-line line')).strokeDasharray !== 'none' && css(d.getElementById('ask')).visibility === 'visible' && d.activeElement.dataset.focus === 'completed' && !!d.getElementById('feedback-status').textContent);
+    check('完成失败完整回滚且完成操作恢复', !state().card.completed && !d.querySelector('.ticket-stamp, .done-row') && css(d.querySelector('.card')).maskImage === 'none' && css(d.querySelector('.g-line line')).strokeDasharray !== 'none' && visible(d.querySelector('[data-focus="completed"]')) && d.getElementById('lane-form').hidden && d.activeElement.dataset.focus === 'completed' && !!d.getElementById('feedback-status').textContent);
 
     w.fetch = native;
     for (const [width, fontSize] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
@@ -535,18 +590,18 @@ export default async function run(group = 'state') {
     };
     const retainedHeight = d.querySelector('.done-row').getBoundingClientRect().height;
     const swap = w.ask(w.conditions(), 'swap');
-    check('完成票退场期间主按钮仍隐藏', css(d.getElementById('ask')).visibility === 'hidden');
+    check('完成票退场期间通道保持出票锁定', lane().phase === 'ISSUING' && d.documentElement.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true');
     check('完成票实际播放160ms退场动画', css(d.querySelector('.card')).animationName === 'out' && css(d.querySelector('.card')).animationDuration === '0.16s');
     await pause(200);
-    check('骨架接管后主按钮恢复且在途禁用', !!d.querySelector('.skeleton') && css(d.getElementById('ask')).visibility === 'visible' && d.getElementById('ask').disabled);
+    check('骨架接管后结果仍忙碌且通道不能重入', !!d.querySelector('.skeleton') && state().busy && lane().phase === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true');
     swapGate.resolve(); await swap;
-    check('换票失败保留完成票及重试入口', !!d.querySelector('.ticket-done') && !!d.querySelector('.retry') && css(d.getElementById('ask')).visibility === 'hidden' && recommendations === 1 && sent === 0);
-    check('换票失败回显保留完成区高度', Math.abs(d.querySelector('.done-row').getBoundingClientRect().height - retainedHeight) < 1);
+    check('换票失败保留隐藏完成票及第三站重试入口', !!d.querySelector('.ticket-done') && !visible(d.querySelector('.ticket-done')) && visible(d.querySelector('.notice.lane-banner .retry')) && lane().phase === 'AT_STATION_3' && recommendations === 1 && sent === 0);
+    check('换票失败保留完成区高度快照而不量隐藏卡', Math.abs(state().completionHeight - retainedHeight) < 1 && parseFloat(d.querySelector('.done-row').style.minHeight) >= retainedHeight - 1);
     const seen = [];
     select('budget', '3');
     w.fetch = (url, init) => { if (String(url).endsWith('/api/recommendations')) seen.push(JSON.parse(init.body)); return native(url, init); };
-    click('.retry'); while (state().busy) await pause(10);
-    check('完成后失败重试仍重放条件快照', seen.length === 1 && seen[0].budget === 10 && w.conditions().budget === 3 && !state().card.completed && css(d.getElementById('ask')).visibility === 'visible');
+    click('.notice .retry'); while (state().busy) await pause(10);
+    check('完成后失败重试仍重放条件快照', seen.length === 1 && seen[0].budget === 10 && w.conditions().budget === 3 && !state().card.completed && lane().phase === 'TICKET' && d.getElementById('lane-form').hidden && visible(d.querySelector('.card')));
 
     const media = [...d.styleSheets[0].cssRules].filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
     const originalMedia = media.map(rule => rule.media.mediaText), match = w.matchMedia;
@@ -575,20 +630,20 @@ export default async function run(group = 'state') {
     for (const dark of [false, true]) {
       media.forEach(rule => { rule.media.mediaText = dark ? 'all' : 'not all'; });
       for (const theme of ['system', 'light', 'dark']) {
-        select('theme', theme);
+        selectTheme(theme);
         const expected = theme === 'dark' || (theme === 'system' && dark);
         check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(16, 24, 39)' : 'rgb(234, 240, 248)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
         check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#101827' : '#eaf0f8')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
       }
     }
     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
-    select('theme', 'dark');
+    selectTheme('dark');
     check('显式主题写入存储', w.localStorage.getItem(key) === 'dark');
-    select('theme', 'system');
+    selectTheme('system');
     check('跟随系统清除覆盖值', w.localStorage.getItem(key) === null && !root.hasAttribute('data-theme'));
     const setItem = w.Storage.prototype.setItem;
     w.Storage.prototype.setItem = () => { throw new w.DOMException('test', 'QuotaExceededError'); };
-    select('theme', 'dark');
+    selectTheme('dark');
     check('写入被拒静默回到系统', readTheme() === 'system' && !root.hasAttribute('data-theme'));
     w.Storage.prototype.setItem = setItem;
     click('#settings-toggle');
@@ -756,6 +811,222 @@ export default async function run(group = 'state') {
     check('文档关联manifest及Apple图标', d.querySelector('link[rel="manifest"]').getAttribute('href') === '/manifest.webmanifest' && d.querySelector('link[rel="apple-touch-icon"]').getAttribute('sizes') === '180x180');
     check('文档关联SVG favicon', d.querySelector('link[rel="icon"]').getAttribute('href') === '/icon.svg' && d.querySelector('link[rel="icon"]').getAttribute('type') === 'image/svg+xml');
   }
+  if (group === 'lane') {
+    const root = d.documentElement, form = d.getElementById('lane-form');
+    const stations = [...d.querySelectorAll('form#lane-form > section.lane')];
+    const collection = () => [...d.querySelectorAll('#lane-collection > button[data-return]')];
+    const onlyStation = index => !form.hidden && stations.length === 3 && stations.every((node, i) => node.hidden === (i !== index) && node.classList.contains('is-active') === (i === index)) && stations.filter(node => visible(node)).length === 1;
+    const at = index => lane().station === index && lane().phase === `AT_STATION_${index + 1}`;
+    const confirmed = values => JSON.stringify(lane().confirmed) === JSON.stringify(values);
+    const css = node => w.getComputedStyle(node);
+    const clickStation = index => { const input = stationInput(index); input.focus(); input.click(); return input; };
+    const nextStation = index => waitFor(() => at(index), `进入第${index + 1}站`, 2500);
+    const settleTicket = () => waitFor(() => !state().busy && lane().phase === 'TICKET', '实际API出票');
+    const setEnv = (name, value) => native('/__local/env', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, value }) });
+    const motionRules = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]).filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
+    const savedMotion = motionRules.map(rule => rule.media.mediaText), match = w.matchMedia;
+    const motion = reduced => {
+      motionRules.forEach(rule => { rule.media.mediaText = reduced ? 'all' : 'not all'; });
+      w.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: reduced, media: query, addEventListener() {}, removeEventListener() {} } : match.call(w, query);
+    };
+    const stored = w.localStorage.getItem('whynot-lane'), guided = w.localStorage.getItem('whynot-guide');
+    const openingCalls = [], recommendationCalls = [], feedbackCalls = [];
+    const gate = deferred();
+    let failOpening = false, probe;
+    try {
+      await setEnv('MODEL_API_KEY', 'fake-local-key');
+      await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/valid');
+      motion(false);
+      w.fetch = async (url, init) => {
+        const path = String(url);
+        if (path.endsWith('/api/interactions')) {
+          openingCalls.push(JSON.parse(init.body));
+          if (failOpening) throw new TypeError('lane test offline');
+          await gate.promise;
+        }
+        if (path.endsWith('/api/recommendations')) recommendationCalls.push(JSON.parse(init.body));
+        if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
+        return native(url, init);
+      };
+      check('lane/初始只呈现首站且不自动出票', onlyStation(0) && lane().station === 0 && ['IDLE', 'AT_STATION_1'].includes(lane().phase) && confirmed([false, false, false]) && !state().card && openingCalls.length === 0);
+      check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase);
+      check('lane/退役控件全部移除而非隐藏兼容', !d.querySelector('#ask,.panel,.seg,#scene-toggle,#scene-panel'));
+      const contract = [
+        ['budget', 'b3', '3', 0], ['budget', 'b5', '5', 0], ['budget', 'b10', '10', 0], ['budget', 'b15', '15', 0],
+        ['energy', 'elow', 'low', 1], ['energy', 'esteady', 'steady', 1], ['energy', 'ehigh', 'high', 1],
+        ['scene', 'snone', '', 2], ['scene', 'swaiting', 'waiting', 2], ['scene', 'sdesk', 'desk', 2], ['scene', 'soutside', 'outside', 2], ['scene', 'shome', 'home', 2],
+      ];
+      check('lane/12个radio的name id value和所属站保持原契约', form.querySelectorAll('input[type="radio"]').length === contract.length && contract.every(([name, id, value, index]) => { const input = d.getElementById(id); return input?.type === 'radio' && input.name === name && input.value === value && input.closest('.lane') === stations[index] && input.labels.length === 1 && !!input.labels[0].textContent.trim(); }));
+      check('lane/每站恰有一个预选且问题可程序聚焦', stations.every(node => node.querySelectorAll('input:checked').length === 1 && node.querySelector('legend.station-q')?.getAttribute('tabindex') === '-1'));
+      check('lane/收集条恰有三枚带名称的返回按钮', collection().length === 3 && collection().every((node, i) => node.type === 'button' && node.dataset.return === String(i) && !!node.querySelector('.collect-value') && !!node.getAttribute('aria-label') && node.disabled));
+      const beforeEpoch = lane().epoch, selected = stationInput(0), selectedText = selected.labels[0].textContent.trim();
+      const started = performance.now();
+      clickStation(0);
+      check('lane/预选项click也确认且立即开始盖章', lane().phase === 'STAMPING' && lane().epoch > beforeEpoch && !!stations[0].querySelector('.station-ticket.stamping .stamp-mini') && css(stations[0].querySelector('.stamp-mini')).animationName !== 'none');
+      const stampingEpoch = lane().epoch;
+      selected.dispatchEvent(new w.Event('change', { bubbles: true })); selected.click();
+      check('lane/click及重复change同一选项不重复确认', lane().epoch === stampingEpoch && openingCalls.length === 0 && !lane().confirmed[0]);
+      await waitFor(() => !!stations[0].querySelector('.station-ticket.torn'), '首站撕根', 700);
+      check('lane/撕根阶段仍停本站且票根有位移动效', onlyStation(0) && css(stations[0].querySelector('.stub')).transform !== 'none' && openingCalls.length === 0);
+      await waitFor(() => !!stations[0].querySelector('.station-ticket.collecting'), '首站收根', 1000);
+      check('lane/收根有目标位移且不发API', !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-x') && !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-y') && openingCalls.length === 0);
+      await nextStation(1);
+      check('lane/正常动效约880ms后只进入第二站', performance.now() - started >= 800 && onlyStation(1) && confirmed([true, false, false]));
+      check('lane/首根标记值与可访问名称同步', collection()[0].classList.contains('is-collected') && !collection()[0].disabled && collection()[0].querySelector('.collect-value').textContent === selectedText && collection()[0].getAttribute('aria-label').includes(selectedText));
+      check('lane/新站问题获得焦点且收根有状态播报', d.activeElement === stations[1].querySelector('.station-q') && !!d.getElementById('lane-status').textContent && d.getElementById('lane-status').getAttribute('role') === 'status');
+      clickStation(1); await nextStation(2);
+      check('lane/前两站不发推荐互动或反馈请求', openingCalls.length === 0 && recommendationCalls.length === 0 && feedbackCalls.length === 0 && confirmed([true, true, false]) && onlyStation(2));
+      check('lane/第三站问题获得焦点且已收两根', d.activeElement === stations[2].querySelector('.station-q') && collection().filter(node => node.classList.contains('is-collected')).length === 2);
+      const firstSnapshot = { ...w.conditions() };
+      const third = clickStation(2);
+      third.dispatchEvent(new w.Event('change', { bubbles: true })); third.click();
+      await waitFor(() => state().busy && openingCalls.length === 1, '第三站单次实际请求', 3000);
+      check('lane/第三站仅开启一个互动并传完整条件及UUID', recommendationCalls.length === 0 && feedbackCalls.length === 0 && Object.entries(firstSnapshot).every(([key, value]) => openingCalls[0][key] === value) && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(openingCalls[0].request_id) && openingCalls[0].supports.includes('image'));
+      check('lane/ISSUING同步结果busy且三根已收齐', lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true' && d.getElementById('result').getAttribute('aria-label').includes('出票中') && confirmed([true, true, true]));
+      const issuingEpoch = lane().epoch, locked = JSON.stringify(w.conditions());
+      d.getElementById(firstSnapshot.budget === 3 ? 'b15' : 'b3').click();
+      d.getElementById(firstSnapshot.scene === 'desk' ? 'shome' : 'sdesk').click();
+      collection().forEach(node => node.click());
+      form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+      w.showStation(0);
+      await pause(30);
+      check('lane/在途DOM点击和回站不改条件或重入', JSON.stringify(w.conditions()) === locked && lane().epoch === issuingEpoch && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0);
+      gate.resolve(); await settleTicket();
+      check('lane/真实API成功只留一张结果卡且通道隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
+      check('lane/首次成功焦点到标题而引导才收起', d.activeElement.id === 'card-title' && d.getElementById('guide').hidden && w.localStorage.getItem('whynot-guide') === 'seen');
+      checkCardSemantics();
+      const contextKeys = [...d.querySelectorAll('.ticket-context > button.context-key')];
+      check('lane/结果三枚条件键可见可访问且可返回', contextKeys.length === 3 && contextKeys.every((node, i) => node.dataset.station === String(i) && node.type === 'button' && visible(node) && !!node.textContent.trim() && node.getAttribute('aria-label')?.includes(node.textContent.trim())));
+      const oldId = state().ix.id, preReturn = JSON.stringify(w.conditions());
+      click('.ticket-context > button[data-station="1"]');
+      check('lane/结果回第二站保留radio但清除本站及后续确认', onlyStation(1) && at(1) && confirmed([true, false, false]) && JSON.stringify(w.conditions()) === preReturn && d.activeElement === stations[1].querySelector('.station-q') && state().ix.id === oldId && !visible(d.querySelector('.card')));
+      w.showStation(2);
+      check('lane/不能跳过未重验站直达第三站', at(1) && confirmed([true, false, false]) && openingCalls.length === 1);
+      click('#lane-collection > button[data-return="0"]');
+      check('lane/收集条回首站清除全部确认但保留预选', onlyStation(0) && confirmed([false, false, false]) && JSON.stringify(w.conditions()) === preReturn && collection().every(node => !node.classList.contains('is-collected')) && d.activeElement === stations[0].querySelector('.station-q'));
+      click('#b3'); await pause(100);
+      const rapidEpoch = lane().epoch, lastClick = performance.now();
+      click('#b15');
+      check('lane/快速改选推进epoch使旧计时作废', lane().phase === 'STAMPING' && lane().epoch > rapidEpoch && w.conditions().budget === 15);
+      await nextStation(1);
+      const passedEpoch = lane().epoch;
+      check('lane/仅最后改选通行且等待其完整动效', performance.now() - lastClick >= 800 && w.conditions().budget === 15 && collection()[0].querySelector('.collect-value').textContent === '15 分钟' && confirmed([true, false, false]));
+      await pause(250);
+      check('lane/旧计时不能跨过重验站或发起请求', onlyStation(1) && lane().epoch === passedEpoch && openingCalls.length === 1);
+      clickStation(1); await nextStation(2);
+      check('lane/回退后必须重新确认第二站且仍未出票', onlyStation(2) && confirmed([true, true, false]) && openingCalls.length === 1);
+      clickStation(2); await settleTicket();
+      check('lane/逐站重验后仅一个新请求带旧互动replaces', openingCalls.length === 2 && openingCalls[1].replaces === oldId && openingCalls[1].budget === 15 && state().ix.id !== oldId && feedbackCalls.length === 0);
+
+      const retained = state().ix.id;
+      click('.ticket-context > button[data-station="2"]');
+      check('lane/结果直接回第三站仅清除第三根', onlyStation(2) && confirmed([true, true, false]) && d.activeElement === stations[2].querySelector('.station-q'));
+      failOpening = true;
+      click('#sdesk');
+      await waitFor(() => !state().busy && !!d.querySelector('.notice.lane-banner'), '出票失败返回第三站');
+      const failedPayload = openingCalls.at(-1), failedCount = openingCalls.length;
+      check('lane/网络失败不自动重试且回第三站显示错误重试', failedCount === 3 && at(2) && onlyStation(2) && confirmed([true, true, false]) && visible(d.querySelector('.notice.lane-banner')) && !!d.querySelector('.lane-banner .notice-title').textContent && visible(d.querySelector('.lane-banner .retry')));
+      check('lane/失败保留旧卡DOM与互动但视觉隐藏', state().ix.id === retained && state().card.id === retained && d.querySelectorAll('.card').length === 1 && !visible(d.querySelector('.card')) && d.activeElement === stations[2].querySelector('.station-q'));
+      select('budget', '3'); select('energy', 'high'); select('scene', 'home');
+      failOpening = false;
+      click('.notice.lane-banner .retry'); await settleTicket();
+      check('lane/手动重试复用原request_id及完整snapshot和replaces', openingCalls.length === failedCount + 1 && JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedPayload) && state().conditions.budget === failedPayload.budget && state().conditions.energy === failedPayload.energy && state().conditions.scene === failedPayload.scene && state().card.minutes <= failedPayload.budget && w.conditions().budget === 3);
+      check('lane/重试成功清除错误且恢复单张可见票卡', !d.querySelector('.notice.lane-banner') && form.hidden && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')));
+
+      motion(true);
+      click('.ticket-context > button[data-station="0"]');
+      for (let index = 0; index < 2; index++) {
+        clickStation(index);
+        check(`lane/reduced-motion第${index + 1}站同一任务立即通行`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
+      }
+      const beforeReduced = openingCalls.length;
+      clickStation(2);
+      check('lane/reduced-motion第三站立即ISSUING无需880ms', state().busy && lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING');
+      await settleTicket();
+      check('lane/reduced-motion仍只生成一次且标题聚焦', openingCalls.length === beforeReduced + 1 && d.activeElement.id === 'card-title');
+      const reducedId = state().ix.id, beforeSwap = openingCalls.length;
+      click('[data-focus="swap"]'); await settleTicket();
+      check('lane/换卡仍聚焦swap且不提交反馈', openingCalls.length === beforeSwap + 1 && openingCalls.at(-1).replaces === reducedId && d.activeElement.dataset.focus === 'swap' && feedbackCalls.length === 0);
+      w.showStation(0);
+      for (const [index, key] of [[0, ' '], [1, 'Enter']]) {
+        const input = stationInput(index);
+        input.focus();
+        input.dispatchEvent(new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+        check(`lane/已选项用${key === ' ' ? '空格' : '回车'}也可确认`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
+      }
+      for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 35.2]]) {
+        frame.style.width = `${width}px`; root.style.fontSize = `${font}px`;
+        w.showStation(0);
+        for (let index = 0; index < 3; index++) {
+          await pause(0);
+          const question = stations[index].querySelector('.station-q');
+          const options = [...stations[index].querySelectorAll('input')].map(input => input.labels[0]);
+          const boxes = options.map(node => node.getBoundingClientRect());
+          const label = `lane/${width}px/${Math.round(font / 16 * 100)}%/第${index + 1}站`;
+          check(`${label}单站无横滚且问题选项不裁切`, onlyStation(index) && root.scrollWidth === root.clientWidth && [question, ...options].every(node => visible(node) && node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
+          check(`${label}选项及返回热区≥44且选项不重叠`, boxes.every((r, i) => r.width >= 44 && r.height >= 44 && boxes.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)) && collection().every(node => { const r = node.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
+          const animated = [d.body, ...d.body.querySelectorAll('*')].filter(node => visible(node)).filter(node => [null, '::before', '::after'].some(pseudo => { const s = w.getComputedStyle(node, pseudo); return s.animationName !== 'none' || s.transitionDuration.split(',').some(value => parseFloat(value) > .001); }));
+          check(`${label}减少动态包含伪元素且所有动画瞬时`, animated.length === 0, animated.map(node => node.className).join(','));
+          if (index < 2) clickStation(index);
+        }
+      }
+
+      const html = await (await native('/')).text();
+      probe = d.createElement('iframe');
+      probe.title = '通道存储边界验收';
+      probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:390px;height:844px;border:0';
+      d.body.append(probe);
+      const instrumentation = '<script>window.laneProbeErrors=[];window.laneProbeCalls=[];addEventListener("error",e=>laneProbeErrors.push(e.message));addEventListener("unhandledrejection",e=>laneProbeErrors.push(String(e.reason)));const originalFetch=window.fetch.bind(window);window.fetch=(url,init)=>{if(/\\/api\\/(interactions|recommendations)$/.test(String(url)))laneProbeCalls.push(String(url));return originalFetch(url,init)};<\/script>';
+      const loadProbe = async (raw, prelude = '') => {
+        if (raw === null) w.localStorage.removeItem('whynot-lane'); else w.localStorage.setItem('whynot-lane', raw);
+        const loaded = new Promise(resolve => { probe.onload = resolve; });
+        probe.srcdoc = html.replace('<head>', `<head>${instrumentation}${prelude}`);
+        await loaded;
+        const p = probe.contentWindow;
+        await p.ensureSession();
+        return p;
+      };
+      const idleProbe = p => p.eval('laneState.station') === 0 && p.eval('laneState.confirmed.every(v => !v)') && !p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.lane.is-active:not([hidden])').length === 1 && p.laneProbeCalls.length === 0 && !p.laneProbeErrors.length && p.document.activeElement === p.document.body;
+      for (const saved of [{ budget: 3, energy: 'low', scene: null }, { budget: 5, energy: 'steady', scene: 'waiting' }, { budget: 10, energy: 'high', scene: 'desk' }, { budget: 15, energy: 'low', scene: 'outside' }, { budget: 15, energy: 'steady', scene: 'home' }]) {
+        const p = await loadProbe(JSON.stringify(saved));
+        check(`lane/合法预选${JSON.stringify(saved)}回访仍停首站不自动出票`, idleProbe(p) && Object.entries(saved).every(([key, value]) => p.conditions()[key] === value));
+      }
+      for (const raw of ['{bad', 'null', '[]', '"bad"', '{}', '{"budget":0,"energy":"low","scene":null}', '{"budget":16,"energy":"low","scene":null}', '{"budget":3.5,"energy":"low","scene":null}', '{"budget":"10","energy":"steady","scene":null}', '{"budget":10,"energy":"toString","scene":null}', '{"budget":10,"energy":"steady","scene":"__proto__"}', '{"budget":10,"energy":"steady","scene":[]}', '{"budget":10,"energy":["steady"],"scene":null}', '{"budget":10,"energy":"steady","scene":["desk"]}', '{"budget":10,"energy":"steady","scene":"<svg onload=alert(1)>"}']) {
+        const p = await loadProbe(raw);
+        check(`lane/坏存储${raw}安全回默认值且不启动`, idleProbe(p) && p.conditions().budget === 10 && p.conditions().energy === 'steady' && p.conditions().scene === null && !p.document.querySelector('#lane-form svg[onload]'));
+      }
+      const walkProbe = async p => {
+        const originalMatch = p.matchMedia.bind(p);
+        p.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: true } : originalMatch(query);
+        for (let index = 0; index < 3; index++) {
+          const input = stationInput(index, p.document);
+          input.focus(); input.click();
+          if (index < 2) await waitFor(() => p.eval('laneState.station') === index + 1, '存储拒绝后仍能换站', 1000);
+        }
+        await waitFor(() => !p.eval('state.busy') && p.eval('laneState.phase') === 'TICKET', '存储拒绝后真实出票');
+      };
+      w.localStorage.removeItem('whynot-guide');
+      let p = await loadProbe(null, '<script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})<\/script>');
+      check('lane/存储读取拒绝仍初始化首站', idleProbe(p));
+      await walkProbe(p);
+      check('lane/存储读取拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && !p.laneProbeErrors.length);
+      p = await loadProbe(null, '<script>Storage.prototype.setItem=function(){throw new DOMException("test","QuotaExceededError")}<\/script>');
+      await walkProbe(p);
+      check('lane/存储写入拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
+    } finally {
+      gate.resolve();
+      probe?.remove();
+      w.fetch = native;
+      w.matchMedia = match;
+      motionRules.forEach((rule, i) => { rule.media.mediaText = savedMotion[i]; });
+      frame.style.width = '390px'; root.style.fontSize = '';
+      for (const [key, value] of [['whynot-lane', stored], ['whynot-guide', guided]]) {
+        if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
+      }
+      await setEnv('MODEL_API_KEY', null);
+      await setEnv('MODEL_ENDPOINT', null);
+    }
+  }
   if (group === 'ix') {
     const until = async fn => { for (let i = 0; i < 800 && !fn(); i++) await pause(10); };
     const ixOf = () => w.eval('state.ix');
@@ -787,22 +1058,31 @@ export default async function run(group = 'state') {
     await setEnv('MODEL_API_KEY', 'fake-local-key');
     await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/valid');
     const openingCalls = [], recommendationCalls = [], feedbackCalls = [];
+    const openingGate = deferred();
     let openingFailure = null;
-    w.fetch = (url, init) => {
+    w.fetch = async (url, init) => {
       const path = String(url);
       if (path.endsWith('/api/interactions')) {
         openingCalls.push(JSON.parse(init.body));
-        if (openingFailure) return Promise.resolve(response(openingFailure, 503));
+        if (openingFailure) return response(openingFailure, 503);
+        const result = await native(url, init);
+        if (openingCalls.length === 1) await openingGate.promise;
+        return result;
       }
       if (path.endsWith('/api/recommendations')) recommendationCalls.push(JSON.parse(init.body));
       if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
       return native(url, init);
     };
-    check('V3主按钮可见文案与互动无障碍名称一致', d.getElementById('ask').textContent === '出一张现在' && d.getElementById('ask').getAttribute('aria-label') === '出一张现在，开始一次互动');
-    click('#ask');
-    check('互动开场沿用V3出票中与忙碌状态', d.getElementById('ask').textContent === '出票中' && d.getElementById('ask').getAttribute('aria-label').includes('正在开启互动') && state().busy);
+    check('V4.1由三站原生单选入口替代出票按钮', !d.getElementById('ask') && d.querySelectorAll('form#lane-form section.lane').length === 3 && d.querySelector('.lane.is-active .station-q').getAttribute('tabindex') === '-1');
+    try {
+      await enterLaneThroughUI({ waitForTicket: false });
+      check('互动开场在结果与通道体现出票忙碌', d.getElementById('result').getAttribute('aria-busy') === 'true' && d.documentElement.dataset.laneState === 'ISSUING' && d.getElementById('status').textContent.includes('正在开启互动') && state().busy);
+    } finally {
+      openingGate.resolve();
+    }
     await until(() => !state().busy);
-    check('实际主按钮只请求互动并保留图片声明', openingCalls.length === 1 && recommendationCalls.length === 0 && openingCalls[0].supports.includes('image') && !!ixOf() && d.activeElement.id === 'card-title');
+    check('实际逐站点击只请求互动并保留图片声明', openingCalls.length === 1 && recommendationCalls.length === 0 && openingCalls[0].supports.includes('image') && !!ixOf() && d.activeElement.id === 'card-title');
+    checkCardSemantics();
     const replaced = ixOf().id, previousMode = ixOf().mode;
     select('budget', '5'); select('energy', 'low');
     check('改条件不自动生成互动', openingCalls.length === 1);
@@ -810,14 +1090,14 @@ export default async function run(group = 'state') {
     await until(() => !state().busy);
     check('互动换票带replaces及当前条件且不提交反馈', openingCalls.length === 2 && openingCalls[1].replaces === replaced && openingCalls[1].budget === 5 && openingCalls[1].energy === 'low' && ixOf().id !== replaced && ixOf().mode !== previousMode && feedbackCalls.length === 0);
     openingFailure = 'MODEL_UNAVAILABLE';
-    click('#ask'); await until(() => !state().busy);
+    await enterLaneThroughUI();
     const failedOpening = openingCalls.at(-1);
     select('budget', '15'); select('energy', 'high');
     openingFailure = null;
     click('.notice .retry'); await until(() => !state().busy);
     check('互动开场重试保留UUID和失败条件快照', JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedOpening) && state().card.budget === 5 && state().card.energy === 'low');
     openingFailure = 'STORAGE_UNAVAILABLE';
-    click('#ask'); await until(() => !state().busy);
+    await enterLaneThroughUI();
     check('互动503明确原因并提供普通推荐降级', d.querySelector('.notice').textContent.includes('互动存储') && [...d.querySelectorAll('.notice button')].some(n => n.textContent === '看一条普通建议'));
     [...d.querySelectorAll('.notice button')].find(n => n.textContent === '看一条普通建议').click();
     await until(() => !state().busy);

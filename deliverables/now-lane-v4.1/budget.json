@@ -1,0 +1,109 @@
+{
+  "measuredAt": "2026-11-20T14:33:03.215Z",
+  "node": "v24.22.1",
+  "zlib": "1.3.2.1-motley-285e94b",
+  "method": "Each of all 8 web files gzip-compressed independently at level 9; sum gzip lengths. Source files, no minification experiment substituted.",
+  "limitBytes": 24576,
+  "passed": false,
+  "exceedsBytes": 8705,
+  "before": {
+    "files": [
+      {
+        "file": "app.js",
+        "rawBytes": 65955,
+        "gzip9Bytes": 17645
+      },
+      {
+        "file": "apple-touch-icon.png",
+        "rawBytes": 510,
+        "gzip9Bytes": 531
+      },
+      {
+        "file": "icon-192.png",
+        "rawBytes": 634,
+        "gzip9Bytes": 657
+      },
+      {
+        "file": "icon-512.png",
+        "rawBytes": 1594,
+        "gzip9Bytes": 1478
+      },
+      {
+        "file": "icon.svg",
+        "rawBytes": 288,
+        "gzip9Bytes": 215
+      },
+      {
+        "file": "index.html",
+        "rawBytes": 8283,
+        "gzip9Bytes": 3042
+      },
+      {
+        "file": "manifest.webmanifest",
+        "rawBytes": 419,
+        "gzip9Bytes": 225
+      },
+      {
+        "file": "style.css",
+        "rawBytes": 29889,
+        "gzip9Bytes": 5974
+      }
+    ],
+    "total": {
+      "rawBytes": 107572,
+      "gzip9Bytes": 29767
+    }
+  },
+  "after": {
+    "files": [
+      {
+        "file": "app.js",
+        "rawBytes": 71558,
+        "gzip9Bytes": 19183
+      },
+      {
+        "file": "apple-touch-icon.png",
+        "rawBytes": 510,
+        "gzip9Bytes": 531
+      },
+      {
+        "file": "icon-192.png",
+        "rawBytes": 634,
+        "gzip9Bytes": 657
+      },
+      {
+        "file": "icon-512.png",
+        "rawBytes": 1594,
+        "gzip9Bytes": 1478
+      },
+      {
+        "file": "icon.svg",
+        "rawBytes": 288,
+        "gzip9Bytes": 215
+      },
+      {
+        "file": "index.html",
+        "rawBytes": 10104,
+        "gzip9Bytes": 3305
+      },
+      {
+        "file": "manifest.webmanifest",
+        "rawBytes": 419,
+        "gzip9Bytes": 225
+      },
+      {
+        "file": "style.css",
+        "rawBytes": 37091,
+        "gzip9Bytes": 7687
+      }
+    ],
+    "total": {
+      "rawBytes": 122198,
+      "gzip9Bytes": 33281
+    }
+  },
+  "delta": {
+    "rawBytes": 14626,
+    "gzip9Bytes": 3514
+  }
+}

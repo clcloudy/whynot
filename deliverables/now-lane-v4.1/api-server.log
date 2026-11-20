@@ -1,0 +1,2 @@
+In-memory fixture; no --local; no external database; initial model credential absent.
+Ready: http://127.0.0.1:8876; owned PID=35416

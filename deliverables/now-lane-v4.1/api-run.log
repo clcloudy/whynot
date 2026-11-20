@@ -1,0 +1,26 @@
+Started: 2026-11-20T14:17:44.373Z
+Node: v24.22.1
+Fake model signature verified; baseline counts {"valid":15535,"schema-bad":55,"not-json":36,"http500":44,"http401":22,"slow":66,"capture":72,"ambiguous":16,"memory-candidate":143,"hold":11}
+PORT DEVIATION: 8875 already belongs to another process; it is untouched. Using isolated 8876.
+Owned empty-memory fixture ready: http://127.0.0.1:8876; PID=35416
+Starting base
+Result {"name":"base","passed":42,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":695}
+Starting model
+Result {"name":"model","passed":11,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":14287}
+Starting interactions
+Result {"name":"interactions","passed":112,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":20144}
+Starting photos
+Result {"name":"photos","passed":46,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":19309}
+Starting memories
+Result {"name":"memories","passed":63,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":3440}
+Starting local
+Result {"name":"local","passed":54,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":5898}
+Stopping only owned fixture PID=35416 on port 8876
+Owned fixture exited; port 8876 free=true
+Acceptance files unchanged=true
+Finished: 2026-11-20T14:18:49.557Z; suites completed=6
+Final verification: existing listener PIDs unchanged: 8765=19384, 8766=40876, 8787=33876, 8865=43528, 8875=28412. No listener on owned port 8876.
+All 6 suites completed: 328 passed, 0 failed. No shared fake-model count/configuration false failures observed. Local suite did not change fake-model counters.
+The local suite completed its finally cleanup of owned child processes, mock server, and temporary data. Temporary api-runner.mjs removed.
+Log scan found no fixture credentials, authorization values, session token fields, or raw text/reply fields.
+No production code or existing acceptance tests were modified by this task. No deployed or real-vision suite was run.

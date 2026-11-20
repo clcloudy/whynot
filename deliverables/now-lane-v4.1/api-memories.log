@@ -1,0 +1,80 @@
+Suite: E:\whynot\dev\acceptance-memories.mjs
+Node: v24.22.1
+BASE: http://127.0.0.1:8876
+Fake counts before: {"valid":16863,"schema-bad":60,"not-json":40,"http500":48,"http401":24,"slow":72,"capture":79,"ambiguous":17,"memory-candidate":143,"hold":11}
+Payloads and raw response/error bodies are suppressed.
+候选摘要
+  ok  非法摘要不通过校验（单元）
+  ok  取得聊天开场
+  ok  模型候选附在回复上
+  ok  候选随重发复用
+  ok  明确「帮我记住」生成候选
+  ok  无值得记的内容不产生候选
+跳过与确认
+  ok  跳过候选成功
+  ok  跳过后列表为空
+  ok  重复跳过返回同一结果
+  ok  跳过后当前互动仍可继续聊
+  ok  已跳过的候选不能再确认
+  ok  并发确认只保存一次
+  ok  确认保存用户看过的文字
+  ok  重复确认返回同一结果
+  ok  同键异文字 409
+  ok  候选版本不符 409
+  ok  无会话确认 401
+  ok  跨会话确认 404
+  ok  跨会话列表为空
+  ok  候选挂在别的互动上 404
+  ok  编辑后确认保存最终文字
+  ok  非法确认输入 400
+列表、更正与删除
+  ok  列表含两条有效条目
+  ok  列表展示期限与版本
+  ok  分页生效
+  ok  非法分页 400
+  ok  更正递增版本
+  ok  旧版本更正 409
+  ok  更正重发幂等
+  ok  并发更正只有一条成功
+  ok  跨会话更正 404
+  ok  跨会话删除 404
+  ok  删除返回 204
+  ok  重复删除同样 204
+  ok  删除后列表只剩一条
+  ok  删除后重放旧确认不能重建
+  ok  删除后旧版本更正 404
+回访与冷却
+  ok  命中回访只提及确认的文字
+  ok  卡片只保存通用开场
+  ok  回访计入开场历史
+  ok  冷却期内再次开场用普通开场
+  ok  回访互动可续聊
+  ok  续聊记录记忆依赖
+  ok  更正后重新加载不再取用旧版本
+  ok  更正记忆后重放隐去旧回复正文
+  ok  删除记忆后仍可普通接话
+主动检索
+  ok  无记录时说明没有并推进版本
+  ok  主动检索返回已保存条目
+  ok  检索走普通轮次的版本与幂等约束
+审查回归：确认回滚、冷却回滚、删除与生成并发
+  ok  候选消费失败时记忆写入回滚
+  ok  确认相同请求重试成功
+  ok  回访开场失败不占用冷却
+  ok  回访失败后同一请求可重试
+  ok  模型生成中删除记忆后只提交通用回复
+  ok  并发删除后的重放没有旧记忆
+到期与清理
+  ok  到期测试起始开场包含记忆
+  ok  冷却期过后可再回访
+  ok  到期回访在查询列表前重放也隐去记忆
+  ok  空闲过期阻止续聊
+  ok  到期条目退出列表
+  ok  到期条目不可回访
+  ok  定时清理移除到期记忆和轮次正文
+  ok  候选到期不可确认
+63 passed, 0 failed
+Fake counts after: {"valid":16867,"schema-bad":60,"not-json":40,"http500":48,"http401":24,"slow":72,"capture":79,"ambiguous":17,"memory-candidate":156,"hold":12}
+Fake counts delta: {"valid":4,"schema-bad":0,"not-json":0,"http500":0,"http401":0,"slow":0,"capture":0,"ambiguous":0,"memory-candidate":13,"hold":1}
+Suppressed non-result lines: 0
+Runner result: {"name":"memories","passed":63,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":3440}

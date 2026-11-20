@@ -1,0 +1,64 @@
+Suite: E:\whynot\dev\acceptance-photos.mjs
+Node: v24.22.1
+BASE: http://127.0.0.1:8876
+Fake counts before: {"valid":16467,"schema-bad":59,"not-json":40,"http500":48,"http401":24,"slow":70,"capture":79,"ambiguous":16,"memory-candidate":143,"hold":11}
+Payloads and raw response/error bodies are suppressed.
+抽取资格门控
+  ok  无模型 Key 时不抽中看图
+  ok  客户端不支持传图时不抽中看图
+  ok  在路上不抽中看图
+  ok  资格函数排除在路上
+  ok  强制命中看图开场
+  ok  看图卡等待图片
+上传入口校验
+  ok  无会话上传 401
+  ok  文字互动不接受图片 409
+  ok  跨会话上传 404
+  ok  缺版本参数 400
+  ok  过期版本上传 409
+  ok  非图片字节 415
+  ok  截断 PNG 400
+  ok  尺寸正确但 IDAT 已坏的 PNG 400
+  ok  超大尺寸 400
+  ok  超 4MiB 413
+  ok  未传图先接话 409
+  ok  合法上传 201 返回短期引用
+识图轮次
+  ok  识图成功 201 含词与音标
+  ok  识图后进入练习状态
+  ok  识别完成后释放原图
+  ok  断线重发复用同一识图结果
+  ok  同键异引用 409
+  ok  练习轮沿用已保存的词
+  ok  识别后不再接受上传
+  ok  看图卡可反馈
+  ok  跨会话引用图片 404
+歧义与澄清
+  ok  歧义时先问用户
+  ok  歧义后仍等待图片且保留原图
+  ok  文字澄清后识图成功
+  ok  澄清成功后释放原图
+失败、过期与清理
+  ok  无效识图输出 503 保留轮次
+  ok  失败后重拍入口仍可用（同引用重试）
+  ok  引用过期 409
+  ok  没有新的图片请求时也会清理到期图像内容
+  ok  过期后可重新上传
+  ok  放弃上传的残留图片到期清理
+  ok  并发识图只有一条推进
+  ok  并发后版本只加一
+  ok  换一个排除看图方式
+  ok  识图超时 503 保留轮次
+  ok  识图有限等待（两次 7 秒超时）
+固定条件抽样（含图片能力）
+  ok  抽样全部成功
+  频率 {"chat":0.35333333333333333,"discuss":0.19666666666666666,"micro":0.205,"photo":0.245}
+  ok  四类频率接近配置权重
+  连续开场：相邻同方式 2/39，每十次覆盖 4 种
+  ok  降权使相邻重复保持低位
+  ok  每十次开场覆盖多种方式
+46 passed, 0 failed
+Fake counts after: {"valid":16863,"schema-bad":60,"not-json":40,"http500":48,"http401":24,"slow":72,"capture":79,"ambiguous":17,"memory-candidate":143,"hold":11}
+Fake counts delta: {"valid":396,"schema-bad":1,"not-json":0,"http500":0,"http401":0,"slow":2,"capture":0,"ambiguous":1,"memory-candidate":0,"hold":0}
+Suppressed non-result lines: 0
+Runner result: {"name":"photos","passed":46,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":19309}

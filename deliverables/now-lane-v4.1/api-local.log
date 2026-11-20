@@ -1,0 +1,64 @@
+Suite: E:\whynot\dev\acceptance-local.mjs
+Node: v24.22.1
+BASE: suite-owned ephemeral local server and mock
+Fake counts before: {"valid":16867,"schema-bad":60,"not-json":40,"http500":48,"http401":24,"slow":72,"capture":79,"ambiguous":17,"memory-candidate":156,"hold":12}
+Payloads and raw response/error bodies are suppressed.
+ok 本地页面提供 AI 模型设置
+ok 不暴露 /__local/db
+ok 不暴露 /__local/env
+ok 不暴露 /__local/fault
+ok 不暴露 /__local/acceptance-ui.mjs
+ok 不暴露 /.env
+ok 拒绝跨站请求
+ok 拒绝伪造 Host
+ok 拒绝跨站导航
+ok 无会话被拒绝
+ok AI 设置要求会话
+ok 创建会话
+ok 无模型配置使用内置建议
+ok 无密钥内置建议可用
+ok 完成反馈幂等
+ok 事务互动可用
+ok 无模型手动记忆候选
+ok 确认保存记忆
+ok 重复保存不重复写入
+ok 无模型自由聊天明确报错
+ok 其他会话看不到记忆
+ok 其他会话不能修改记忆
+ok 非法参数被拒绝
+ok 获取并校验服务商模型列表
+ok 获取列表不会保存设置
+ok 地址要求 HTTPS 或本机 HTTP
+ok 拒绝模型列表重定向
+ok 首次保存要求密钥
+ok 保存设置且不返回密钥
+ok 读取设置只返回非敏感字段
+ok 其他会话没有该模型设置
+ok 其他会话无法沿用已存密钥
+ok 换地址不能沿用旧密钥
+ok 同地址可以沿用密钥获取列表
+ok 同地址换模型可以保留密钥
+ok 推荐立即使用已选模型
+ok 防止两个进程同时使用同一数据库
+ok 重启后自定义模型保留并优先于启动配置
+ok 重启后原会话与记忆保留
+ok 重启后反馈保留
+ok 重启后继续对话并调用自定义模型
+ok 对话重试幂等
+ok 旧版本对话被拒绝
+ok 移除自定义模型后恢复启动配置
+ok 连续第二轮对话调用启动配置模型
+ok 编辑记忆
+ok 旧版本记忆被拒绝
+ok 移除自定义模型跨重启保留
+ok 再次启动不重跑迁移且修改保留
+ok 删除记忆
+ok 结束互动
+ok 删除结果跨重启保留
+ok 异常停止后并发重启只有一个进程取得数据库
+ok 并发启动失败不损坏已有数据
+54 passed, 0 failed (模型为本地测试桩，不代表真实 AI 验证)
+Fake counts after: {"valid":16867,"schema-bad":60,"not-json":40,"http500":48,"http401":24,"slow":72,"capture":79,"ambiguous":17,"memory-candidate":156,"hold":12}
+Fake counts delta: {"valid":0,"schema-bad":0,"not-json":0,"http500":0,"http401":0,"slow":0,"capture":0,"ambiguous":0,"memory-candidate":0,"hold":0}
+Suppressed non-result lines: 0
+Runner result: {"name":"local","passed":54,"failed":0,"exitCode":0,"aborted":false,"elapsedMs":5898}
