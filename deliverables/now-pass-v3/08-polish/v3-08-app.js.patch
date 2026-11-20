@@ -1,0 +1,26 @@
+--- a/web/app.js
++++ b/web/app.js
+@@ -378,6 +378,7 @@
+   result.setAttribute('aria-busy', String(busy));
+   askButton.disabled = busy;
+   askButton.setAttribute('aria-busy', String(busy));
++  askButton.setAttribute('aria-label', busy ? '出票中，正在找建议' : '出一张现在，给我一个建议');
+   if (busy) {
+     askButton.textContent = '出票中';
+     askButton.insertAdjacentHTML('beforeend', '<span class="ask-dots" aria-hidden="true"><i></i><i></i><i></i></span>');
+@@ -524,12 +525,12 @@
+   } catch { theme = 'system'; }
+   applyTheme(theme);
+ });
+-settingsToggle.setAttribute('aria-label', '设置，关于与主题');
+ settingsToggle.addEventListener('click', () => {
+   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
+   settingsToggle.setAttribute('aria-expanded', String(!expanded));
+-  settingsToggle.textContent = expanded ? '设置' : '收起设置';
+-  settingsToggle.setAttribute('aria-label', expanded ? '设置，关于与主题' : '收起设置，关于与主题');
++  const label = expanded ? '关于与数据' : '收起关于与数据';
++  settingsToggle.textContent = label;
++  settingsToggle.setAttribute('aria-label', `${label}，主题设置`);
+   about.hidden = expanded;
+   if (expanded) focus(settingsToggle);
+ });

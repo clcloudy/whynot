@@ -1,0 +1,44 @@
+--- a/dev/generate-icons.mjs
++++ b/dev/generate-icons.mjs
+@@ -2,24 +2,28 @@
+ import { writeFile } from 'node:fs/promises';
+ import { deflateSync } from 'node:zlib';
+ 
+-const BACKGROUND = [0x2f, 0x6d, 0x5a];
+-const FOREGROUND = [0xf8, 0xf5, 0xec];
++const BACKGROUND = [0x10, 0x18, 0x27];
++const FOREGROUND = [0xf6, 0xf2, 0xe8];
+ const LEVELS = 16;
+ const SAMPLES = 8;
+-// Preserve web/icon.svg's geometry, with 18% outer margins for install icons.
+-// The OS supplies any corner mask; the PNG background itself is fully opaque.
++// The OS supplies the corner mask; install PNGs retain an opaque background.
+ const MARK_SCALE = 0.8;
++const STROKES = [
++  [[4, 12], [4, 6], [8, 6], [10, 8], [12, 6], [16, 6], [18, 8], [20, 6], [28, 6], [28, 12]],
++  [[4, 20], [4, 26], [28, 26], [28, 20]],
++  [[11, 16], [21, 16]],
++];
++const SEGMENTS = STROKES.flatMap(points => points.slice(1).map(([x, y], i) => {
++  const [startX, startY] = points[i], dx = x - startX, dy = y - startY;
++  return [startX, startY, dx, dy, dx * dx + dy * dy];
++}));
+ 
+ function ink(x, y) {
+-  // SVG path: M20 4.8 H4.8 V27.2 H27.2 V12.8, stroke width 3.2.
+-  // Rectangles preserve its miter joins; circles supply the two round caps.
+-  return (x >= 3.2 && x <= 20 && y >= 3.2 && y <= 6.4)
+-    || (x >= 3.2 && x <= 6.4 && y >= 4.8 && y <= 28.8)
+-    || (x >= 3.2 && x <= 28.8 && y >= 25.6 && y <= 28.8)
+-    || (x >= 25.6 && x <= 28.8 && y >= 12.8 && y <= 28.8)
+-    || (x - 20) ** 2 + (y - 4.8) ** 2 <= 1.6 ** 2
+-    || (x - 27.2) ** 2 + (y - 12.8) ** 2 <= 1.6 ** 2
+-    || (x - 19.2) ** 2 + (y - 19.2) ** 2 <= 2.4 ** 2;
++  for (const [startX, startY, dx, dy, length] of SEGMENTS) {
++    const t = Math.max(0, Math.min(1, ((x - startX) * dx + (y - startY) * dy) / length));
++    if ((x - startX - t * dx) ** 2 + (y - startY - t * dy) ** 2 <= 1) return true;
++  }
++  return false;
+ }
+ 
+ function crc32(bytes) {

@@ -5,13 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>WhyNot · 此刻</title>
   <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e7">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#18211c':'#f6f1e7')}}catch{}</script>
+  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
@@ -28,9 +28,9 @@
 
   <main class="page">
     <div class="guide" id="guide">
-      <p>选一下还有多久、现在有多少力气。</p>
-      <p>点一下，就有一条现在能做的事。</p>
-      <p>不合适就换，什么都不做也行。</p>
+      <p>选好时间与精力</p>
+      <p>出一张现在能做的事</p>
+      <p>不合适就换一张</p>
     </div>
 
     <section class="panel" aria-label="此刻的条件">
@@ -75,7 +75,7 @@
       </div>
     </section>
 
-    <button id="ask" class="primary" type="button">给我一个建议</button>
+    <button id="ask" class="primary" type="button" aria-label="出一张现在，给我一个建议">出一张现在</button>
 
     <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
     <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
@@ -89,10 +89,10 @@
 
     <footer class="foot">
       <span>随时可以停下</span>
-      <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about">设置</button>
+      <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about" aria-label="关于与数据，主题设置">关于与数据</button>
     </footer>
     <section class="about" id="about" aria-labelledby="about-title" hidden>
-      <h2 id="about-title">关于与主题</h2>
+      <h2 id="about-title">关于与数据</h2>
       <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
       <fieldset>
         <legend>主题</legend>

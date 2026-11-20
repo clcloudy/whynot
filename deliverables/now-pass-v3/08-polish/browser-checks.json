@@ -1,0 +1,46 @@
+{
+  "base": "http://127.0.0.1:8878",
+  "checks": {
+    "aboutOpen": true,
+    "arrowLeftTheme": {
+      "active": "theme-light",
+      "stored": "light",
+      "theme": "light"
+    },
+    "keyboardThemeFocus": {
+      "active": "theme-dark",
+      "background": "rgb(16, 24, 39)",
+      "outline": "rgb(246, 242, 232) solid 2px"
+    },
+    "mouseRecommendation": {
+      "cardPresent": true,
+      "headingFocused": true,
+      "labelIncludesVisible": true
+    },
+    "revisitGuideHidden": true,
+    "spaceCollapse": {
+      "active": "settings-toggle",
+      "hidden": true,
+      "label": "关于与数据，主题设置"
+    }
+  },
+  "generatedAt": "2026-11-20T10:45:04.704Z",
+  "method": "Reloaded top-level page without fetch overrides; browser-use click and native Tab, ArrowLeft, Shift+Tab, Space. Enter not certified due to previously observed tool limitation.",
+  "console": {
+    "errors": 0,
+    "warnings": 0,
+    "scope": "clean top-level page after reload"
+  },
+  "network": [
+    {
+      "method": "POST",
+      "path": "/functions/v1/app/api/session",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "path": "/functions/v1/app/api/recommendations",
+      "status": 201
+    }
+  ]
+}

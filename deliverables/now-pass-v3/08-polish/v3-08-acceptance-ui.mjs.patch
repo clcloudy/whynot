@@ -1,0 +1,122 @@
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -208,6 +208,119 @@
+     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
+     check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
+     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
++  }
++  if (group === 'polish') {
++    const root = d.documentElement, css = node => w.getComputedStyle(node);
++    const html = await (await native('/')).text();
++    const beforeApp = html.replace('<script src="/app.js"></script>', '');
++    const guideValue = w.localStorage.getItem('whynot-guide'), themeValue = w.localStorage.getItem('whynot-theme');
++    const probe = d.createElement('iframe');
++    probe.hidden = true; d.body.append(probe);
++    const load = async source => {
++      const loaded = new Promise(resolve => { probe.onload = resolve; });
++      probe.srcdoc = source; await loaded; return probe.contentWindow;
++    };
++    w.localStorage.removeItem('whynot-guide'); w.localStorage.setItem('whynot-theme', 'dark');
++    let p = await load(beforeApp);
++    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '选好时间与精力/出一张现在能做的事/不合适就换一张' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgb(167, 177, 201)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
++    p = await load(html); await p.ensureSession();
++    const pFetch = p.fetch.bind(p);
++    p.fetch = (url, init) => String(url).endsWith('/api/recommendations') ? Promise.reject(new TypeError('test offline')) : pFetch(url, init);
++    await p.ask();
++    check('首次出票失败不收起引导也不写seen', !p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
++    p.fetch = pFetch;
++    const pending = p.ask();
++    check('生成中可访问名称含出票中且条件仍可编辑', p.document.getElementById('ask').getAttribute('aria-label').includes('出票中') && !p.document.querySelector('#b3').disabled);
++    await pending;
++    check('首次成功收起引导并写seen而条件常驻', p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === 'seen' && p.getComputedStyle(p.document.querySelector('.panel')).display !== 'none');
++    p = await load(beforeApp);
++    check('回访外部脚本前引导已隐藏且主题不闪回', p.getComputedStyle(p.document.getElementById('guide')).display === 'none' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
++    w.localStorage.removeItem('whynot-guide');
++    p = await load(html); await p.ensureSession();
++    p.Storage.prototype.setItem = () => { throw new p.DOMException('test', 'QuotaExceededError'); };
++    await p.ask();
++    check('存储写拒绝仍出票并在本页收起引导', !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
++    p = await load(beforeApp);
++    check('写拒绝后刷新无法持久记住但仍可见引导', p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    p = await load(html.replace('<head>', '<head><script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
++    await p.ensureSession(); await p.ask();
++    check('存储读拒绝保持系统主题并能出票收起引导', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden);
++    probe.remove();
++    for (const [key, value] of [['whynot-guide', guideValue], ['whynot-theme', themeValue]]) {
++      if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
++    }
++    const settings = d.getElementById('settings-toggle');
++    check('关于入口可见文案包含于名称', settings.textContent === '关于与数据' && settings.getAttribute('aria-label').includes(settings.textContent));
++    click('#settings-toggle');
++    check('展开关于与数据保留主题与服务端数据说明', settings.textContent === '收起关于与数据' && settings.getAttribute('aria-label').includes(settings.textContent) && !d.getElementById('about').hidden && d.getElementById('about-title').textContent === '关于与数据' && d.querySelectorAll('input[name="theme"]').length === 3 && d.getElementById('about').textContent.includes('清除浏览器数据不会删除服务端记录'));
++    click('#settings-toggle');
++    check('关闭关于焦点回入口且名称恢复', d.getElementById('about').hidden && d.activeElement === settings && settings.textContent === '关于与数据');
++    const date = new w.Date();
++    check('页眉显示本地日期且主按钮名称含可见文案', d.getElementById('masthead-date').textContent === `${date.getMonth() + 1}月${date.getDate()}日` && d.getElementById('ask').getAttribute('aria-label').includes('出一张现在'));
++    click('#settings-toggle');
++    d.getElementById('feedback-status').textContent = '记为喜欢，可以改。';
++    const rgb = color => color.match(/[\d.]+/g).map(Number);
++    const luminance = color => rgb(color).slice(0, 3).map(v => { v /= 255; return v <= .04045 ? v / 12.92 : ((v + .055) / 1.055) ** 2.4; }).reduce((v, c, i) => v + c * [.2126, .7152, .0722][i], 0);
++    const contrast = (a, b) => { const x = luminance(a), y = luminance(b); return (Math.max(x, y) + .05) / (Math.min(x, y) + .05); };
++    const background = node => {
++      while (node) { const color = css(node).backgroundColor, values = rgb(color); if (values.length === 3 || values[3] === 1) return color; node = node.parentElement; }
++      return 'rgb(255,255,255)';
++    };
++    const rules = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]);
++    const media = rules.filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
++    const savedMedia = media.map(rule => rule.media.mediaText);
++    const activeRule = rules.find(rule => rule.selectorText === '.primary:active');
++    const ask = d.getElementById('ask'), cardId = state().card.id;
++    let themeRequests = 0;
++    w.fetch = (url, init) => { themeRequests++; return native(url, init); };
++    const textSelectors = ['.masthead .brand-name', '.masthead-date', '.guide p', '.panel legend', '.scene-label', '.scene-value', '.foot', '.settings', '.about h2', '.about p', '.about legend', '.share-note', '.card h2', '.first-label', '.first-text', '.detail', '.cat', '.gauge-label', '.feedback button', '.swap', '.primary'];
++    for (const dark of [false, true]) {
++      media.forEach(rule => { rule.media.mediaText = dark ? 'all' : 'not all'; });
++      for (const theme of ['system', 'light', 'dark']) {
++        w.applyTheme(theme); await pause(200);
++        const key = `系统${dark ? '深' : '浅'}/${theme}`;
++        const contrasts = textSelectors.flatMap(selector => [...d.querySelectorAll(selector)].map(node => ({ selector, ratio: contrast(css(node).color, background(node)) })));
++        check(`${key}页外与票面普通文字对比度≥4.5`, contrasts.every(x => x.ratio >= 4.5), JSON.stringify(contrasts));
++        const shadows = [...d.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().width > 0 && css(node).boxShadow !== 'none');
++        const expectedDark = theme === 'dark' || (theme === 'system' && dark);
++        check(`${key}仅浅色票面有黑色8px投影`, expectedDark ? shadows.length === 0 : shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px');
++        activeRule.selectorText = '.primary.test-active'; ask.classList.add('test-active');
++        await pause(150);
++        check(`${key}按压态米白字对深橙≥4.5`, css(ask).color === 'rgb(246, 242, 232)' && contrast(css(ask).color, css(ask).backgroundColor) >= 4.5);
++        ask.classList.remove('test-active'); activeRule.selectorText = '.primary:active'; await pause(150);
++        check(`${key}场景主题与换票不扩散橙色`, [...d.querySelectorAll('input[name="scene"]:checked + label,input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(ask).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
++        for (const node of [settings, d.querySelector('.card h2')]) {
++          node.focus({ preventScroll: true });
++          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, background(node)) >= 3);
++        }
++        d.getElementById('theme-system').focus({ preventScroll: true });
++        const themeLabel = d.querySelector('label[for="theme-system"]');
++        check(`${key}主题单选外圈对页底≥3`, css(themeLabel).outlineStyle === 'solid' && contrast(css(themeLabel).outlineColor, css(d.body).backgroundColor) >= 3);
++      }
++    }
++    media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });
++    check('切换主题不改票据或提交请求', state().card.id === cardId && !state().busy && themeRequests === 0);
++    w.fetch = native;
++    const boxes = () => [...d.querySelectorAll('.masthead,.panel,.primary,.card,.card *,.foot,.about,.about *')].map(node => { const r = node.getBoundingClientRect(); return [r.left + w.scrollX, r.top + w.scrollY, r.width, r.height]; });
++    for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
++      frame.style.width = `${width}px`; root.style.fontSize = `${font}px`;
++      w.applyTheme('light'); await pause(200); const light = boxes();
++      w.applyTheme('dark'); await pause(200); const dark = boxes();
++      check(`${width}px/${font / 16 * 100}%双主题结构矩形完全一致`, light.length === dark.length && light.every((r, i) => r.every((v, j) => Math.abs(v - dark[i][j]) < .01)));
++      check(`${width}px/${font / 16 * 100}%关于入口与主题热区≥44无横滚`, root.scrollWidth === root.clientWidth && [settings, ...d.querySelectorAll('label[for^="theme-"]')].every(n => { const r = n.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
++    }
++    const minutes = state().card.minutes;
++    for (const value of [3, 5, 10, 15]) {
++      state().card.minutes = value; w.renderCard();
++      const dot = d.querySelector('.g-dot').getBoundingClientRect(), ring = d.querySelector('.g-ring').getBoundingClientRect(), line = d.querySelector('.g-line').getBoundingClientRect(), label = d.querySelector('.gauge-label');
++      check(`320px/200%/${value}分钟保留两端点和完整时长`, dot.width === 12 && ring.width === 14 && line.width >= 24 && label.scrollWidth <= label.clientWidth && root.scrollWidth === root.clientWidth && dot.top > label.getBoundingClientRect().top);
++    }
++    state().card.minutes = minutes; w.renderCard();
++    frame.style.width = '390px'; root.style.fontSize = '16px';
++    d.getElementById('feedback-status').textContent = '';
++    click('#settings-toggle');
++    w.applyTheme(themeValue === 'light' || themeValue === 'dark' ? themeValue : 'system');
+   }
+   if (group === 'legends') {
+     const css = node => w.getComputedStyle(node);

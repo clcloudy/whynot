@@ -1,0 +1,78 @@
+diff --git a/E:/whynot/deliverables/now-pass-v3/07-legends/source-before/app.js b/E:/whynot/deliverables/now-pass-v3/07-legends/source-after/app.js
+index 551d6b9..1afca0a 100644
+--- a/E:/whynot/deliverables/now-pass-v3/07-legends/source-before/app.js
++++ b/E:/whynot/deliverables/now-pass-v3/07-legends/source-after/app.js
+@@ -3,6 +3,17 @@ const SESSION_KEY = 'whynot-session';
+ const GUIDE_KEY = 'whynot-guide';
+ const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
+ const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
++const CATEGORY_SHAPES = {
++  rest: '<path d="M4 17 11 10M14 10C20 6 13 2 13 2S8 6 11 8"/>',
++  observe: '<path d="M11 3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>',
++  listen: '<path d="M8 3a6 6 0 0 0 0 12M12 5a6 6 0 0 1 0 12"/>',
++  tidy: '<path d="M8 3a6 6 0 0 0 0 12ZM12 5a6 6 0 0 1 0 12Z"/>',
++  explore: '<path d="M3 16 8 10l4 2M15 3h-3v6h6V6"/><circle cx="3" cy="16" r="1.5" fill="currentColor" stroke="none"/>',
++};
++const PREFERENCE_SHAPES = {
++  like: '<path d="M6 10 2 6C-1 2 4 0 6 3c2-3 7-1 4 3Z" fill="currentColor"/>',
++  dislike: '<path d="M2 1h5l3 3v7H2ZM7 1v3h3M4 7h4"/>',
++};
+ const SCENE_LABELS = { waiting: '等饭／排队', desk: '在桌前', outside: '在路上', home: '在家／宿舍' };
+ const ENERGY_LABELS = { low: '有点累', steady: '还可以', high: '精神好' };
+ const FEEDBACK_LABELS = { like: '喜欢这条建议', dislike: '不喜欢这条建议', completed: '标记为已完成' };
+@@ -199,6 +210,13 @@ function feedbackButton(label, kind) {
+   button.addEventListener('click', () => sendFeedback(kind));
+   return button;
+ }
++function preferenceMark(className = '') {
++  const mark = el('span', `preference-mark ${className}`);
++  mark.setAttribute('aria-hidden', 'true');
++  mark.dataset.preference = state.card.preference || '';
++  if (state.card.preference) mark.innerHTML = `<svg viewBox="0 0 12 12" width="12" height="12" focusable="false" aria-hidden="true">${PREFERENCE_SHAPES[state.card.preference]}</svg>`;
++  return mark;
++}
+ function completedRow() {
+   const row = el('div', 'done-row');
+   if (state.completionHeight) row.style.minHeight = `${state.completionHeight}px`;
+@@ -285,6 +303,7 @@ function buildCard() {
+   const code = `NOW-${passCode(String(card.id || ''))}`;
+   const head = el('div', 'ticket-head');
+   head.setAttribute('aria-hidden', 'true');
++  if (card.category) head.innerHTML = `<svg class="category-icon" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">${CATEGORY_SHAPES[card.category]}</svg>`;
+   head.append(el('span', 'ticket-code', `THIS PASS · ${code}`), el('span', 'ticket-valid', '有效'));
+   const body = el('div', 'ticket-body');
+   const meta = el('div', 'card-meta');
+@@ -293,7 +312,7 @@ function buildCard() {
+     cat.setAttribute('aria-label', `类别：${CATEGORY_NAMES[card.category]}`);
+     meta.append(cat);
+   }
+-  meta.append(el('span', 'condition-note'));
++  meta.append(el('span', 'condition-note'), preferenceMark('compact-feedback'));
+   const gap = card.minutes <= 3 ? 3 : card.minutes <= 5 ? 5 : card.minutes <= 10 ? 9 : 13;
+   const gauge = el('div', 'gauge');
+   gauge.setAttribute('aria-hidden', 'true');
+@@ -308,7 +327,7 @@ function buildCard() {
+   body.append(meta, title, gauge, first, el('p', 'detail', card.detail));
+   const stub = el('div', 'ticket-stub');
+   stub.setAttribute('aria-hidden', 'true');
+-  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'));
++  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'), preferenceMark());
+   const sep = el('div', 'ticket-sep');
+   sep.setAttribute('aria-hidden', 'true');
+   if (card.completed) {
+@@ -337,8 +356,15 @@ function renderCard() {
+   const card = buildCard();
+   if (old) {
+     card.classList.add('card-refresh');
++    const animateFeedback = state.feedbackPending && state.card.preference && old.querySelector('.preference-mark')?.dataset.preference !== state.card.preference;
+     if (state.card.completed && !old.classList.contains('ticket-done')) card.querySelector('.ticket-stamp').classList.add('stamp-in');
+     old.replaceWith(card);
++    if (animateFeedback) {
++      const mark = [...card.querySelectorAll('.preference-mark svg')].find(node => node.getBoundingClientRect().width > 0);
++      mark.classList.add('feedback-in');
++      if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
++      else for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
++    }
+   } else result.append(card);
+   syncConditions();
+   if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));

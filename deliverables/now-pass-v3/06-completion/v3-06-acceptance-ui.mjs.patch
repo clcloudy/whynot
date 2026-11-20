@@ -1,0 +1,127 @@
+diff --git a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/acceptance-ui.mjs b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/acceptance-ui.mjs
+index f41d675..e2fdf5a 100644
+--- a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/acceptance-ui.mjs
++++ b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/acceptance-ui.mjs
+@@ -209,6 +209,122 @@ export default async function run(group = 'state') {
+     check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
+     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
+   }
++  if (group === 'completion') {
++    const css = node => w.getComputedStyle(node);
++    const geometry = () => ['.card', '.ticket-body', '.foot'].map(selector => {
++      const r = d.querySelector(selector).getBoundingClientRect();
++      return [r.top, r.left, r.width, r.height];
++    });
++    const sameGeometry = (a, b) => a.every((r, i) => r.every((value, j) => Math.abs(value - b[i][j]) < 1));
++    let feedbackCalls = 0, shares = 0;
++    const failedGate = deferred();
++    Object.defineProperty(w.navigator, 'share', { configurable: true, value: async () => { shares++; } });
++    w.fetch = async (url, init) => {
++      if (!String(url).endsWith('/feedback')) return native(url, init);
++      feedbackCalls++; await failedGate.promise;
++      return response('request_failed', 500);
++    };
++    const failed = feedback('completed');
++    await w.sendFeedback('completed'); await w.shareCard();
++    check('完成在途双击只发一次且禁止分享', feedbackCalls === 1 && shares === 0 && state().feedbackPending && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'true');
++    check('乐观完成同步印章打孔编号与刻度', !!d.querySelector('.ticket-stamp') && css(d.querySelector('.card')).maskImage.includes('5px') && css(d.querySelector('.ticket-head .ticket-code')).color === css(d.querySelector('.ticket-stamp')).color && css(d.querySelector('.g-line line')).strokeDasharray === 'none');
++    check('完成状态不可点且保留焦点', d.activeElement.classList.contains('done-state') && d.activeElement.tagName === 'SPAN' && d.activeElement.getAttribute('aria-label') === '已完成，不可撤销');
++    check('印章出现时出票按钮不可见', css(d.getElementById('ask')).visibility === 'hidden');
++    failedGate.resolve(); await failed;
++    check('完成失败完整回滚且按钮恢复', !state().card.completed && !d.querySelector('.ticket-stamp, .done-row') && css(d.querySelector('.card')).maskImage === 'none' && css(d.querySelector('.g-line line')).strokeDasharray !== 'none' && css(d.getElementById('ask')).visibility === 'visible' && d.activeElement.dataset.focus === 'completed' && !!d.getElementById('feedback-status').textContent);
++
++    w.fetch = native;
++    for (const [width, fontSize] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
++      frame.style.width = `${width}px`;
++      d.documentElement.style.fontSize = `${fontSize}px`;
++      await w.ask(); await pause(300);
++      const label = `${width}px/${fontSize === 32 ? '200%' : '100%'}`;
++      d.querySelector('[data-focus="completed"]').focus({ preventScroll: true });
++      const before = geometry();
++      const gate = deferred();
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (String(url).endsWith('/feedback')) await gate.promise;
++        return r;
++      };
++      const completion = w.sendFeedback('completed');
++      const stamp = d.querySelector('.ticket-stamp');
++      const animation = stamp.getAnimations()[0];
++      check(`${label}只播放300ms印章不重播整卡入场`, css(stamp).animationDuration === '0.3s' && css(d.querySelector('.card')).animationName === 'none');
++      let stable = true;
++      for (const time of [0, 100, 200, 300]) {
++        if (animation) { animation.pause(); animation.currentTime = time; }
++        stable &&= sameGeometry(before, geometry());
++      }
++      check(`${label}盖章前后及300ms内布局不位移`, stable, JSON.stringify({ before, after: geometry() }));
++      const matrix = new w.DOMMatrix(css(stamp).transform);
++      check(`${label}固定负8度且无回弹`, Math.abs(Math.atan2(matrix.b, matrix.a) * 180 / Math.PI + 8) < 0.01 && Math.abs(Math.hypot(matrix.a, matrix.b) - 1) < 0.01);
++      const r = stamp.getBoundingClientRect(), card = d.querySelector('.card').getBoundingClientRect();
++      const body = d.querySelector('.ticket-body').getBoundingClientRect();
++      const textRight = body.right - parseFloat(css(d.querySelector('.ticket-body')).paddingRight);
++      check(`${label}印章在票面内且不盖正文`, r.left >= card.left && r.right <= card.right && (r.bottom <= body.top || r.left >= textRight));
++      check(`${label}完成操作无横向滚动且热区≥44`, d.documentElement.scrollWidth === d.documentElement.clientWidth && [...d.querySelectorAll('.done-row button')].every(button => { const r = button.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
++      gate.resolve(); await completion;
++      check(`${label}确认后不重复盖章且开放分享`, d.querySelector('.ticket-stamp') === stamp && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'false');
++      w.fetch = native;
++    }
++    let sent = 0;
++    w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) sent++; return native(url, init); };
++    await w.sendFeedback('completed'); await w.sendFeedback('completed');
++    check('确认后再次完成不发请求且不可撤销', sent === 0 && state().card.completed && !d.querySelector('.feedback'));
++    check('完成操作显示换一张与分享此刻且名称含可见文案', ['swap', 'share'].every(key => { const n = d.querySelector(`[data-focus="${key}"]`); return n.getAttribute('aria-label').includes(n.textContent); }) && d.querySelector('[data-focus="swap"]').textContent === '换一张' && d.querySelector('[data-focus="share"]').textContent === '分享此刻');
++    let payload = '';
++    Object.defineProperty(w.navigator, 'share', { configurable: true, value: async value => { payload = value.text; } });
++    w.history.replaceState(null, '', '/?private=completion#token');
++    await w.shareCard();
++    check('分享只含实际分钟与干净链接不含票号', payload.includes(`约 ${state().card.minutes} 分钟`) && payload.endsWith(location.origin + '/') && !payload.includes('private') && !payload.includes('token') && !payload.includes(state().card.id) && !payload.includes('NOW-'));
++
++    d.documentElement.style.fontSize = '16px';
++    frame.style.width = '390px';
++    w.fetch = native;
++    await w.ask();
++    select('budget', '5');
++    const expandedHeight = d.querySelector('.card-actions').getBoundingClientRect().height;
++    await feedback('completed');
++    check('改条件两行操作区完成后不收缩', Math.abs(d.querySelector('.done-row').getBoundingClientRect().height - expandedHeight) < 1);
++    const swapGate = deferred();
++    let recommendations = 0;
++    select('budget', '10');
++    w.fetch = async (url, init) => {
++      if (String(url).endsWith('/api/recommendations')) { recommendations++; await swapGate.promise; return response('request_failed', 500); }
++      return native(url, init);
++    };
++    const retainedHeight = d.querySelector('.done-row').getBoundingClientRect().height;
++    const swap = w.ask(w.conditions(), 'swap');
++    check('完成票退场期间主按钮仍隐藏', css(d.getElementById('ask')).visibility === 'hidden');
++    check('完成票实际播放160ms退场动画', css(d.querySelector('.card')).animationName === 'out' && css(d.querySelector('.card')).animationDuration === '0.16s');
++    await pause(200);
++    check('骨架接管后主按钮恢复且在途禁用', !!d.querySelector('.skeleton') && css(d.getElementById('ask')).visibility === 'visible' && d.getElementById('ask').disabled);
++    swapGate.resolve(); await swap;
++    check('换票失败保留完成票及重试入口', !!d.querySelector('.ticket-done') && !!d.querySelector('.retry') && css(d.getElementById('ask')).visibility === 'hidden' && recommendations === 1 && sent === 0);
++    check('换票失败回显保留完成区高度', Math.abs(d.querySelector('.done-row').getBoundingClientRect().height - retainedHeight) < 1);
++    const seen = [];
++    select('budget', '3');
++    w.fetch = (url, init) => { if (String(url).endsWith('/api/recommendations')) seen.push(JSON.parse(init.body)); return native(url, init); };
++    click('.retry'); while (state().busy) await pause(10);
++    check('完成后失败重试仍重放条件快照', seen.length === 1 && seen[0].budget === 10 && w.conditions().budget === 3 && !state().card.completed && css(d.getElementById('ask')).visibility === 'visible');
++
++    const media = [...d.styleSheets[0].cssRules].filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
++    const originalMedia = media.map(rule => rule.media.mediaText), match = w.matchMedia;
++    media.forEach(rule => { rule.media.mediaText = 'all'; });
++    w.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: true } : match.call(w, query);
++    await feedback('completed');
++    const reduced = d.querySelector('.ticket-stamp');
++    check('模拟减少动态立即呈现静态完成态', css(reduced).animationName === 'none' && css(reduced).opacity === '1' && reduced.getAnimations().length === 0 && !!d.querySelector('.ticket-done'));
++    await w.exitCard();
++    check('模拟减少动态跳过旧票退场', !d.querySelector('.card-out'));
++    media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
++    w.matchMedia = match;
++    delete w.navigator.share;
++    d.documentElement.style.fontSize = '';
++    frame.style.width = '390px';
++    w.fetch = native;
++  }
+   if (group === 'b4') {
+     const root = d.documentElement, key = 'whynot-theme';
+     const stored = w.localStorage.getItem(key), guided = w.localStorage.getItem('whynot-guide');

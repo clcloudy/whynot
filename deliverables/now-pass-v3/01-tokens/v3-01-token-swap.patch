@@ -1,0 +1,116 @@
+diff --git a/dev/acceptance-ui.mjs b/dev/acceptance-ui.mjs
+index 1cb147d..cb7ef87 100644
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -222,8 +222,8 @@ export default async function run(group = 'state') {
+       for (const theme of ['system', 'light', 'dark']) {
+         select('theme', theme);
+         const expected = theme === 'dark' || (theme === 'system' && dark);
+-        check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(24, 33, 28)' : 'rgb(246, 241, 231)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
+-        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#18211c' : '#f6f1e7')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
++        check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(16, 24, 39)' : 'rgb(234, 240, 248)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
++        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#101827' : '#eaf0f8')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
+@@ -255,8 +255,8 @@ export default async function run(group = 'state') {
+     w.localStorage.setItem(key, 'dark');
+     w.localStorage.setItem('whynot-guide', 'seen');
+     let p = await probePage(beforeApp);
+-    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(24, 33, 28)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
+-    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#18211c'));
++    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
++    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#101827'));
+     w.localStorage.removeItem('whynot-guide');
+     w.localStorage.setItem(key, 'unknown');
+     p = await probePage(beforeApp);
+diff --git a/web/app.js b/web/app.js
+index 605c7d4..ddd4691 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -440,7 +440,7 @@ function applyTheme(theme) {
+   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
+   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
+-    meta.content = dark ? '#18211c' : '#f6f1e7';
++    meta.content = dark ? '#101827' : '#eaf0f8';
+   });
+ }
+ about.addEventListener('change', event => {
+diff --git a/web/index.html b/web/index.html
+index 96d5e7e..0b0240f 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -5,13 +5,13 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+   <title>WhyNot · 此刻</title>
+   <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e7">
+-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
++  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
++  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
+   <meta name="color-scheme" content="light dark">
+   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+   <link rel="manifest" href="/manifest.webmanifest">
+   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#18211c':'#f6f1e7')}}catch{}</script>
++  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
+   <link rel="stylesheet" href="/style.css">
+ </head>
+ <body>
+diff --git a/web/style.css b/web/style.css
+index 6e41f1b..48dffd4 100644
+--- a/web/style.css
++++ b/web/style.css
+@@ -1,9 +1,9 @@
+-:root{color-scheme:light;--wn-paper:#f6f1e7;--wn-sheet:#fffdf7;--wn-well:#f2ede1;--wn-ink:#26362e;--wn-ink-2:#5f6e64;--wn-accent:#2f6d5a;--wn-accent-press:#255a4a;--wn-accent-soft:#e8f0ea;--wn-on-accent:#f8f5ec;--wn-line:#95876d;--wn-hairline:#e3dac7;--wn-time:#7d5a33;--wn-time-soft:#f3e7d4;--wn-alert:#8c3b2e;--wn-alert-soft:#f6e3dc;--wn-focus:#26362e;--wn-bone:#e6ddcc;--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
+-:root{--wn-dark-paper:#18211c;--wn-dark-sheet:#212c25;--wn-dark-well:#141b17;--wn-dark-ink:#e9e4d6;--wn-dark-ink-2:#9aa89d;--wn-dark-accent:#7fc4a8;--wn-dark-accent-press:#6bb094;--wn-dark-accent-soft:#26362f;--wn-dark-on-accent:#12241c;--wn-dark-line:#64796c;--wn-dark-hairline:#33413a;--wn-dark-time:#d9b483;--wn-dark-time-soft:#2e2a21;--wn-dark-alert:#e8a58f;--wn-dark-alert-soft:#33241f;--wn-dark-focus:#e9e4d6;--wn-dark-bone:#2c3830}
++:root{color-scheme:light;--wn-paper:#eaf0f8;--wn-paper-2:#dce2ee;--wn-sheet:#fbf8f0;--wn-well:#e7e0ce;--wn-ink:#1b2334;--wn-ink-2:#525a6e;--wn-accent:#d95f0e;--wn-accent-press:#c43a15;--wn-accent-soft:#fbe3d3;--wn-on-accent:#221204;--wn-line:#c6bca4;--wn-hairline:rgba(27,35,52,.10);--wn-time:#525a6e;--wn-time-soft:#e7e0ce;--wn-alert:#c43a15;--wn-alert-soft:#fbe3d3;--wn-focus:#1b2334;--wn-bone:#e7e0ce;--wn-shadow:0 8px 24px rgba(27,35,52,.14);--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
++:root{--wn-dark-paper:#101827;--wn-dark-paper-2:#1b2334;--wn-dark-sheet:#f6f2e8;--wn-dark-well:#e7e0ce;--wn-dark-ink:#1b2334;--wn-dark-ink-2:#575e72;--wn-dark-accent:#ff8a50;--wn-dark-accent-press:#c43a15;--wn-dark-accent-soft:#fbdfc9;--wn-dark-on-accent:#221204;--wn-dark-line:#d4c9ae;--wn-dark-hairline:rgba(246,242,232,.12);--wn-dark-time:#575e72;--wn-dark-time-soft:#e7e0ce;--wn-dark-alert:#c43a15;--wn-dark-alert-soft:#fbdfc9;--wn-dark-focus:#1b2334;--wn-dark-bone:#ddd3b8;--wn-dark-shadow:none}
+ @media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow)}
+ }
+-:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow)}
+ *{box-sizing:border-box}
+ [hidden]{display:none !important}
+ .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+@@ -15,6 +15,16 @@ button{line-height:1.5}
+ :focus-visible{outline:2px solid var(--wn-focus);outline-offset:2px}
+ body{margin:0;background:var(--wn-paper);color:var(--wn-ink);font-family:var(--wn-font);font-size:1rem;line-height:1.625;-webkit-font-smoothing:antialiased}
+ .masthead{display:flex;align-items:center;justify-content:space-between;max-width:480px;margin:0 auto;min-height:56px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 var(--wn-s5);border-bottom:1px solid var(--wn-hairline)}
++:root{color-scheme:light}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]){color-scheme:dark}
++}
++:root[data-theme="dark"]{color-scheme:dark}
++.masthead .brand-name{color:var(--wn-ink)}
++:root:not([data-theme="light"]) .masthead .brand-name,:root:not([data-theme="light"]) .mark{color:#f6f2e8}
++:root[data-theme="dark"] .masthead .brand-name,:root[data-theme="dark"] .mark{color:#f6f2e8}
++:root:not([data-theme="light"]) .masthead-date,:root[data-theme="dark"] .masthead-date{color:#8f9ec9}
++[data-guided="1"] .guide{display:none}
+ .masthead-left{display:flex;align-items:center;gap:var(--wn-s2)}
+ .mark{display:block;width:20px;height:20px;color:var(--wn-ink)}
+ .brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.04em}
+@@ -53,7 +63,7 @@ legend{padding:0;margin-bottom:var(--wn-s2);font-size:1rem;font-weight:600;line-
+ .primary{width:100%;min-height:56px;margin-top:var(--wn-s6);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m1) ease}
+ .primary:active{background:var(--wn-accent-press);transform:translateY(1px)}
+ .primary:disabled{opacity:0.35;cursor:default;transform:none}
+-.card{margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:0 1px 2px rgba(38,54,46,0.06),0 6px 16px -8px rgba(38,54,46,0.10);animation:rise var(--wn-m3) ease-out;scroll-margin-top:var(--wn-s4)}
++.card{margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:var(--wn-shadow);animation:rise var(--wn-m3) ease-out;scroll-margin-top:var(--wn-s4)}
+ @keyframes rise{
+ from{opacity:0;transform:translateY(8px)}
+ to{opacity:1;transform:none}
+@@ -135,8 +145,10 @@ to{opacity:1;transform:none}
+ .first-text{font-size:1.125rem}
+ }
+ @media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]) .card{box-shadow:none}
++:root:not([data-theme="light"]) .masthead{background:var(--wn-paper-2)}
++:root:not([data-theme="light"]) .card{box-shadow:var(--wn-dark-shadow)}
+ }
++:root[data-theme="dark"] .masthead{background:var(--wn-paper-2)}
+ :root[data-theme="dark"] .card{box-shadow:none}
+ @container (max-width:15em){
+ .card-actions,.card-actions.changed{grid-template-columns:repeat(2,minmax(0,1fr))}

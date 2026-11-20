@@ -1,0 +1,39 @@
+--- source-before/app.js	2026-11-20 16:50:35.414971400 +0800
++++ source-after/app.js	2026-11-20 17:06:09.193613600 +0800
+@@ -267,11 +267,21 @@
+     }
+   }
+ }
++function passCode(id) {
++  let h = 0;
++  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
++  return (h % 1679616).toString(36).padStart(4, '0').toUpperCase();
++}
+ function buildCard() {
+   const card = state.card;
+   const article = el('article', 'card');
+   article.setAttribute('aria-labelledby', 'card-title');
+   article.setAttribute('aria-describedby', 'card-first');
++  const code = `NOW-${passCode(String(card.id || ''))}`;
++  const head = el('div', 'ticket-head');
++  head.setAttribute('aria-hidden', 'true');
++  head.append(el('span', 'ticket-code', `THIS PASS · ${code}`), el('span', 'ticket-valid', '有效'));
++  const body = el('div', 'ticket-body');
+   const meta = el('div', 'card-meta');
+   if (card.category) {
+     const cat = el('span', 'cat', CATEGORY_LABELS[card.category]);
+@@ -286,7 +296,13 @@
+   const first = el('div', 'first');
+   first.id = 'card-first';
+   first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
+-  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
++  body.append(meta, title, first, el('p', 'detail', card.detail));
++  const stub = el('div', 'ticket-stub');
++  stub.setAttribute('aria-hidden', 'true');
++  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'));
++  const sep = el('div', 'ticket-sep');
++  sep.setAttribute('aria-hidden', 'true');
++  article.append(head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {
+     const actions = el('div', 'card-actions');

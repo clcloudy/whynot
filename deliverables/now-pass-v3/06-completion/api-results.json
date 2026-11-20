@@ -1,0 +1,28 @@
+{
+  "date": "2026-11-20",
+  "base": "http://127.0.0.1:8875",
+  "database": "fresh local PGlite memory database; no external database URL",
+  "execution": "sequential; all commands exited successfully",
+  "suites": [
+    {"script": "dev/acceptance.mjs", "passed": 42, "failed": 0},
+    {"script": "dev/acceptance-model.mjs", "passed": 11, "failed": 0},
+    {"script": "dev/acceptance-interactions.mjs", "passed": 112, "failed": 0},
+    {"script": "dev/acceptance-photos.mjs", "passed": 46, "failed": 0},
+    {"script": "dev/acceptance-memories.mjs", "passed": 63, "failed": 0}
+  ],
+  "total": {"passed": 274, "failed": 0},
+  "browserGoldenPath": {
+    "session": 200,
+    "recommendation": 201,
+    "completionFeedback": 200,
+    "consoleErrorsOrWarnings": 0,
+    "keyboardSequence": ["completed status", "swap", "share"],
+    "shareFocusOutline": "solid"
+  },
+  "notes": [
+    "Existing 8765 service and 8766 fake-model were left running; this phase used a separate fresh 8875 fixture instead of restarting existing processes.",
+    "Model/interaction tests configure the local fake model. Final screenshots use real API routes with that fake-model response, not a production model.",
+    "API acceptance preceded final frontend-only CSS/state fixes; final browser groups were rerun together after those fixes.",
+    "Raw logs are not copied because they include synthetic request identifiers and payloads; this file records observed suite totals."
+  ]
+}

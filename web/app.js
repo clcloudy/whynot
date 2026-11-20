@@ -3,6 +3,17 @@ const SESSION_KEY = 'whynot-session';
 const GUIDE_KEY = 'whynot-guide';
 const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
 const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
+const CATEGORY_SHAPES = {
+  rest: '<path d="M4 17 11 10M14 10C20 6 13 2 13 2S8 6 11 8"/>',
+  observe: '<path d="M11 3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>',
+  listen: '<path d="M8 3a6 6 0 0 0 0 12M12 5a6 6 0 0 1 0 12"/>',
+  tidy: '<path d="M8 3a6 6 0 0 0 0 12ZM12 5a6 6 0 0 1 0 12Z"/>',
+  explore: '<path d="M3 16 8 10l4 2M15 3h-3v6h6V6"/><circle cx="3" cy="16" r="1.5" fill="currentColor" stroke="none"/>',
+};
+const PREFERENCE_SHAPES = {
+  like: '<path d="M6 10 2 6C-1 2 4 0 6 3c2-3 7-1 4 3Z" fill="currentColor"/>',
+  dislike: '<path d="M2 1h5l3 3v7H2ZM7 1v3h3M4 7h4"/>',
+};
 const SCENE_LABELS = { waiting: '等饭／排队', desk: '在桌前', outside: '在路上', home: '在家／宿舍' };
 const ENERGY_LABELS = { low: '有点累', steady: '还可以', high: '精神好' };
 const FEEDBACK_LABELS = { like: '喜欢这条建议', dislike: '不喜欢这条建议', completed: '标记为已完成' };
@@ -69,7 +80,7 @@ function cardResult(value) {
 }
 const state = {
   sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
-  feedbackPending: false, feedbackAttempts: {}, card: null,
+  feedbackPending: false, feedbackAttempts: {}, card: null, completionHeight: 0,
 };
 const result = document.getElementById('result');
 const status = document.getElementById('status');
@@ -83,7 +94,7 @@ const settingsToggle = document.getElementById('settings-toggle');
 const about = document.getElementById('about');
 const SVG_OPEN_64 = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 7.2 H7.2 V40.8 H40.8 V19.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 32 H38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
 const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
-const SVG_CLOSED_16 = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 2.4 H2.4 V13.6 H13.6 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>';
+const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
 function conditions() {
   return {
     budget: Number(document.querySelector('input[name="budget"]:checked').value),
@@ -128,12 +139,16 @@ function renderLoading() {
   const card = el('article', 'skeleton');
   card.setAttribute('aria-hidden', 'true');
   card.append(el('p', 'sk-text', '正在找建议'));
-  for (const name of ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2']) card.append(el('div', `sk sk-${name}`));
+  ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2'].forEach((name, i) => {
+    const block = el('div', `sk sk-${name}`);
+    block.style.animationDelay = `${i * 60}ms`;
+    card.append(block);
+  });
   result.replaceChildren(card);
 }
 function errorText(error) {
   if (NO_RETRY.includes(error.code)) return '这次没成功，刷新页面再试。';
-  return ERRORS[error.code] || '这次没找到，再试一次。';
+  return ERRORS[error.code] || '这次没出票，再试一次。';
 }
 function renderNotice(error, snapshot) {
   const notice = el('div', 'notice');
@@ -170,10 +185,11 @@ function syncConditions() {
   }
   const swap = result.querySelector('[data-focus="swap"]');
   if (!swap) return;
-  swap.textContent = changed ? '按新条件再来一条' : '换一个';
+  const label = state.card.completed ? '换一张' : '换一个';
+  swap.textContent = changed ? '按新条件再来一条' : label;
   swap.closest('.card-actions')?.classList.toggle('changed', changed);
   const context = state.conditions;
-  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `换一个，保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
+  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `${label}，${state.card.completed ? '换一个建议，' : ''}保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
   swap.disabled = state.busy || navigator.onLine === false;
   swap.setAttribute('aria-disabled', String(swap.disabled));
 }
@@ -194,21 +210,28 @@ function feedbackButton(label, kind) {
   button.addEventListener('click', () => sendFeedback(kind));
   return button;
 }
+function preferenceMark(className = '') {
+  const mark = el('span', `preference-mark ${className}`);
+  mark.setAttribute('aria-hidden', 'true');
+  mark.dataset.preference = state.card.preference || '';
+  if (state.card.preference) mark.innerHTML = `<svg viewBox="0 0 12 12" width="12" height="12" focusable="false" aria-hidden="true">${PREFERENCE_SHAPES[state.card.preference]}</svg>`;
+  return mark;
+}
 function completedRow() {
   const row = el('div', 'done-row');
+  if (state.completionHeight) row.style.minHeight = `${state.completionHeight}px`;
   const done = el('span', 'done-state');
   done.tabIndex = -1;
   done.dataset.focus = 'completed';
-  done.setAttribute('aria-label', '已完成。这条记下了。');
-  done.innerHTML = SVG_CLOSED_16;
-  done.append('已完成');
-  const share = el('button', 'textbtn', '分享这条');
+  done.setAttribute('aria-label', '已完成，不可撤销');
+  done.textContent = '已完成';
+  const share = el('button', 'textbtn', '分享此刻');
   share.type = 'button';
   share.dataset.focus = 'share';
-  share.setAttribute('aria-label', '分享这条建议');
+  share.setAttribute('aria-label', '分享此刻，分享这条已完成的建议');
   share.setAttribute('aria-disabled', String(state.feedbackPending || shareBusy));
   share.addEventListener('click', shareCard);
-  row.append(done, el('span', 'done-spacer'), swapButton('textbtn'), share);
+  row.append(done, swapButton('textbtn'), share);
   return row;
 }
 const shareStatus = document.getElementById('share-status');
@@ -233,7 +256,7 @@ async function shareCard() {
   const button = result.querySelector('[data-focus="share"]');
   button?.setAttribute('aria-disabled', 'true');
   const title = Array.from(card.title).slice(0, 40).join('').replace(/[。！？.!?]+$/, '');
-  const text = `刚看到一条 ${state.conditions.budget} 分钟能做的小事：${title}。你也可以选一次自己的空当。\n${location.origin}${location.pathname}`;
+  const text = `刚完成一件约 ${card.minutes} 分钟的小事：${title}。你也可以出一张自己的此刻。\n${location.origin}${location.pathname}`;
   try {
     if (typeof navigator.share === 'function') {
       try { await navigator.share({ text }); return; }
@@ -267,26 +290,51 @@ async function shareCard() {
     }
   }
 }
+function passCode(id) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
+  return (h % 1679616).toString(36).padStart(4, '0').toUpperCase();
+}
 function buildCard() {
   const card = state.card;
   const article = el('article', 'card');
   article.setAttribute('aria-labelledby', 'card-title');
   article.setAttribute('aria-describedby', 'card-first');
+  const code = `NOW-${passCode(String(card.id || ''))}`;
+  const head = el('div', 'ticket-head');
+  head.setAttribute('aria-hidden', 'true');
+  if (card.category) head.innerHTML = `<svg class="category-icon" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">${CATEGORY_SHAPES[card.category]}</svg>`;
+  head.append(el('span', 'ticket-code', `THIS PASS · ${code}`), el('span', 'ticket-valid', '有效'));
+  const body = el('div', 'ticket-body');
   const meta = el('div', 'card-meta');
   if (card.category) {
     const cat = el('span', 'cat', CATEGORY_LABELS[card.category]);
     cat.setAttribute('aria-label', `类别：${CATEGORY_NAMES[card.category]}`);
     meta.append(cat);
   }
-  meta.append(el('span', 'badge', `约 ${card.minutes} 分钟`), el('span', 'condition-note'));
+  meta.append(el('span', 'condition-note'), preferenceMark('compact-feedback'));
+  const gap = card.minutes <= 3 ? 3 : card.minutes <= 5 ? 5 : card.minutes <= 10 ? 9 : 13;
+  const gauge = el('div', 'gauge');
+  gauge.setAttribute('aria-hidden', 'true');
+  gauge.innerHTML = `<svg class="g-dot" viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><circle cx="6" cy="10" r="4"/></svg><span class="gauge-label">约 ${card.minutes} 分钟</span><svg class="g-line" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true"><line x1="1" y1="1" x2="99" y2="1" stroke-dasharray="3 ${gap}"/></svg><svg class="g-ring" viewBox="0 0 14 20" width="14" height="20" aria-hidden="true"><circle cx="7" cy="10" r="5"/></svg>`;
   const title = el('h2', null, card.title);
   title.id = 'card-title';
   title.tabIndex = -1;
   title.setAttribute('aria-label', `新的建议：${card.title}，约 ${card.minutes} 分钟`);
   const first = el('div', 'first');
   first.id = 'card-first';
-  first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
-  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
+  first.append(el('span', 'first-label', '从这一步开始'), el('p', 'first-text', card.first_step));
+  body.append(meta, title, gauge, first, el('p', 'detail', card.detail));
+  const stub = el('div', 'ticket-stub');
+  stub.setAttribute('aria-hidden', 'true');
+  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'), preferenceMark());
+  const sep = el('div', 'ticket-sep');
+  sep.setAttribute('aria-hidden', 'true');
+  if (card.completed) {
+    article.classList.add('ticket-done');
+    article.insertAdjacentHTML('beforeend', SVG_STAMP);
+  }
+  article.append(head, body, sep, stub);
   if (card.completed) article.append(completedRow());
   else {
     const actions = el('div', 'card-actions');
@@ -303,8 +351,21 @@ function renderCard() {
   const active = document.activeElement;
   const key = result.contains(active) ? active.dataset.focus : null;
   const old = result.querySelector('.card');
-  if (old) old.replaceWith(buildCard());
-  else result.append(buildCard());
+  if (!state.card.completed) state.completionHeight = 0;
+  else if (old) state.completionHeight = old.querySelector('.card-actions, .done-row').getBoundingClientRect().height;
+  const card = buildCard();
+  if (old) {
+    card.classList.add('card-refresh');
+    const animateFeedback = state.feedbackPending && state.card.preference && old.querySelector('.preference-mark')?.dataset.preference !== state.card.preference;
+    if (state.card.completed && !old.classList.contains('ticket-done')) card.querySelector('.ticket-stamp').classList.add('stamp-in');
+    old.replaceWith(card);
+    if (animateFeedback) {
+      const mark = [...card.querySelectorAll('.preference-mark svg')].find(node => node.getBoundingClientRect().width > 0);
+      mark.classList.add('feedback-in');
+      if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
+      else for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
+    }
+  } else result.append(card);
   syncConditions();
   if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));
 }
@@ -317,7 +378,17 @@ function setBusy(busy) {
   result.setAttribute('aria-busy', String(busy));
   askButton.disabled = busy;
   askButton.setAttribute('aria-busy', String(busy));
-  askButton.textContent = busy ? '正在找建议' : '给我一个建议';
+  askButton.setAttribute('aria-label', busy ? '出票中，正在找建议' : '出一张现在，给我一个建议');
+  if (busy) {
+    askButton.textContent = '出票中';
+    askButton.insertAdjacentHTML('beforeend', '<span class="ask-dots" aria-hidden="true"><i></i><i></i><i></i></span>');
+  } else askButton.textContent = '出一张现在';
+}
+function exitCard() {
+  const old = result.querySelector('.card');
+  if (!old || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
+  old.classList.add('card-out');
+  return new Promise(res => setTimeout(res, 160));
 }
 async function ask(snapshot = conditions(), source = 'primary') {
   if (state.busy) return;
@@ -327,11 +398,12 @@ async function ask(snapshot = conditions(), source = 'primary') {
   status.textContent = '正在找建议';
   focus(result);
   setBusy(true);
-  renderLoading();
   const timer = setTimeout(() => {
     const text = result.querySelector('.sk-text');
     if (text) text.textContent = '还在找，再等一下';
   }, 8000);
+  await exitCard();
+  renderLoading();
   try {
     if (navigator.onLine === false) throw new RequestError('network_error', 0);
     await ensureSession();
@@ -341,15 +413,16 @@ async function ask(snapshot = conditions(), source = 'primary') {
     const card = cardResult(body);
     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
     state.card = card;
+    state.completionHeight = 0;
     state.seq++;
     state.conditions = snapshot;
     state.conditionsMatch = sameConditions(card, snapshot);
     if (!state.conditionsMatch) console.warn('Recommendation context mismatch');
     state.feedbackPending = false;
     state.feedbackAttempts = {};
-    setBusy(false);
     result.replaceChildren();
     dismissGuide();
+    setBusy(false);
     renderCard();
     status.textContent = '';
     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
@@ -440,7 +513,7 @@ function applyTheme(theme) {
   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
-    meta.content = dark ? '#18211c' : '#f6f1e7';
+    meta.content = dark ? '#101827' : '#eaf0f8';
   });
 }
 about.addEventListener('change', event => {
@@ -452,12 +525,12 @@ about.addEventListener('change', event => {
   } catch { theme = 'system'; }
   applyTheme(theme);
 });
-settingsToggle.setAttribute('aria-label', '设置，关于与主题');
 settingsToggle.addEventListener('click', () => {
   const expanded = settingsToggle.getAttribute('aria-expanded') === 'true';
   settingsToggle.setAttribute('aria-expanded', String(!expanded));
-  settingsToggle.textContent = expanded ? '设置' : '收起设置';
-  settingsToggle.setAttribute('aria-label', expanded ? '设置，关于与主题' : '收起设置，关于与主题');
+  const label = expanded ? '关于与数据' : '收起关于与数据';
+  settingsToggle.textContent = label;
+  settingsToggle.setAttribute('aria-label', `${label}，主题设置`);
   about.hidden = expanded;
   if (expanded) focus(settingsToggle);
 });

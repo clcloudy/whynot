@@ -1,0 +1,104 @@
+{
+  "method": "Regenerate twice with existing dependency-free Node PNG writer; independently decode via Pillow and validate PNG chunk CRCs",
+  "icons": [
+    {
+      "name": "apple-touch-icon.png",
+      "dimensions": [
+        180,
+        180
+      ],
+      "format": "PNG",
+      "mode": "P",
+      "bitDepth": 4,
+      "colorType": 3,
+      "chunks": [
+        "IHDR",
+        "PLTE",
+        "IDAT",
+        "IEND"
+      ],
+      "allChunksCrcValid": true,
+      "fullyOpaque": true,
+      "background": [
+        16,
+        24,
+        39,
+        255
+      ],
+      "centerInk": [
+        246,
+        242,
+        232,
+        255
+      ],
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d",
+      "deterministic": true
+    },
+    {
+      "name": "icon-192.png",
+      "dimensions": [
+        192,
+        192
+      ],
+      "format": "PNG",
+      "mode": "P",
+      "bitDepth": 4,
+      "colorType": 3,
+      "chunks": [
+        "IHDR",
+        "PLTE",
+        "IDAT",
+        "IEND"
+      ],
+      "allChunksCrcValid": true,
+      "fullyOpaque": true,
+      "background": [
+        16,
+        24,
+        39,
+        255
+      ],
+      "centerInk": [
+        246,
+        242,
+        232,
+        255
+      ],
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a",
+      "deterministic": true
+    },
+    {
+      "name": "icon-512.png",
+      "dimensions": [
+        512,
+        512
+      ],
+      "format": "PNG",
+      "mode": "P",
+      "bitDepth": 4,
+      "colorType": 3,
+      "chunks": [
+        "IHDR",
+        "PLTE",
+        "IDAT",
+        "IEND"
+      ],
+      "allChunksCrcValid": true,
+      "fullyOpaque": true,
+      "background": [
+        16,
+        24,
+        39,
+        255
+      ],
+      "centerInk": [
+        246,
+        242,
+        232,
+        255
+      ],
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9",
+      "deterministic": true
+    }
+  ]
+}

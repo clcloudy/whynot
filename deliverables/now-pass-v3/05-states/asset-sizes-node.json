@@ -1,0 +1,17 @@
+{
+  "generatedAt": "2026-11-20T10:20:00.000Z",
+  "tool": "node zlib gzipSync level 9",
+  "budgetNote": "gzip 上限沿用 V3-04 用户授权口径 24576B（24KiB）",
+  "fourFiles": {
+    "web/index.html": { "raw": 6227, "gzip9": 2382 },
+    "web/app.js": { "raw": 25293, "gzip9": 7778 },
+    "web/style.css": { "raw": 18577, "gzip9": 4150 },
+    "web/icon.svg": { "raw": 299, "gzip9": 223 }
+  },
+  "fourRawTotal": 50396,
+  "fourRawLimit": 34000,
+  "fourRawOver": 16396,
+  "webAllFilesGzipTotal": 16834,
+  "webGzipLimit": 24576,
+  "webGzipMargin": 7742
+}

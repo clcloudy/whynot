@@ -1,0 +1,168 @@
+{
+  "stage": "V3-09",
+  "baselineCommit": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "sourceFiles": [
+    {
+      "path": "web/app.js",
+      "beforeSha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423",
+      "afterSha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423",
+      "beforeBytes": 28104,
+      "afterBytes": 28104,
+      "changedThisStage": false
+    },
+    {
+      "path": "web/apple-touch-icon.png",
+      "beforeSha256": "e7837ff6fd78a6950bc3267ecfecaa3bd6344fd321baed495c29fb3280e93692",
+      "afterSha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d",
+      "beforeBytes": 487,
+      "afterBytes": 510,
+      "changedThisStage": true,
+      "patch": "patches/web__apple-touch-icon.png.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "web/icon-192.png",
+      "beforeSha256": "755be23f5b9d8c0504799c34a6433119dc7a7256716721ecc854f9594fc47f57",
+      "afterSha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a",
+      "beforeBytes": 500,
+      "afterBytes": 634,
+      "changedThisStage": true,
+      "patch": "patches/web__icon-192.png.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "web/icon-512.png",
+      "beforeSha256": "d1cbb056c601fee0b9e1bc84daa33e15d6433d4167172f30fd926bca80b15dd7",
+      "afterSha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9",
+      "beforeBytes": 1256,
+      "afterBytes": 1594,
+      "changedThisStage": true,
+      "patch": "patches/web__icon-512.png.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "web/icon.svg",
+      "beforeSha256": "620c8dbc9230ed9bee89e0a395979917b9b44e19f6f154ab740661787fdee418",
+      "afterSha256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a",
+      "beforeBytes": 299,
+      "afterBytes": 288,
+      "changedThisStage": true,
+      "patch": "patches/web__icon.svg.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "web/index.html",
+      "beforeSha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3",
+      "afterSha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3",
+      "beforeBytes": 6232,
+      "afterBytes": 6232,
+      "changedThisStage": false
+    },
+    {
+      "path": "web/manifest.webmanifest",
+      "beforeSha256": "96aaa1329f8e581c434ce43e37d51390c300a0b17d4d38411defc11d276d4f41",
+      "afterSha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb",
+      "beforeBytes": 404,
+      "afterBytes": 404,
+      "changedThisStage": true,
+      "patch": "patches/web__manifest.webmanifest.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "web/style.css",
+      "beforeSha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52",
+      "afterSha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52",
+      "beforeBytes": 20673,
+      "afterBytes": 20673,
+      "changedThisStage": false
+    },
+    {
+      "path": "dev/generate-icons.mjs",
+      "beforeSha256": "d97d15219ac7ebc4e73d4d484597ea5a37474593f60230efafbbaa1c85a3938c",
+      "afterSha256": "7ea99391f77ade8de796bc742fd16dd06b0ae81039317cc942deca565767da50",
+      "beforeBytes": 3213,
+      "afterBytes": 3254,
+      "changedThisStage": true,
+      "patch": "patches/dev__generate-icons.mjs.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "beforeSha256": "115ef133e6a52f2f674a3f0c1bf576dbce3fee4d51365bc354fd6ee090e4f004",
+      "afterSha256": "bfc4b0ade4713e5ad7d01d6d8c759f10969de060a6d09abe1644446faeb60e31",
+      "beforeBytes": 55656,
+      "afterBytes": 60278,
+      "changedThisStage": true,
+      "patch": "patches/dev__acceptance-ui.mjs.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "README.md",
+      "beforeSha256": "5ef1343d91cc22bbf4a30d37cda3f7085c6d7e1afc58b4ce9e067af61aa80d9f",
+      "afterSha256": "ccbc39f955bd837f17be8f6c9ab774eb6c97227c99d5ce850de8dd6355804a71",
+      "beforeBytes": 11357,
+      "afterBytes": 13881,
+      "changedThisStage": true,
+      "patch": "patches/README.md.patch",
+      "patchReverseCheckPassed": true
+    },
+    {
+      "path": "产品说明.md",
+      "beforeSha256": "6e84d6b2ccc6020d514cf947a19987b8dd2bb19515199c1a0d9746e1028e6931",
+      "afterSha256": "cd0f1c5aa1e0d91511d38d4a9af06c8cf2df023acbec683b384dfe52af4eed11",
+      "beforeBytes": 9647,
+      "afterBytes": 12939,
+      "changedThisStage": true,
+      "patch": "patches/产品说明.md.patch",
+      "patchReverseCheckPassed": true
+    }
+  ],
+  "cumulativePatch": {
+    "path": "cumulative-from-030004d.patch",
+    "reverseCheckPassed": true,
+    "scope": "12 tracked paths; cumulative uncommitted changes from HEAD, not V3-09-only"
+  },
+  "finalWebFiles": [
+    {
+      "path": "app.js",
+      "bytes": 28104,
+      "sha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423"
+    },
+    {
+      "path": "apple-touch-icon.png",
+      "bytes": 510,
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "icon-192.png",
+      "bytes": 634,
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "icon-512.png",
+      "bytes": 1594,
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    },
+    {
+      "path": "icon.svg",
+      "bytes": 288,
+      "sha256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a"
+    },
+    {
+      "path": "index.html",
+      "bytes": 6232,
+      "sha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3"
+    },
+    {
+      "path": "manifest.webmanifest",
+      "bytes": 404,
+      "sha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb"
+    },
+    {
+      "path": "style.css",
+      "bytes": 20673,
+      "sha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52"
+    }
+  ],
+  "planSha256": "b7c1db3a9b5c35a79e726f91abe82668b71ee0434d46d35267209e3ea78d52fe"
+}

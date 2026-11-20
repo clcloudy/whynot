@@ -1,0 +1,243 @@
+{
+  "base": "http://127.0.0.1:8878",
+  "checks": {
+    "base": "http://127.0.0.1:8878",
+    "completed": {
+      "cardDone": true,
+      "feedbackText": "已完成。这条记下了。",
+      "primaryHidden": true
+    },
+    "firstSuccess": {
+      "cardPresent": true,
+      "conditionsVisible": true,
+      "guideHidden": true,
+      "persisted": true
+    },
+    "firstVisitGuide": true
+  },
+  "generatedAt": "2026-11-20T10:43:11.798Z",
+  "method": "Unmodified local frontend in fixed-size same-origin iframe; theme functions and local API actions invoked by browser evaluation; no fake response overrides; screenshot cropped to viewport for pixel audit. Not a physical device.",
+  "samples": [
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "first-dark-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "first visit",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "first-light-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "first visit, same document",
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "first-dark-320",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 23.33333396911621,
+      "state": "first visit, primary and selected energy fully visible",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "first-light-320",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 23.33333396911621,
+      "state": "first visit, same scroll and conditions",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "card-dark-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "real recommendation, first success",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "card-light-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "same real recommendation and scroll",
+      "theme": "light",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "about-dark-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": -0.000030517578125
+      },
+      "rootFont": "16px",
+      "scrollY": 464.6666564941406,
+      "state": "about expanded, real theme and data controls",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "card-dark-320-200",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "32px",
+      "scrollY": 1273.3333740234375,
+      "state": "200% root font, actual recommendation gauge and actions",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "card-light-320-200",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "32px",
+      "scrollY": 1273.3333740234375,
+      "state": "200% root font, same card and scroll",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "controls-light-320-200",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "32px",
+      "scrollY": 478,
+      "state": "200% root font, primary and selected energy area audit",
+      "theme": "light",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 568,
+      "horizontalOverflow": false,
+      "name": "controls-dark-320-200",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "32px",
+      "scrollY": 478,
+      "state": "200% root font, same conditions and scroll",
+      "theme": "dark",
+      "width": 320
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "completed-dark-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "confirmed completed real recommendation",
+      "theme": "dark",
+      "width": 390
+    },
+    {
+      "devicePixelRatio": 1.5,
+      "height": 844,
+      "horizontalOverflow": false,
+      "name": "completed-light-390",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFont": "16px",
+      "scrollY": 0,
+      "state": "same confirmed completion and scroll",
+      "theme": "light",
+      "width": 390
+    }
+  ]
+}

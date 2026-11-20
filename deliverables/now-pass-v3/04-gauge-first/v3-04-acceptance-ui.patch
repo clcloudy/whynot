@@ -1,0 +1,11 @@
+--- source-before/acceptance-ui.mjs	2026-11-20 17:11:43.182058100 +0800
++++ source-after/acceptance-ui.mjs	2026-11-20 17:21:50.181090900 +0800
+@@ -207,7 +207,7 @@
+     check('200%无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth);
+     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
+     check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
+-    check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.badge').scrollHeight <= d.querySelector('.badge').clientHeight);
++    check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
+   }
+   if (group === 'b4') {
+     const root = d.documentElement, key = 'whynot-theme';

@@ -1,0 +1,108 @@
+diff --git a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/app.js b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/app.js
+index bde09c2..551d6b9 100644
+--- a/E:/whynot/deliverables/now-pass-v3/06-completion/source-before/app.js
++++ b/E:/whynot/deliverables/now-pass-v3/06-completion/source-after/app.js
+@@ -69,7 +69,7 @@ function cardResult(value) {
+ }
+ const state = {
+   sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
+-  feedbackPending: false, feedbackAttempts: {}, card: null,
++  feedbackPending: false, feedbackAttempts: {}, card: null, completionHeight: 0,
+ };
+ const result = document.getElementById('result');
+ const status = document.getElementById('status');
+@@ -83,7 +83,7 @@ const settingsToggle = document.getElementById('settings-toggle');
+ const about = document.getElementById('about');
+ const SVG_OPEN_64 = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 7.2 H7.2 V40.8 H40.8 V19.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 32 H38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+ const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
+-const SVG_CLOSED_16 = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 2.4 H2.4 V13.6 H13.6 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>';
++const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
+ function conditions() {
+   return {
+     budget: Number(document.querySelector('input[name="budget"]:checked').value),
+@@ -174,10 +174,11 @@ function syncConditions() {
+   }
+   const swap = result.querySelector('[data-focus="swap"]');
+   if (!swap) return;
+-  swap.textContent = changed ? '按新条件再来一条' : '换一个';
++  const label = state.card.completed ? '换一张' : '换一个';
++  swap.textContent = changed ? '按新条件再来一条' : label;
+   swap.closest('.card-actions')?.classList.toggle('changed', changed);
+   const context = state.conditions;
+-  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `换一个，保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
++  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `${label}，${state.card.completed ? '换一个建议，' : ''}保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
+   swap.disabled = state.busy || navigator.onLine === false;
+   swap.setAttribute('aria-disabled', String(swap.disabled));
+ }
+@@ -200,19 +201,19 @@ function feedbackButton(label, kind) {
+ }
+ function completedRow() {
+   const row = el('div', 'done-row');
++  if (state.completionHeight) row.style.minHeight = `${state.completionHeight}px`;
+   const done = el('span', 'done-state');
+   done.tabIndex = -1;
+   done.dataset.focus = 'completed';
+-  done.setAttribute('aria-label', '已完成。这条记下了。');
+-  done.innerHTML = SVG_CLOSED_16;
+-  done.append('已完成');
+-  const share = el('button', 'textbtn', '分享这条');
++  done.setAttribute('aria-label', '已完成，不可撤销');
++  done.textContent = '已完成';
++  const share = el('button', 'textbtn', '分享此刻');
+   share.type = 'button';
+   share.dataset.focus = 'share';
+-  share.setAttribute('aria-label', '分享这条建议');
++  share.setAttribute('aria-label', '分享此刻，分享这条已完成的建议');
+   share.setAttribute('aria-disabled', String(state.feedbackPending || shareBusy));
+   share.addEventListener('click', shareCard);
+-  row.append(done, el('span', 'done-spacer'), swapButton('textbtn'), share);
++  row.append(done, swapButton('textbtn'), share);
+   return row;
+ }
+ const shareStatus = document.getElementById('share-status');
+@@ -237,7 +238,7 @@ async function shareCard() {
+   const button = result.querySelector('[data-focus="share"]');
+   button?.setAttribute('aria-disabled', 'true');
+   const title = Array.from(card.title).slice(0, 40).join('').replace(/[。！？.!?]+$/, '');
+-  const text = `刚看到一条 ${state.conditions.budget} 分钟能做的小事：${title}。你也可以选一次自己的空当。\n${location.origin}${location.pathname}`;
++  const text = `刚完成一件约 ${card.minutes} 分钟的小事：${title}。你也可以出一张自己的此刻。\n${location.origin}${location.pathname}`;
+   try {
+     if (typeof navigator.share === 'function') {
+       try { await navigator.share({ text }); return; }
+@@ -310,7 +311,10 @@ function buildCard() {
+   stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'));
+   const sep = el('div', 'ticket-sep');
+   sep.setAttribute('aria-hidden', 'true');
+-  if (card.completed) article.classList.add('ticket-done');
++  if (card.completed) {
++    article.classList.add('ticket-done');
++    article.insertAdjacentHTML('beforeend', SVG_STAMP);
++  }
+   article.append(head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {
+@@ -328,8 +332,14 @@ function renderCard() {
+   const active = document.activeElement;
+   const key = result.contains(active) ? active.dataset.focus : null;
+   const old = result.querySelector('.card');
+-  if (old) old.replaceWith(buildCard());
+-  else result.append(buildCard());
++  if (!state.card.completed) state.completionHeight = 0;
++  else if (old) state.completionHeight = old.querySelector('.card-actions, .done-row').getBoundingClientRect().height;
++  const card = buildCard();
++  if (old) {
++    card.classList.add('card-refresh');
++    if (state.card.completed && !old.classList.contains('ticket-done')) card.querySelector('.ticket-stamp').classList.add('stamp-in');
++    old.replaceWith(card);
++  } else result.append(card);
+   syncConditions();
+   if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));
+ }
+@@ -376,6 +386,7 @@ async function ask(snapshot = conditions(), source = 'primary') {
+     const card = cardResult(body);
+     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+     state.card = card;
++    state.completionHeight = 0;
+     state.seq++;
+     state.conditions = snapshot;
+     state.conditionsMatch = sameConditions(card, snapshot);

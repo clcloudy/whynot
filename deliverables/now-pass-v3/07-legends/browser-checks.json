@@ -1,0 +1,32 @@
+{
+  "base": "http://127.0.0.1:8877",
+  "focusOutline": "solid",
+  "generatedAt": "2026-11-20T10:21:50.435Z",
+  "mouseGenerateAndLike": true,
+  "notes": [
+    "Actual local API routes; test service retains fake model configuration.",
+    "Enter tool emitted trusted keydown/keyup without click on both app buttons and a plain native button; Enter activation remains unverified.",
+    "Tab, Shift+Tab and Space activation verified.",
+    "320px/200% visual fixture: category remains 16px and exactly one compact feedback mark is visible; existing gauge endpoint SVGs shrink to 0px (outside this stage, not fixed)."
+  ],
+  "preference": "dislike",
+  "requests": [
+    {
+      "route": "/functions/v1/app/api/session",
+      "status": 200
+    },
+    {
+      "route": "/functions/v1/app/api/recommendations",
+      "status": 201
+    },
+    {
+      "route": "/functions/v1/app/api/recommendations/:id/feedback",
+      "status": 200
+    },
+    {
+      "route": "/functions/v1/app/api/recommendations/:id/feedback",
+      "status": 200
+    }
+  ],
+  "tabToDislikeAndSpace": true
+}

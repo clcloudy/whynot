@@ -1,0 +1,240 @@
+{
+  "base": "http://127.0.0.1:8879",
+  "generatedAt": "2026-11-20T11:06:01.628Z",
+  "limitations": [
+    "Desktop embedded Chromium only",
+    "Same-origin iframe screenshots use programmatic actions, not trusted input",
+    "Root 32px approximates text scaling, not native browser zoom",
+    "Gallery is not native OS installation",
+    "Screenshots include host gray outside iframe viewport"
+  ],
+  "screens": [
+    {
+      "dpr": 1.5,
+      "file": "01-install-assets.png",
+      "images": [
+        {
+          "display": [
+            16,
+            16
+          ],
+          "natural": [
+            150,
+            150
+          ],
+          "source": "/icon.svg"
+        },
+        {
+          "display": [
+            32,
+            32
+          ],
+          "natural": [
+            150,
+            150
+          ],
+          "source": "/icon.svg"
+        },
+        {
+          "display": [
+            64,
+            64
+          ],
+          "natural": [
+            150,
+            150
+          ],
+          "source": "/icon.svg"
+        },
+        {
+          "display": [
+            96,
+            96
+          ],
+          "natural": [
+            180,
+            180
+          ],
+          "source": "/apple-touch-icon.png"
+        },
+        {
+          "display": [
+            96,
+            96
+          ],
+          "natural": [
+            192,
+            192
+          ],
+          "source": "/icon-192.png"
+        },
+        {
+          "display": [
+            160,
+            160
+          ],
+          "natural": [
+            512,
+            512
+          ],
+          "source": "/icon-512.png"
+        }
+      ],
+      "kind": "temporary-gallery",
+      "viewport": [
+        524,
+        559
+      ]
+    },
+    {
+      "clientWidth": 375,
+      "completed": false,
+      "dpr": 1.5,
+      "file": "02-light-first-390.png",
+      "guideVisible": true,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "16px",
+      "scroll": [
+        0,
+        0
+      ],
+      "scrollWidth": 375,
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "clientWidth": 375,
+      "completed": false,
+      "dpr": 1.5,
+      "file": "03-light-card-390.png",
+      "guideVisible": false,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "16px",
+      "scroll": [
+        0,
+        0
+      ],
+      "scrollWidth": 375,
+      "theme": "light",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "clientWidth": 375,
+      "completed": false,
+      "dpr": 1.5,
+      "file": "04-dark-card-390.png",
+      "guideVisible": false,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "16px",
+      "scroll": [
+        0,
+        0
+      ],
+      "scrollWidth": 375,
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "clientWidth": 375,
+      "completed": true,
+      "dpr": 1.5,
+      "file": "05-dark-completed-390.png",
+      "guideVisible": false,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 844,
+        "width": 390,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "16px",
+      "scroll": [
+        0,
+        0
+      ],
+      "scrollWidth": 375,
+      "theme": "dark",
+      "viewport": [
+        390,
+        844
+      ]
+    },
+    {
+      "clientWidth": 305,
+      "completed": true,
+      "dpr": 1.5,
+      "file": "06-dark-completed-320-root32.png",
+      "guideVisible": false,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "32px",
+      "scroll": [
+        0,
+        1050
+      ],
+      "scrollWidth": 305,
+      "theme": "dark",
+      "viewport": [
+        320,
+        568
+      ]
+    },
+    {
+      "clientWidth": 305,
+      "completed": true,
+      "dpr": 1.5,
+      "file": "07-dark-completed-actions-320-root32.png",
+      "guideVisible": false,
+      "kind": "same-origin-product-iframe",
+      "rect": {
+        "height": 568,
+        "width": 320,
+        "x": 0,
+        "y": 0
+      },
+      "rootFontSize": "32px",
+      "scroll": [
+        0,
+        1727.3333740234375
+      ],
+      "scrollWidth": 305,
+      "theme": "dark",
+      "viewport": [
+        320,
+        568
+      ]
+    }
+  ]
+}

@@ -1,0 +1,486 @@
+{
+  "generatedAt": "2026-11-20T11:09:21.352794+00:00",
+  "stage": "V3-09",
+  "checks": [
+    {
+      "name": "12 pre-edit snapshots retain original hashes",
+      "passed": true
+    },
+    {
+      "name": "12 final snapshots equal current source bytes and recorded hashes",
+      "passed": true
+    },
+    {
+      "name": "exactly 9 stage changes",
+      "passed": true
+    },
+    {
+      "name": "app.js style.css index.html unchanged this stage",
+      "passed": true
+    },
+    {
+      "name": "four continuous snapshots match V3-08",
+      "passed": true
+    },
+    {
+      "name": "final-web has all 8 current assets",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/dev__acceptance-ui.mjs.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/dev__generate-icons.mjs.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/README.md.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/web__apple-touch-icon.png.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/web__icon-192.png.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/web__icon-512.png.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/web__icon.svg.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/web__manifest.webmanifest.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check patches/产品说明.md.patch",
+      "passed": true
+    },
+    {
+      "name": "reverse check cumulative-from-030004d.patch",
+      "passed": true
+    },
+    {
+      "name": "API reports total 274 passed and 0 failed",
+      "passed": true
+    },
+    {
+      "name": "UI reports total 309 passed and 0 failed",
+      "passed": true
+    },
+    {
+      "name": "asset sizes match independent final measurement",
+      "passed": true
+    },
+    {
+      "name": "current gzip execution ceiling passes",
+      "passed": true
+    },
+    {
+      "name": "7 screenshots match metadata",
+      "passed": true
+    },
+    {
+      "name": "product screenshot metadata has no horizontal overflow",
+      "passed": true
+    },
+    {
+      "name": "icon audit hashes match final assets",
+      "passed": true
+    },
+    {
+      "name": "source plan remains unchanged",
+      "passed": true
+    },
+    {
+      "name": "requested stage log exists and is nonempty",
+      "passed": true
+    }
+  ],
+  "archiveIntegrityPassed": true,
+  "functionalRegressionPassed": true,
+  "allDeliveryGatesPassed": false,
+  "remainingFailedGates": [
+    "app.js raw",
+    "style.css raw",
+    "index.html raw",
+    "core raw 34000",
+    "core gzip 14336",
+    "original full web gzip 16384 reference"
+  ],
+  "unverifiedGates": [
+    "physical devices",
+    "native install/share",
+    "spoken screen reader",
+    "native Enter activation",
+    "multiple browser engines",
+    "performance benchmarks",
+    "public deployment"
+  ],
+  "screenshots": [
+    {
+      "file": "01-install-assets.png",
+      "dimensions": [
+        762,
+        1202
+      ],
+      "sha256": "9e811d6700089646163f156bb6c27eac1caf6e139bb0c491025daa9593bab2ba",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "02-light-first-390.png",
+      "dimensions": [
+        762,
+        1266
+      ],
+      "sha256": "54e19f7402d3624997d6fc5500f89308a00681a7196a69bc3446a7ea2ff9cf7b",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "03-light-card-390.png",
+      "dimensions": [
+        762,
+        1266
+      ],
+      "sha256": "36fd66ad22ecd73d86a9ba7b5eff1254731fb75c8c18de6a5bc8bba9061a8fe8",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "04-dark-card-390.png",
+      "dimensions": [
+        762,
+        1266
+      ],
+      "sha256": "fc90cff03b92e467fe2e9a8241ade6147c94920e5f206093e59d53c73938355f",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "05-dark-completed-390.png",
+      "dimensions": [
+        762,
+        1266
+      ],
+      "sha256": "8b2b26dabc23ccf151bc96c6e3f37c5d731b87344746944a9b848450b9179770",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "06-dark-completed-320-root32.png",
+      "dimensions": [
+        762,
+        852
+      ],
+      "sha256": "27fc9640d6574fbd01cf2668469627ea6a0750c22cba3593715edca2cd885724",
+      "openedForVisualReview": true
+    },
+    {
+      "file": "07-dark-completed-actions-320-root32.png",
+      "dimensions": [
+        762,
+        852
+      ],
+      "sha256": "36e719f61ce60622247c9996eaebb44fae158d4b3f8a58c6e98417ac5ac2c647",
+      "openedForVisualReview": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "api-results.json",
+      "bytes": 687,
+      "sha256": "4b88a1f362b34ae98a2fe3a904530f23529768fcad261cc28fe452cfc6a4ce5c"
+    },
+    {
+      "path": "asset-sizes-node.json",
+      "bytes": 1692,
+      "sha256": "9e5d1336baaa7e73f1446873e841417c09fe9af34fcac8ff87b36f3130a27be7"
+    },
+    {
+      "path": "before-hashes.json",
+      "bytes": 1761,
+      "sha256": "aa63c0a58cc9cb97e5e9c0c9b39b0b21b2798a6a21d9aea9dd76ecdf018bb552"
+    },
+    {
+      "path": "browser-checks.json",
+      "bytes": 2891,
+      "sha256": "d6ed6944af507d01c96dccc54b27531f97ece6b5a3a9e4d67a6fe2bb3fe7ee0a"
+    },
+    {
+      "path": "cumulative-from-030004d.patch",
+      "bytes": 120224,
+      "sha256": "75c8e2436fdf995a69d46185095f30d0ed0c5e57c7eaef6bd1fe276e22f170f0"
+    },
+    {
+      "path": "file-hashes.json",
+      "bytes": 6299,
+      "sha256": "b1fef523418d2e73072fb06c0c5dadea4fa847a61d98211752d37409b56c0a67"
+    },
+    {
+      "path": "final-web/app.js",
+      "bytes": 28104,
+      "sha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423"
+    },
+    {
+      "path": "final-web/apple-touch-icon.png",
+      "bytes": 510,
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "final-web/icon-192.png",
+      "bytes": 634,
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "final-web/icon-512.png",
+      "bytes": 1594,
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    },
+    {
+      "path": "final-web/icon.svg",
+      "bytes": 288,
+      "sha256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a"
+    },
+    {
+      "path": "final-web/index.html",
+      "bytes": 6232,
+      "sha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3"
+    },
+    {
+      "path": "final-web/manifest.webmanifest",
+      "bytes": 404,
+      "sha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb"
+    },
+    {
+      "path": "final-web/style.css",
+      "bytes": 20673,
+      "sha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52"
+    },
+    {
+      "path": "icon-audit.json",
+      "bytes": 2089,
+      "sha256": "dd021c13ea84074055c3398117c1437b35ad12d348cafc77e5f60aeb3ca21ada"
+    },
+    {
+      "path": "patches/dev__acceptance-ui.mjs.patch",
+      "bytes": 5827,
+      "sha256": "a46943980edf775d7f54b016476fc8f4bdbd5180e010dab61a62b9ec6de60dba"
+    },
+    {
+      "path": "patches/dev__generate-icons.mjs.patch",
+      "bytes": 1877,
+      "sha256": "bf2c85002670c35fd78c92ec08d246fa03cb9634f54d5e3774d9f2d693e1da93"
+    },
+    {
+      "path": "patches/README.md.patch",
+      "bytes": 10207,
+      "sha256": "c753c09be0130e60beac639ca8956ee07c3e99c5b90cd12cd75b4d3f8d6f5247"
+    },
+    {
+      "path": "patches/web__apple-touch-icon.png.patch",
+      "bytes": 1438,
+      "sha256": "bad2c7ac7d26cd2968ff7bdb61b4ca478ba0895b865c65fdf63d7f0bfa975e3a"
+    },
+    {
+      "path": "patches/web__icon-192.png.patch",
+      "bytes": 1598,
+      "sha256": "d6e2b23f3547d8eaaf5713d67857fd63e5f3593528e0b1e946759b5557571246"
+    },
+    {
+      "path": "patches/web__icon-512.png.patch",
+      "bytes": 3418,
+      "sha256": "aa79377f5ac4325473f5694bb8c20c7e7305800cfb36fc2a7d9350f076f7e566"
+    },
+    {
+      "path": "patches/web__icon.svg.patch",
+      "bytes": 578,
+      "sha256": "c8d4979805efaf1f93fab4040d5bd0de0e3608cb9911cba3fdf80733bc98c842"
+    },
+    {
+      "path": "patches/web__manifest.webmanifest.patch",
+      "bytes": 476,
+      "sha256": "0647849601e040eb34401f623ab3f32420cd50b2ae2f6fbf8d341ffb5aa33546"
+    },
+    {
+      "path": "patches/产品说明.md.patch",
+      "bytes": 13663,
+      "sha256": "e6bbc0286c9da572bfe7477ef8c31fd4fa766d8b265f73486d45b3dbd7397c9a"
+    },
+    {
+      "path": "screens/01-install-assets.png",
+      "bytes": 34080,
+      "sha256": "9e811d6700089646163f156bb6c27eac1caf6e139bb0c491025daa9593bab2ba"
+    },
+    {
+      "path": "screens/02-light-first-390.png",
+      "bytes": 58341,
+      "sha256": "54e19f7402d3624997d6fc5500f89308a00681a7196a69bc3446a7ea2ff9cf7b"
+    },
+    {
+      "path": "screens/03-light-card-390.png",
+      "bytes": 83784,
+      "sha256": "36fd66ad22ecd73d86a9ba7b5eff1254731fb75c8c18de6a5bc8bba9061a8fe8"
+    },
+    {
+      "path": "screens/04-dark-card-390.png",
+      "bytes": 82594,
+      "sha256": "fc90cff03b92e467fe2e9a8241ade6147c94920e5f206093e59d53c73938355f"
+    },
+    {
+      "path": "screens/05-dark-completed-390.png",
+      "bytes": 85918,
+      "sha256": "8b2b26dabc23ccf151bc96c6e3f37c5d731b87344746944a9b848450b9179770"
+    },
+    {
+      "path": "screens/06-dark-completed-320-root32.png",
+      "bytes": 42885,
+      "sha256": "27fc9640d6574fbd01cf2668469627ea6a0750c22cba3593715edca2cd885724"
+    },
+    {
+      "path": "screens/07-dark-completed-actions-320-root32.png",
+      "bytes": 45111,
+      "sha256": "36e719f61ce60622247c9996eaebb44fae158d4b3f8a58c6e98417ac5ac2c647"
+    },
+    {
+      "path": "screenshot-metadata.json",
+      "bytes": 4666,
+      "sha256": "347278cc9e53d21ec3c550fe05fb3d9bc6d32bc2fd329f5636185ec904ebd6f8"
+    },
+    {
+      "path": "source-after/acceptance-ui.mjs",
+      "bytes": 60278,
+      "sha256": "bfc4b0ade4713e5ad7d01d6d8c759f10969de060a6d09abe1644446faeb60e31"
+    },
+    {
+      "path": "source-after/app.js",
+      "bytes": 28104,
+      "sha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423"
+    },
+    {
+      "path": "source-after/apple-touch-icon.png",
+      "bytes": 510,
+      "sha256": "5861c03de0eae0f5b2d2e5fa13e4fe42ca7e81922753192f5369e8a77351715d"
+    },
+    {
+      "path": "source-after/generate-icons.mjs",
+      "bytes": 3254,
+      "sha256": "7ea99391f77ade8de796bc742fd16dd06b0ae81039317cc942deca565767da50"
+    },
+    {
+      "path": "source-after/icon-192.png",
+      "bytes": 634,
+      "sha256": "291af4e8278f2c01a3efdd3708c843d5cef7b540c7b41f449bd4088583a23c9a"
+    },
+    {
+      "path": "source-after/icon-512.png",
+      "bytes": 1594,
+      "sha256": "1cf61f191c7346c99a58c36c864e3e0c91bb9b9b07d80557a92d664195c959a9"
+    },
+    {
+      "path": "source-after/icon.svg",
+      "bytes": 288,
+      "sha256": "f469b9def48aee98e8a6ebf147cd48f9ac9faf6ba2da80a007f48d7527fb840a"
+    },
+    {
+      "path": "source-after/index.html",
+      "bytes": 6232,
+      "sha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3"
+    },
+    {
+      "path": "source-after/manifest.webmanifest",
+      "bytes": 404,
+      "sha256": "e290c9889e775f7274ae8b8e5f9191dcf5d59cc022f5d8cd82fc756656427beb"
+    },
+    {
+      "path": "source-after/README.md",
+      "bytes": 13881,
+      "sha256": "ccbc39f955bd837f17be8f6c9ab774eb6c97227c99d5ce850de8dd6355804a71"
+    },
+    {
+      "path": "source-after/style.css",
+      "bytes": 20673,
+      "sha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52"
+    },
+    {
+      "path": "source-after/产品说明.md",
+      "bytes": 12939,
+      "sha256": "cd0f1c5aa1e0d91511d38d4a9af06c8cf2df023acbec683b384dfe52af4eed11"
+    },
+    {
+      "path": "source-before/acceptance-ui.mjs",
+      "bytes": 55656,
+      "sha256": "115ef133e6a52f2f674a3f0c1bf576dbce3fee4d51365bc354fd6ee090e4f004"
+    },
+    {
+      "path": "source-before/app.js",
+      "bytes": 28104,
+      "sha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423"
+    },
+    {
+      "path": "source-before/apple-touch-icon.png",
+      "bytes": 487,
+      "sha256": "e7837ff6fd78a6950bc3267ecfecaa3bd6344fd321baed495c29fb3280e93692"
+    },
+    {
+      "path": "source-before/generate-icons.mjs",
+      "bytes": 3213,
+      "sha256": "d97d15219ac7ebc4e73d4d484597ea5a37474593f60230efafbbaa1c85a3938c"
+    },
+    {
+      "path": "source-before/icon-192.png",
+      "bytes": 500,
+      "sha256": "755be23f5b9d8c0504799c34a6433119dc7a7256716721ecc854f9594fc47f57"
+    },
+    {
+      "path": "source-before/icon-512.png",
+      "bytes": 1256,
+      "sha256": "d1cbb056c601fee0b9e1bc84daa33e15d6433d4167172f30fd926bca80b15dd7"
+    },
+    {
+      "path": "source-before/icon.svg",
+      "bytes": 299,
+      "sha256": "620c8dbc9230ed9bee89e0a395979917b9b44e19f6f154ab740661787fdee418"
+    },
+    {
+      "path": "source-before/index.html",
+      "bytes": 6232,
+      "sha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3"
+    },
+    {
+      "path": "source-before/manifest.webmanifest",
+      "bytes": 404,
+      "sha256": "96aaa1329f8e581c434ce43e37d51390c300a0b17d4d38411defc11d276d4f41"
+    },
+    {
+      "path": "source-before/README.md",
+      "bytes": 11357,
+      "sha256": "5ef1343d91cc22bbf4a30d37cda3f7085c6d7e1afc58b4ce9e067af61aa80d9f"
+    },
+    {
+      "path": "source-before/style.css",
+      "bytes": 20673,
+      "sha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52"
+    },
+    {
+      "path": "source-before/产品说明.md",
+      "bytes": 9647,
+      "sha256": "6e84d6b2ccc6020d514cf947a19987b8dd2bb19515199c1a0d9746e1028e6931"
+    },
+    {
+      "path": "ui-results.json",
+      "bytes": 54351,
+      "sha256": "c1b9bd0741eaa4531487b5c72993038a7101fcc16cfe216c1430b14a5ab8c166"
+    },
+    {
+      "path": "V3-09-安装图标与最终交付审计日志.md",
+      "bytes": 14333,
+      "sha256": "8a7a24d60465d1d2cac050d6a0c0ca9353500dda0e2b09cb87da4517327a15dc"
+    }
+  ],
+  "stageLogSha256": "8a7a24d60465d1d2cac050d6a0c0ca9353500dda0e2b09cb87da4517327a15dc",
+  "cumulativeBaseline": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "scope": "Local frontend delivery archive only; no git commit, push, deployment or publication performed; verification report excludes its own hash"
+}

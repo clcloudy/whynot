@@ -1,0 +1,38 @@
+{
+  "baseline": "030004dbc6e4212aaf934b596336eaf602e2267a",
+  "scope": "V3-08 snapshots; cumulative patch spans V3-01 through V3-08; not independently runnable",
+  "files": [
+    {
+      "path": "web/app.js",
+      "beforeSha256": "8e497c6eb8838f132011ee9f41aa10dce5dc9c9e3dd501a507b70ebf81ff5526",
+      "afterSha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423",
+      "priorStageMatchesBefore": true,
+      "workingTreeMatchesAfter": true,
+      "changed": true
+    },
+    {
+      "path": "web/style.css",
+      "beforeSha256": "dcbd83310db2aa23a1e39bc8b0d5e4b8c2926d01c18249383cad708a5c08ce77",
+      "afterSha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52",
+      "priorStageMatchesBefore": true,
+      "workingTreeMatchesAfter": true,
+      "changed": true
+    },
+    {
+      "path": "web/index.html",
+      "beforeSha256": "1c40bcbe901d2157f265209815022448167c50fd1f37c8cfe50e6a373140bfb9",
+      "afterSha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3",
+      "priorStageMatchesBefore": true,
+      "workingTreeMatchesAfter": true,
+      "changed": true
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "beforeSha256": "68f56729da9b4397cd332588fad3bb7df69cb855469f7df38d6ea405f7f422b2",
+      "afterSha256": "115ef133e6a52f2f674a3f0c1bf576dbce3fee4d51365bc354fd6ee090e4f004",
+      "priorStageMatchesBefore": true,
+      "workingTreeMatchesAfter": true,
+      "changed": true
+    }
+  ]
+}

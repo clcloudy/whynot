@@ -1,0 +1,773 @@
+diff --git a/dev/acceptance-ui.mjs b/dev/acceptance-ui.mjs
+index 1cb147d..5bfbd7f 100644
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -207,7 +207,240 @@ export default async function run(group = 'state') {
+     check('200%无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth);
+     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
+     check('200%分段2×2', segments[0].top === segments[1].top && segments[2].top === segments[3].top && segments[2].top > segments[0].top);
+-    check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.badge').scrollHeight <= d.querySelector('.badge').clientHeight);
++    check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
++  }
++  if (group === 'legends') {
++    const css = node => w.getComputedStyle(node);
++    const visibleMarks = () => [...d.querySelectorAll('.preference-mark svg')].filter(node => node.getBoundingClientRect().width > 0);
++    const geometry = () => ['.card', '.ticket-body', '.ticket-stub', '.card-actions'].map(selector => {
++      const r = d.querySelector(selector).getBoundingClientRect();
++      return [r.top, r.left, r.width, r.height];
++    });
++    const sameGeometry = (a, b) => a.every((r, i) => r.every((v, j) => Math.abs(v - b[i][j]) < 1));
++    const originals = new Map();
++    frame.style.width = '320px';
++    for (const [category, label, name] of [['rest', '歇', '休息'], ['observe', '看', '观察'], ['listen', '听', '聆听'], ['tidy', '归', '整理'], ['explore', '探', '探索']]) {
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (!String(url).endsWith('/api/recommendations')) return r;
++        return w.Response.json({ ...await r.json(), category });
++      };
++      await w.ask();
++      const icon = d.querySelector('.category-icon'), rect = icon.getBoundingClientRect();
++      originals.set(category, icon.innerHTML);
++      check(`${category}图例16px且位于票头编号旁`, rect.width === 16 && rect.height === 16 && icon.parentElement.className === 'ticket-head' && icon.nextElementSibling.className === 'ticket-code' && icon.getAttribute('viewBox') === '0 0 20 20');
++      check(`${category}装饰隐藏且类别文字保留`, icon.getAttribute('aria-hidden') === 'true' && icon.getAttribute('focusable') === 'false' && d.querySelector('.cat').textContent === label && d.querySelector('.cat').getAttribute('aria-label') === `类别：${name}`);
++      for (const theme of ['light', 'dark']) {
++        w.applyTheme(theme);
++        check(`${category}/${theme}静态中性色且320px无横向滚动`, css(icon).animationName === 'none' && css(icon).color === css(d.querySelector('.cat')).color && d.documentElement.scrollWidth === d.documentElement.clientWidth);
++      }
++    }
++    check('五类几何不同且均不依赖外部图像', new Set(originals.values()).size === 5 && [...d.querySelectorAll('.category-icon use, .category-icon image')].length === 0);
++    for (const category of [undefined, null, 'toString', '<svg onload=alert(1)>', ['rest'], {}]) {
++      let id;
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (!String(url).endsWith('/api/recommendations')) return r;
++        const body = await r.json(); id = body.id;
++        if (category === undefined) delete body.category; else body.category = category;
++        return w.Response.json(body);
++      };
++      await w.ask();
++      check(`异常类别${JSON.stringify(category) ?? '缺失'}仅隐藏图例`, state().card.id === id && state().card.category === null && !d.querySelector('.category-icon, .cat') && !!d.querySelector('#card-first') && d.querySelectorAll('.card-actions button').length === 4);
++    }
++    w.fetch = native;
++    await w.ask();
++    check('未反馈时预留标记位但没有图形', d.querySelectorAll('.preference-mark').length === 2 && !d.querySelector('.preference-mark svg'));
++    await pause(280);
++    const gate = deferred();
++    let requests = 0;
++    w.fetch = async (url, init) => {
++      if (!String(url).endsWith('/feedback')) return native(url, init);
++      requests++;
++      const r = await native(url, init); await gate.promise; return r;
++    };
++    d.querySelector('[data-focus="like"]').focus({ preventScroll: true });
++    const feedbackCardId = state().card.id;
++    const before = geometry(), pending = w.sendFeedback('like');
++    const heart = visibleMarks()[0];
++    check('乐观喜欢显示单枚12px心形且120ms一次淡入', visibleMarks().length === 1 && heart.getBoundingClientRect().width === 12 && css(heart).animationName === 'feedbackIn' && css(heart).animationDuration === '0.12s' && css(heart).animationIterationCount === '1');
++    check('反馈不重播整卡且布局不位移', css(d.querySelector('.card')).animationName === 'none' && sameGeometry(before, geometry()));
++    await w.sendFeedback('like'); await w.sendFeedback('dislike');
++    check('反馈在途防连点且焦点保留', requests === 1 && state().card.preference === 'like' && d.activeElement.dataset.focus === 'like' && d.querySelector('[data-focus="like"]').getAttribute('aria-disabled') === 'true');
++    gate.resolve(); await pending;
++    await w.sendFeedback('like');
++    check('确认不重建标记且同选项不重发', heart === visibleMarks()[0] && requests === 1 && d.querySelector('[data-focus="like"]').getAttribute('aria-disabled') === 'false');
++    await pause(160);
++    d.documentElement.style.fontSize = '32px';
++    check('完成淡入后切换窄版不重播隐藏副本', visibleMarks().length === 1 && css(visibleMarks()[0]).animationName === 'none');
++    d.documentElement.style.fontSize = '16px';
++    check('切回副券仍不重播且动画类已清理', visibleMarks().length === 1 && !d.querySelector('.preference-mark .feedback-in'));
++    w.fetch = native;
++    await feedback('dislike');
++    const fold = visibleMarks()[0].innerHTML;
++    check('可改选折角且两按钮pressed互斥', fold !== heart.innerHTML && d.querySelector('[data-focus="like"]').getAttribute('aria-pressed') === 'false' && d.querySelector('[data-focus="dislike"]').getAttribute('aria-pressed') === 'true' && d.getElementById('feedback-status').textContent.includes('可以改'));
++    await feedback('like');
++    check('可再次改回心形且反馈归属不变', visibleMarks()[0].innerHTML === heart.innerHTML && state().card.preference === 'like' && state().card.id === feedbackCardId);
++    w.fetch = (url, init) => String(url).endsWith('/feedback') ? Promise.resolve(response('test_failure', 500)) : native(url, init);
++    await feedback('dislike');
++    check('失败还原心形pressed及焦点且不重播动画', state().card.preference === 'like' && visibleMarks()[0].innerHTML === heart.innerHTML && css(visibleMarks()[0]).animationName === 'none' && d.querySelector('[data-focus="like"]').getAttribute('aria-pressed') === 'true' && d.activeElement.dataset.focus === 'dislike' && !!d.getElementById('feedback-status').textContent);
++    w.fetch = native;
++    for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
++      frame.style.width = `${width}px`; d.documentElement.style.fontSize = `${font}px`;
++      await pause(50);
++      const key = `${width}px/${font / 16 * 100}%`, marks = visibleMarks();
++      const keys = [...d.querySelectorAll('.card-actions button')].map(node => node.getBoundingClientRect());
++      check(`${key}只显示一个标记且热区≥44无横滚`, marks.length === 1 && keys.every(r => r.width >= 44 && r.height >= 44) && d.documentElement.scrollWidth === d.documentElement.clientWidth);
++      const a = marks[0].getBoundingClientRect(), b = d.querySelector('.card').getBoundingClientRect();
++      check(`${key}标记在票内且不覆盖正文`, a.left >= b.left && a.right <= b.right && a.top >= b.top && a.bottom <= b.bottom && ![...d.querySelectorAll('#card-title, .first, .detail')].some(node => { const r = node.getBoundingClientRect(); return a.left < r.right && a.right > r.left && a.top < r.bottom && a.bottom > r.top; }));
++      const kind = state().card.preference === 'like' ? 'dislike' : 'like';
++      d.querySelector(`[data-focus="${kind}"]`).focus({ preventScroll: true });
++      const beforeChange = geometry();
++      await w.sendFeedback(kind);
++      check(`${key}改选图形不引发布局位移`, sameGeometry(beforeChange, geometry()));
++    }
++    frame.style.width = '390px'; d.documentElement.style.fontSize = '16px';
++    for (const theme of ['light', 'dark']) {
++      w.applyTheme(theme); d.querySelector('.card').style.filter = 'grayscale(1)';
++      await pause(200);
++      const selected = d.querySelector('.feedback [aria-pressed="true"]'), other = d.querySelector('.feedback [aria-pressed="false"]');
++      check(`${theme}灰度仍有填充边框字重与形状区分`, css(selected).backgroundColor !== css(other).backgroundColor && css(selected).borderColor !== css(other).borderColor && css(selected).fontWeight === '600' && css(visibleMarks()[0].parentElement).color === 'rgb(27, 35, 52)');
++      d.querySelector('.card').style.removeProperty('filter');
++    }
++    const media = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]).filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
++    const saved = media.map(rule => rule.media.mediaText);
++    media.forEach(rule => { rule.media.mediaText = 'all'; });
++    await feedback(state().card.preference === 'like' ? 'dislike' : 'like');
++    check('模拟减少动态显示静态标记', css(visibleMarks()[0]).animationName === 'none' && css(visibleMarks()[0]).opacity === '1');
++    media.forEach((rule, i) => { rule.media.mediaText = saved[i]; });
++    const oldGate = deferred();
++    w.fetch = async (url, init) => { if (String(url).endsWith('/feedback')) { await oldGate.promise; return response('test_failure', 500); } return native(url, init); };
++    const stale = feedback(state().card.preference === 'like' ? 'dislike' : 'like');
++    await w.ask(w.conditions(), 'swap');
++    const nextId = state().card.id;
++    oldGate.resolve(); await stale;
++    check('旧反馈失败不会把标记带到新票', state().card.id === nextId && state().card.preference === null && !d.querySelector('.preference-mark svg') && !d.getElementById('feedback-status').textContent);
++    w.fetch = native;
++    await feedback('like'); await feedback('completed');
++    check('完成仪式保留已确认偏好且无反馈按钮', state().card.preference === 'like' && visibleMarks().length === 1 && !!d.querySelector('.ticket-stamp') && !d.querySelector('.feedback'));
++    const markRect = visibleMarks()[0].getBoundingClientRect(), stampRect = d.querySelector('.ticket-stamp').getBoundingClientRect();
++    check('完成后偏好标记与印章不重叠', markRect.right <= stampRect.left || markRect.left >= stampRect.right || markRect.bottom <= stampRect.top || markRect.top >= stampRect.bottom);
++  }
++  if (group === 'completion') {
++    const css = node => w.getComputedStyle(node);
++    const geometry = () => ['.card', '.ticket-body', '.foot'].map(selector => {
++      const r = d.querySelector(selector).getBoundingClientRect();
++      return [r.top, r.left, r.width, r.height];
++    });
++    const sameGeometry = (a, b) => a.every((r, i) => r.every((value, j) => Math.abs(value - b[i][j]) < 1));
++    let feedbackCalls = 0, shares = 0;
++    const failedGate = deferred();
++    Object.defineProperty(w.navigator, 'share', { configurable: true, value: async () => { shares++; } });
++    w.fetch = async (url, init) => {
++      if (!String(url).endsWith('/feedback')) return native(url, init);
++      feedbackCalls++; await failedGate.promise;
++      return response('request_failed', 500);
++    };
++    const failed = feedback('completed');
++    await w.sendFeedback('completed'); await w.shareCard();
++    check('完成在途双击只发一次且禁止分享', feedbackCalls === 1 && shares === 0 && state().feedbackPending && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'true');
++    check('乐观完成同步印章打孔编号与刻度', !!d.querySelector('.ticket-stamp') && css(d.querySelector('.card')).maskImage.includes('5px') && css(d.querySelector('.ticket-head .ticket-code')).color === css(d.querySelector('.ticket-stamp')).color && css(d.querySelector('.g-line line')).strokeDasharray === 'none');
++    check('完成状态不可点且保留焦点', d.activeElement.classList.contains('done-state') && d.activeElement.tagName === 'SPAN' && d.activeElement.getAttribute('aria-label') === '已完成，不可撤销');
++    check('印章出现时出票按钮不可见', css(d.getElementById('ask')).visibility === 'hidden');
++    failedGate.resolve(); await failed;
++    check('完成失败完整回滚且按钮恢复', !state().card.completed && !d.querySelector('.ticket-stamp, .done-row') && css(d.querySelector('.card')).maskImage === 'none' && css(d.querySelector('.g-line line')).strokeDasharray !== 'none' && css(d.getElementById('ask')).visibility === 'visible' && d.activeElement.dataset.focus === 'completed' && !!d.getElementById('feedback-status').textContent);
++
++    w.fetch = native;
++    for (const [width, fontSize] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
++      frame.style.width = `${width}px`;
++      d.documentElement.style.fontSize = `${fontSize}px`;
++      await w.ask(); await pause(300);
++      const label = `${width}px/${fontSize === 32 ? '200%' : '100%'}`;
++      d.querySelector('[data-focus="completed"]').focus({ preventScroll: true });
++      const before = geometry();
++      const gate = deferred();
++      w.fetch = async (url, init) => {
++        const r = await native(url, init);
++        if (String(url).endsWith('/feedback')) await gate.promise;
++        return r;
++      };
++      const completion = w.sendFeedback('completed');
++      const stamp = d.querySelector('.ticket-stamp');
++      const animation = stamp.getAnimations()[0];
++      check(`${label}只播放300ms印章不重播整卡入场`, css(stamp).animationDuration === '0.3s' && css(d.querySelector('.card')).animationName === 'none');
++      let stable = true;
++      for (const time of [0, 100, 200, 300]) {
++        if (animation) { animation.pause(); animation.currentTime = time; }
++        stable &&= sameGeometry(before, geometry());
++      }
++      check(`${label}盖章前后及300ms内布局不位移`, stable, JSON.stringify({ before, after: geometry() }));
++      const matrix = new w.DOMMatrix(css(stamp).transform);
++      check(`${label}固定负8度且无回弹`, Math.abs(Math.atan2(matrix.b, matrix.a) * 180 / Math.PI + 8) < 0.01 && Math.abs(Math.hypot(matrix.a, matrix.b) - 1) < 0.01);
++      const r = stamp.getBoundingClientRect(), card = d.querySelector('.card').getBoundingClientRect();
++      const body = d.querySelector('.ticket-body').getBoundingClientRect();
++      const textRight = body.right - parseFloat(css(d.querySelector('.ticket-body')).paddingRight);
++      check(`${label}印章在票面内且不盖正文`, r.left >= card.left && r.right <= card.right && (r.bottom <= body.top || r.left >= textRight));
++      check(`${label}完成操作无横向滚动且热区≥44`, d.documentElement.scrollWidth === d.documentElement.clientWidth && [...d.querySelectorAll('.done-row button')].every(button => { const r = button.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
++      gate.resolve(); await completion;
++      check(`${label}确认后不重复盖章且开放分享`, d.querySelector('.ticket-stamp') === stamp && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'false');
++      w.fetch = native;
++    }
++    let sent = 0;
++    w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) sent++; return native(url, init); };
++    await w.sendFeedback('completed'); await w.sendFeedback('completed');
++    check('确认后再次完成不发请求且不可撤销', sent === 0 && state().card.completed && !d.querySelector('.feedback'));
++    check('完成操作显示换一张与分享此刻且名称含可见文案', ['swap', 'share'].every(key => { const n = d.querySelector(`[data-focus="${key}"]`); return n.getAttribute('aria-label').includes(n.textContent); }) && d.querySelector('[data-focus="swap"]').textContent === '换一张' && d.querySelector('[data-focus="share"]').textContent === '分享此刻');
++    let payload = '';
++    Object.defineProperty(w.navigator, 'share', { configurable: true, value: async value => { payload = value.text; } });
++    w.history.replaceState(null, '', '/?private=completion#token');
++    await w.shareCard();
++    check('分享只含实际分钟与干净链接不含票号', payload.includes(`约 ${state().card.minutes} 分钟`) && payload.endsWith(location.origin + '/') && !payload.includes('private') && !payload.includes('token') && !payload.includes(state().card.id) && !payload.includes('NOW-'));
++
++    d.documentElement.style.fontSize = '16px';
++    frame.style.width = '390px';
++    w.fetch = native;
++    await w.ask();
++    select('budget', '5');
++    const expandedHeight = d.querySelector('.card-actions').getBoundingClientRect().height;
++    await feedback('completed');
++    check('改条件两行操作区完成后不收缩', Math.abs(d.querySelector('.done-row').getBoundingClientRect().height - expandedHeight) < 1);
++    const swapGate = deferred();
++    let recommendations = 0;
++    select('budget', '10');
++    w.fetch = async (url, init) => {
++      if (String(url).endsWith('/api/recommendations')) { recommendations++; await swapGate.promise; return response('request_failed', 500); }
++      return native(url, init);
++    };
++    const retainedHeight = d.querySelector('.done-row').getBoundingClientRect().height;
++    const swap = w.ask(w.conditions(), 'swap');
++    check('完成票退场期间主按钮仍隐藏', css(d.getElementById('ask')).visibility === 'hidden');
++    check('完成票实际播放160ms退场动画', css(d.querySelector('.card')).animationName === 'out' && css(d.querySelector('.card')).animationDuration === '0.16s');
++    await pause(200);
++    check('骨架接管后主按钮恢复且在途禁用', !!d.querySelector('.skeleton') && css(d.getElementById('ask')).visibility === 'visible' && d.getElementById('ask').disabled);
++    swapGate.resolve(); await swap;
++    check('换票失败保留完成票及重试入口', !!d.querySelector('.ticket-done') && !!d.querySelector('.retry') && css(d.getElementById('ask')).visibility === 'hidden' && recommendations === 1 && sent === 0);
++    check('换票失败回显保留完成区高度', Math.abs(d.querySelector('.done-row').getBoundingClientRect().height - retainedHeight) < 1);
++    const seen = [];
++    select('budget', '3');
++    w.fetch = (url, init) => { if (String(url).endsWith('/api/recommendations')) seen.push(JSON.parse(init.body)); return native(url, init); };
++    click('.retry'); while (state().busy) await pause(10);
++    check('完成后失败重试仍重放条件快照', seen.length === 1 && seen[0].budget === 10 && w.conditions().budget === 3 && !state().card.completed && css(d.getElementById('ask')).visibility === 'visible');
++
++    const media = [...d.styleSheets[0].cssRules].filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
++    const originalMedia = media.map(rule => rule.media.mediaText), match = w.matchMedia;
++    media.forEach(rule => { rule.media.mediaText = 'all'; });
++    w.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: true } : match.call(w, query);
++    await feedback('completed');
++    const reduced = d.querySelector('.ticket-stamp');
++    check('模拟减少动态立即呈现静态完成态', css(reduced).animationName === 'none' && css(reduced).opacity === '1' && reduced.getAnimations().length === 0 && !!d.querySelector('.ticket-done'));
++    await w.exitCard();
++    check('模拟减少动态跳过旧票退场', !d.querySelector('.card-out'));
++    media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
++    w.matchMedia = match;
++    delete w.navigator.share;
++    d.documentElement.style.fontSize = '';
++    frame.style.width = '390px';
++    w.fetch = native;
+   }
+   if (group === 'b4') {
+     const root = d.documentElement, key = 'whynot-theme';
+@@ -222,8 +455,8 @@ export default async function run(group = 'state') {
+       for (const theme of ['system', 'light', 'dark']) {
+         select('theme', theme);
+         const expected = theme === 'dark' || (theme === 'system' && dark);
+-        check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(24, 33, 28)' : 'rgb(246, 241, 231)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
+-        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#18211c' : '#f6f1e7')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
++        check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(16, 24, 39)' : 'rgb(234, 240, 248)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
++        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#101827' : '#eaf0f8')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
+@@ -255,8 +488,8 @@ export default async function run(group = 'state') {
+     w.localStorage.setItem(key, 'dark');
+     w.localStorage.setItem('whynot-guide', 'seen');
+     let p = await probePage(beforeApp);
+-    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(24, 33, 28)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
+-    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#18211c'));
++    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
++    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#101827'));
+     w.localStorage.removeItem('whynot-guide');
+     w.localStorage.setItem(key, 'unknown');
+     p = await probePage(beforeApp);
+diff --git a/web/app.js b/web/app.js
+index 605c7d4..1afca0a 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -3,6 +3,17 @@ const SESSION_KEY = 'whynot-session';
+ const GUIDE_KEY = 'whynot-guide';
+ const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
+ const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
++const CATEGORY_SHAPES = {
++  rest: '<path d="M4 17 11 10M14 10C20 6 13 2 13 2S8 6 11 8"/>',
++  observe: '<path d="M11 3H5a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V9"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/>',
++  listen: '<path d="M8 3a6 6 0 0 0 0 12M12 5a6 6 0 0 1 0 12"/>',
++  tidy: '<path d="M8 3a6 6 0 0 0 0 12ZM12 5a6 6 0 0 1 0 12Z"/>',
++  explore: '<path d="M3 16 8 10l4 2M15 3h-3v6h6V6"/><circle cx="3" cy="16" r="1.5" fill="currentColor" stroke="none"/>',
++};
++const PREFERENCE_SHAPES = {
++  like: '<path d="M6 10 2 6C-1 2 4 0 6 3c2-3 7-1 4 3Z" fill="currentColor"/>',
++  dislike: '<path d="M2 1h5l3 3v7H2ZM7 1v3h3M4 7h4"/>',
++};
+ const SCENE_LABELS = { waiting: '等饭／排队', desk: '在桌前', outside: '在路上', home: '在家／宿舍' };
+ const ENERGY_LABELS = { low: '有点累', steady: '还可以', high: '精神好' };
+ const FEEDBACK_LABELS = { like: '喜欢这条建议', dislike: '不喜欢这条建议', completed: '标记为已完成' };
+@@ -69,7 +80,7 @@ function cardResult(value) {
+ }
+ const state = {
+   sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
+-  feedbackPending: false, feedbackAttempts: {}, card: null,
++  feedbackPending: false, feedbackAttempts: {}, card: null, completionHeight: 0,
+ };
+ const result = document.getElementById('result');
+ const status = document.getElementById('status');
+@@ -83,7 +94,7 @@ const settingsToggle = document.getElementById('settings-toggle');
+ const about = document.getElementById('about');
+ const SVG_OPEN_64 = '<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M30 7.2 H7.2 V40.8 H40.8 V19.2" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M26 32 H38" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+ const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
+-const SVG_CLOSED_16 = '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M13.6 2.4 H2.4 V13.6 H13.6 Z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><circle cx="8" cy="8" r="2" fill="currentColor"/></svg>';
++const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
+ function conditions() {
+   return {
+     budget: Number(document.querySelector('input[name="budget"]:checked').value),
+@@ -128,12 +139,16 @@ function renderLoading() {
+   const card = el('article', 'skeleton');
+   card.setAttribute('aria-hidden', 'true');
+   card.append(el('p', 'sk-text', '正在找建议'));
+-  for (const name of ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2']) card.append(el('div', `sk sk-${name}`));
++  ['meta', 'title w1', 'title w2', 'btn', 'line w1', 'line w2'].forEach((name, i) => {
++    const block = el('div', `sk sk-${name}`);
++    block.style.animationDelay = `${i * 60}ms`;
++    card.append(block);
++  });
+   result.replaceChildren(card);
+ }
+ function errorText(error) {
+   if (NO_RETRY.includes(error.code)) return '这次没成功，刷新页面再试。';
+-  return ERRORS[error.code] || '这次没找到，再试一次。';
++  return ERRORS[error.code] || '这次没出票，再试一次。';
+ }
+ function renderNotice(error, snapshot) {
+   const notice = el('div', 'notice');
+@@ -170,10 +185,11 @@ function syncConditions() {
+   }
+   const swap = result.querySelector('[data-focus="swap"]');
+   if (!swap) return;
+-  swap.textContent = changed ? '按新条件再来一条' : '换一个';
++  const label = state.card.completed ? '换一张' : '换一个';
++  swap.textContent = changed ? '按新条件再来一条' : label;
+   swap.closest('.card-actions')?.classList.toggle('changed', changed);
+   const context = state.conditions;
+-  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `换一个，保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
++  swap.setAttribute('aria-label', changed ? '按新条件再来一条建议' : `${label}，${state.card.completed ? '换一个建议，' : ''}保留 ${context.budget} 分钟、${ENERGY_LABELS[context.energy]}、${SCENE_LABELS[context.scene] || '跳过'}`);
+   swap.disabled = state.busy || navigator.onLine === false;
+   swap.setAttribute('aria-disabled', String(swap.disabled));
+ }
+@@ -194,21 +210,28 @@ function feedbackButton(label, kind) {
+   button.addEventListener('click', () => sendFeedback(kind));
+   return button;
+ }
++function preferenceMark(className = '') {
++  const mark = el('span', `preference-mark ${className}`);
++  mark.setAttribute('aria-hidden', 'true');
++  mark.dataset.preference = state.card.preference || '';
++  if (state.card.preference) mark.innerHTML = `<svg viewBox="0 0 12 12" width="12" height="12" focusable="false" aria-hidden="true">${PREFERENCE_SHAPES[state.card.preference]}</svg>`;
++  return mark;
++}
+ function completedRow() {
+   const row = el('div', 'done-row');
++  if (state.completionHeight) row.style.minHeight = `${state.completionHeight}px`;
+   const done = el('span', 'done-state');
+   done.tabIndex = -1;
+   done.dataset.focus = 'completed';
+-  done.setAttribute('aria-label', '已完成。这条记下了。');
+-  done.innerHTML = SVG_CLOSED_16;
+-  done.append('已完成');
+-  const share = el('button', 'textbtn', '分享这条');
++  done.setAttribute('aria-label', '已完成，不可撤销');
++  done.textContent = '已完成';
++  const share = el('button', 'textbtn', '分享此刻');
+   share.type = 'button';
+   share.dataset.focus = 'share';
+-  share.setAttribute('aria-label', '分享这条建议');
++  share.setAttribute('aria-label', '分享此刻，分享这条已完成的建议');
+   share.setAttribute('aria-disabled', String(state.feedbackPending || shareBusy));
+   share.addEventListener('click', shareCard);
+-  row.append(done, el('span', 'done-spacer'), swapButton('textbtn'), share);
++  row.append(done, swapButton('textbtn'), share);
+   return row;
+ }
+ const shareStatus = document.getElementById('share-status');
+@@ -233,7 +256,7 @@ async function shareCard() {
+   const button = result.querySelector('[data-focus="share"]');
+   button?.setAttribute('aria-disabled', 'true');
+   const title = Array.from(card.title).slice(0, 40).join('').replace(/[。！？.!?]+$/, '');
+-  const text = `刚看到一条 ${state.conditions.budget} 分钟能做的小事：${title}。你也可以选一次自己的空当。\n${location.origin}${location.pathname}`;
++  const text = `刚完成一件约 ${card.minutes} 分钟的小事：${title}。你也可以出一张自己的此刻。\n${location.origin}${location.pathname}`;
+   try {
+     if (typeof navigator.share === 'function') {
+       try { await navigator.share({ text }); return; }
+@@ -267,26 +290,51 @@ async function shareCard() {
+     }
+   }
+ }
++function passCode(id) {
++  let h = 0;
++  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
++  return (h % 1679616).toString(36).padStart(4, '0').toUpperCase();
++}
+ function buildCard() {
+   const card = state.card;
+   const article = el('article', 'card');
+   article.setAttribute('aria-labelledby', 'card-title');
+   article.setAttribute('aria-describedby', 'card-first');
++  const code = `NOW-${passCode(String(card.id || ''))}`;
++  const head = el('div', 'ticket-head');
++  head.setAttribute('aria-hidden', 'true');
++  if (card.category) head.innerHTML = `<svg class="category-icon" viewBox="0 0 20 20" width="16" height="16" aria-hidden="true" focusable="false">${CATEGORY_SHAPES[card.category]}</svg>`;
++  head.append(el('span', 'ticket-code', `THIS PASS · ${code}`), el('span', 'ticket-valid', '有效'));
++  const body = el('div', 'ticket-body');
+   const meta = el('div', 'card-meta');
+   if (card.category) {
+     const cat = el('span', 'cat', CATEGORY_LABELS[card.category]);
+     cat.setAttribute('aria-label', `类别：${CATEGORY_NAMES[card.category]}`);
+     meta.append(cat);
+   }
+-  meta.append(el('span', 'badge', `约 ${card.minutes} 分钟`), el('span', 'condition-note'));
++  meta.append(el('span', 'condition-note'), preferenceMark('compact-feedback'));
++  const gap = card.minutes <= 3 ? 3 : card.minutes <= 5 ? 5 : card.minutes <= 10 ? 9 : 13;
++  const gauge = el('div', 'gauge');
++  gauge.setAttribute('aria-hidden', 'true');
++  gauge.innerHTML = `<svg class="g-dot" viewBox="0 0 12 20" width="12" height="20" aria-hidden="true"><circle cx="6" cy="10" r="4"/></svg><span class="gauge-label">约 ${card.minutes} 分钟</span><svg class="g-line" viewBox="0 0 100 2" preserveAspectRatio="none" aria-hidden="true"><line x1="1" y1="1" x2="99" y2="1" stroke-dasharray="3 ${gap}"/></svg><svg class="g-ring" viewBox="0 0 14 20" width="14" height="20" aria-hidden="true"><circle cx="7" cy="10" r="5"/></svg>`;
+   const title = el('h2', null, card.title);
+   title.id = 'card-title';
+   title.tabIndex = -1;
+   title.setAttribute('aria-label', `新的建议：${card.title}，约 ${card.minutes} 分钟`);
+   const first = el('div', 'first');
+   first.id = 'card-first';
+-  first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
+-  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
++  first.append(el('span', 'first-label', '从这一步开始'), el('p', 'first-text', card.first_step));
++  body.append(meta, title, gauge, first, el('p', 'detail', card.detail));
++  const stub = el('div', 'ticket-stub');
++  stub.setAttribute('aria-hidden', 'true');
++  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'), preferenceMark());
++  const sep = el('div', 'ticket-sep');
++  sep.setAttribute('aria-hidden', 'true');
++  if (card.completed) {
++    article.classList.add('ticket-done');
++    article.insertAdjacentHTML('beforeend', SVG_STAMP);
++  }
++  article.append(head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {
+     const actions = el('div', 'card-actions');
+@@ -303,8 +351,21 @@ function renderCard() {
+   const active = document.activeElement;
+   const key = result.contains(active) ? active.dataset.focus : null;
+   const old = result.querySelector('.card');
+-  if (old) old.replaceWith(buildCard());
+-  else result.append(buildCard());
++  if (!state.card.completed) state.completionHeight = 0;
++  else if (old) state.completionHeight = old.querySelector('.card-actions, .done-row').getBoundingClientRect().height;
++  const card = buildCard();
++  if (old) {
++    card.classList.add('card-refresh');
++    const animateFeedback = state.feedbackPending && state.card.preference && old.querySelector('.preference-mark')?.dataset.preference !== state.card.preference;
++    if (state.card.completed && !old.classList.contains('ticket-done')) card.querySelector('.ticket-stamp').classList.add('stamp-in');
++    old.replaceWith(card);
++    if (animateFeedback) {
++      const mark = [...card.querySelectorAll('.preference-mark svg')].find(node => node.getBoundingClientRect().width > 0);
++      mark.classList.add('feedback-in');
++      if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
++      else for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
++    }
++  } else result.append(card);
+   syncConditions();
+   if (key) focus(result.querySelector(`[data-focus="${key}"]`) || result.querySelector('.done-state'));
+ }
+@@ -317,7 +378,16 @@ function setBusy(busy) {
+   result.setAttribute('aria-busy', String(busy));
+   askButton.disabled = busy;
+   askButton.setAttribute('aria-busy', String(busy));
+-  askButton.textContent = busy ? '正在找建议' : '给我一个建议';
++  if (busy) {
++    askButton.textContent = '出票中';
++    askButton.insertAdjacentHTML('beforeend', '<span class="ask-dots" aria-hidden="true"><i></i><i></i><i></i></span>');
++  } else askButton.textContent = '出一张现在';
++}
++function exitCard() {
++  const old = result.querySelector('.card');
++  if (!old || matchMedia('(prefers-reduced-motion: reduce)').matches) return Promise.resolve();
++  old.classList.add('card-out');
++  return new Promise(res => setTimeout(res, 160));
+ }
+ async function ask(snapshot = conditions(), source = 'primary') {
+   if (state.busy) return;
+@@ -327,11 +397,12 @@ async function ask(snapshot = conditions(), source = 'primary') {
+   status.textContent = '正在找建议';
+   focus(result);
+   setBusy(true);
+-  renderLoading();
+   const timer = setTimeout(() => {
+     const text = result.querySelector('.sk-text');
+     if (text) text.textContent = '还在找，再等一下';
+   }, 8000);
++  await exitCard();
++  renderLoading();
+   try {
+     if (navigator.onLine === false) throw new RequestError('network_error', 0);
+     await ensureSession();
+@@ -341,15 +412,16 @@ async function ask(snapshot = conditions(), source = 'primary') {
+     const card = cardResult(body);
+     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+     state.card = card;
++    state.completionHeight = 0;
+     state.seq++;
+     state.conditions = snapshot;
+     state.conditionsMatch = sameConditions(card, snapshot);
+     if (!state.conditionsMatch) console.warn('Recommendation context mismatch');
+     state.feedbackPending = false;
+     state.feedbackAttempts = {};
+-    setBusy(false);
+     result.replaceChildren();
+     dismissGuide();
++    setBusy(false);
+     renderCard();
+     status.textContent = '';
+     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
+@@ -440,7 +512,7 @@ function applyTheme(theme) {
+   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
+   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
+-    meta.content = dark ? '#18211c' : '#f6f1e7';
++    meta.content = dark ? '#101827' : '#eaf0f8';
+   });
+ }
+ about.addEventListener('change', event => {
+diff --git a/web/index.html b/web/index.html
+index 96d5e7e..a8238e6 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -5,13 +5,13 @@
+   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+   <title>WhyNot · 此刻</title>
+   <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f6f1e7">
+-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#18211c">
++  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
++  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
+   <meta name="color-scheme" content="light dark">
+   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+   <link rel="manifest" href="/manifest.webmanifest">
+   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#18211c':'#f6f1e7')}}catch{}</script>
++  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
+   <link rel="stylesheet" href="/style.css">
+ </head>
+ <body>
+@@ -75,7 +75,7 @@
+       </div>
+     </section>
+ 
+-    <button id="ask" class="primary" type="button">给我一个建议</button>
++    <button id="ask" class="primary" type="button" aria-label="给我一个建议">出一张现在</button>
+ 
+     <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+     <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false"></section>
+diff --git a/web/style.css b/web/style.css
+index 6e41f1b..8962db0 100644
+--- a/web/style.css
++++ b/web/style.css
+@@ -1,20 +1,33 @@
+-:root{color-scheme:light;--wn-paper:#f6f1e7;--wn-sheet:#fffdf7;--wn-well:#f2ede1;--wn-ink:#26362e;--wn-ink-2:#5f6e64;--wn-accent:#2f6d5a;--wn-accent-press:#255a4a;--wn-accent-soft:#e8f0ea;--wn-on-accent:#f8f5ec;--wn-line:#95876d;--wn-hairline:#e3dac7;--wn-time:#7d5a33;--wn-time-soft:#f3e7d4;--wn-alert:#8c3b2e;--wn-alert-soft:#f6e3dc;--wn-focus:#26362e;--wn-bone:#e6ddcc;--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
+-:root{--wn-dark-paper:#18211c;--wn-dark-sheet:#212c25;--wn-dark-well:#141b17;--wn-dark-ink:#e9e4d6;--wn-dark-ink-2:#9aa89d;--wn-dark-accent:#7fc4a8;--wn-dark-accent-press:#6bb094;--wn-dark-accent-soft:#26362f;--wn-dark-on-accent:#12241c;--wn-dark-line:#64796c;--wn-dark-hairline:#33413a;--wn-dark-time:#d9b483;--wn-dark-time-soft:#2e2a21;--wn-dark-alert:#e8a58f;--wn-dark-alert-soft:#33241f;--wn-dark-focus:#e9e4d6;--wn-dark-bone:#2c3830}
++:root{color-scheme:light;--wn-paper:#eaf0f8;--wn-paper-2:#dce2ee;--wn-sheet:#fbf8f0;--wn-well:#e7e0ce;--wn-ink:#1b2334;--wn-ink-2:#525a6e;--wn-accent:#d95f0e;--wn-accent-press:#c43a15;--wn-accent-soft:#fbe3d3;--wn-on-accent:#221204;--wn-line:#c6bca4;--wn-hairline:rgba(27,35,52,.10);--wn-time:#525a6e;--wn-time-soft:#e7e0ce;--wn-alert:#c43a15;--wn-alert-soft:#fbe3d3;--wn-focus:#1b2334;--wn-bone:#e7e0ce;--wn-shadow:0 8px 24px rgba(27,35,52,.14);--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-mono:ui-monospace,Consolas,monospace;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
++:root{--wn-dark-paper:#101827;--wn-dark-paper-2:#1b2334;--wn-dark-sheet:#f6f2e8;--wn-dark-well:#e7e0ce;--wn-dark-ink:#1b2334;--wn-dark-ink-2:#575e72;--wn-dark-accent:#ff8a50;--wn-dark-accent-press:#c43a15;--wn-dark-accent-soft:#fbdfc9;--wn-dark-on-accent:#221204;--wn-dark-line:#d4c9ae;--wn-dark-hairline:rgba(246,242,232,.12);--wn-dark-time:#575e72;--wn-dark-time-soft:#e7e0ce;--wn-dark-alert:#c43a15;--wn-dark-alert-soft:#fbdfc9;--wn-dark-focus:#1b2334;--wn-dark-bone:#ddd3b8;--wn-dark-shadow:none}
+ @media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow)}
+ }
+-:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone)}
++:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow)}
+ *{box-sizing:border-box}
+ [hidden]{display:none !important}
+ .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ button,label,.card,.notice{overflow-wrap:anywhere}
+ button{line-height:1.5}
+-#result{scroll-margin-top:var(--wn-s4)}
++#result{position:relative;scroll-margin-top:var(--wn-s4)}
+ .share-note:empty{margin:0}
+ .panel,.card{container-type:inline-size}
+ :focus-visible{outline:2px solid var(--wn-focus);outline-offset:2px}
+ body{margin:0;background:var(--wn-paper);color:var(--wn-ink);font-family:var(--wn-font);font-size:1rem;line-height:1.625;-webkit-font-smoothing:antialiased}
+ .masthead{display:flex;align-items:center;justify-content:space-between;max-width:480px;margin:0 auto;min-height:56px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 var(--wn-s5);border-bottom:1px solid var(--wn-hairline)}
++:root{color-scheme:light}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]){color-scheme:dark}
++}
++:root[data-theme="dark"]{color-scheme:dark}
++.masthead .brand-name{color:var(--wn-ink)}
++:root[data-theme="dark"] .masthead .brand-name,:root[data-theme="dark"] .mark{color:#f6f2e8}
++:root[data-theme="dark"] .masthead-date{color:#8f9ec9}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]) .masthead .brand-name,:root:not([data-theme="light"]) .mark{color:#f6f2e8}
++:root:not([data-theme="light"]) .masthead-date{color:#8f9ec9}
++}
++[data-guided="1"] .guide{display:none}
+ .masthead-left{display:flex;align-items:center;gap:var(--wn-s2)}
+ .mark{display:block;width:20px;height:20px;color:var(--wn-ink)}
+ .brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.04em}
+@@ -50,25 +63,85 @@ legend{padding:0;margin-bottom:var(--wn-s2);font-size:1rem;font-weight:600;line-
+ .chev{width:12px;height:12px;transition:transform var(--wn-m2) ease}
+ .scene-row[aria-expanded="true"] .chev{transform:rotate(180deg)}
+ .scene-panel{padding-top:var(--wn-s2)}
+-.primary{width:100%;min-height:56px;margin-top:var(--wn-s6);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m1) ease}
++.primary{width:100%;min-height:56px;margin-top:var(--wn-s6);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:700;cursor:pointer;transition:background var(--wn-m1) ease,transform var(--wn-m1) ease}
+ .primary:active{background:var(--wn-accent-press);transform:translateY(1px)}
+ .primary:disabled{opacity:0.35;cursor:default;transform:none}
+-.card{margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:0 1px 2px rgba(38,54,46,0.06),0 6px 16px -8px rgba(38,54,46,0.10);animation:rise var(--wn-m3) ease-out;scroll-margin-top:var(--wn-s4)}
++.page:has(.ticket-done) .primary{visibility:hidden}
++.ask-dots{display:inline-flex;gap:3px;margin-left:8px;vertical-align:middle}
++.ask-dots i{width:4px;height:4px;border-radius:50%;background:currentColor;opacity:0;animation:dotIn 240ms ease forwards}
++.ask-dots i:nth-child(2){animation-delay:120ms}
++.ask-dots i:nth-child(3){animation-delay:240ms}
++@keyframes dotIn{
++to{opacity:1}
++}
++:root[data-theme="dark"] .primary:focus-visible{outline-color:#f6f2e8}
++@media (prefers-color-scheme:dark){
++:root:not([data-theme="light"]) .primary:focus-visible{outline-color:#f6f2e8}
++}
++@media (prefers-reduced-motion:reduce){
++.ask-dots i{opacity:1}
++}
++.card{position:relative;overflow:hidden;margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:var(--wn-shadow);animation:rise 260ms ease-out;scroll-margin-top:var(--wn-s4)}
++.card::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;background:radial-gradient(circle 4px at 8px 0,var(--wn-paper) 4px,transparent 4.5px) 0 0/16px 8px repeat-x}
++.card-out{pointer-events:none;animation:out 160ms ease-in forwards}
++@keyframes out{
++to{opacity:0;transform:translateY(8px)}
++}
+ @keyframes rise{
+-from{opacity:0;transform:translateY(8px)}
++from{opacity:0;transform:translateY(-12px)}
+ to{opacity:1;transform:none}
+ }
+ .card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);min-height:20px;color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
+ .card-meta .cat{white-space:nowrap}
+-.badge{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 var(--wn-s2);border-radius:var(--wn-r1);background:var(--wn-time-soft);color:var(--wn-time);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+-.card h2{margin:var(--wn-s2) 0 0;font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.01em}
+-.card-sep{margin:var(--wn-s4) 0 0;border:0;border-top:1px solid var(--wn-hairline)}
++.category-icon{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--wn-ink-2)}
++.preference-mark{display:inline-flex;flex:none;width:12px;height:12px;color:var(--wn-ink)}
++.preference-mark svg{fill:none;stroke:currentColor;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}
++.compact-feedback{display:none}
++.feedback-in{animation:feedbackIn 120ms ease-out}
++@keyframes feedbackIn{
++from{opacity:0}
++to{opacity:1}
++}
++.gauge{display:flex;align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s3);min-height:20px}
++.g-dot circle{fill:var(--wn-accent)}
++.gauge-label{font-family:var(--wn-mono);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--wn-ink-2)}
++.g-line{flex:1;height:2px;min-width:24px}
++.g-line line{stroke:var(--wn-line);stroke-width:2;vector-effect:non-scaling-stroke}
++.g-ring circle{fill:none;stroke:var(--wn-ink-2);stroke-width:1.5}
++.ticket-done .g-line line{stroke-dasharray:none}
++.ticket-done .ticket-head .ticket-code{color:var(--wn-accent)}
++.ticket-done{mask-image:radial-gradient(circle 5px at calc(100% - 48px) 14px,transparent 4.5px,#000 5px)}
++.card-refresh:not(.card-out){animation:none}
++.ticket-stamp{position:absolute;top:72px;right:12px;width:64px;height:64px;color:var(--wn-accent);transform:rotate(-8deg);pointer-events:none;overflow:visible}
++.ticket-stamp circle{fill:none;stroke:currentColor;stroke-width:1.5}
++.ticket-stamp text{fill:currentColor;text-anchor:middle}
++.stamp-ring{font-family:var(--wn-mono);font-size:8px;letter-spacing:2px}
++.stamp-center{font-family:var(--wn-font);font-size:18px;font-weight:700}
++.stamp-in{animation:stampIn 300ms ease-out}
++@keyframes stampIn{
++from{opacity:0;transform:rotate(-8deg) scale(1.06)}
++to{opacity:1;transform:rotate(-8deg) scale(1)}
++}
++.ticket-done .ticket-stub{top:144px}
++.card h2{margin:var(--wn-s3) 0 0;font-size:1.25rem;font-weight:700;line-height:1.4;letter-spacing:0.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
++.ticket-head{display:flex;align-items:center;justify-content:space-between;gap:var(--wn-s2);min-height:28px;margin-bottom:var(--wn-s2);padding-bottom:var(--wn-s2);border-bottom:1px solid var(--wn-hairline)}
++.ticket-head .ticket-code{flex:1}
++.ticket-code{min-width:0;font-family:var(--wn-mono);font-size:0.75rem;font-weight:500;letter-spacing:0.08em;color:var(--wn-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.ticket-valid{flex:none;font-size:0.75rem;font-weight:500;color:var(--wn-ink-2)}
++.ticket-body{padding-right:80px}
++.ticket-stub{position:absolute;top:64px;right:20px;bottom:80px;width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--wn-s2)}
++.ticket-bar{width:100%;height:36px;background:repeating-linear-gradient(90deg,var(--wn-ink) 0 2px,transparent 2px 5px,var(--wn-ink) 5px 6px,transparent 6px 9px,var(--wn-ink) 9px 11px,transparent 11px 14px)}
++.ticket-void{font-size:11px;color:var(--wn-ink-2);white-space:nowrap}
++.ticket-sep{position:absolute;top:0;bottom:0;right:88px;width:0;border-left:1px dashed var(--wn-line)}
++.ticket-sep::before,.ticket-sep::after{content:'';position:absolute;left:-6px;width:12px;height:12px;border-radius:50%;background:var(--wn-paper)}
++.ticket-sep::before{top:-6px}
++.ticket-sep::after{bottom:-6px}
+ .first{position:relative;margin:var(--wn-s3) 0 0;padding-left:var(--wn-s3)}
+-.first::before{content:'';position:absolute;left:0;top:calc(-1 * var(--wn-s3));bottom:0;width:2px;background:var(--wn-accent)}
++.first::before{content:'';position:absolute;left:0;top:calc(-1 * var(--wn-s3));bottom:0;width:3px;background:var(--wn-accent)}
+ .first-label{display:block;margin-bottom:var(--wn-s1);color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
+-.first-text{margin:0;font-size:1.1875rem;font-weight:500;line-height:1.579}
++.first-text{margin:0;font-size:1.0625rem;font-weight:600;line-height:1.6}
+ .detail{margin:var(--wn-s3) 0 0;color:var(--wn-ink-2);font-size:0.875rem;line-height:1.571}
+-.card-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px}
++.card-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
+ .card-actions button{flex:1 1 0;min-width:44px;min-height:44px;padding:var(--wn-s1) 2px;border-radius:var(--wn-r2);font-family:inherit;font-size:0.875rem;cursor:pointer}
+ .feedback{display:grid;grid-column:1 / 4;grid-template-columns:subgrid;min-width:0;gap:var(--wn-s2)}
+ .card-actions.changed{grid-template-columns:repeat(3,minmax(0,1fr))}
+@@ -78,7 +151,7 @@ to{opacity:1;transform:none}
+ .feedback button:hover{background:var(--wn-well)}
+ }
+ .feedback button:active{background:var(--wn-well);color:var(--wn-ink);font-weight:600}
+-.feedback button[aria-pressed="true"]{border-color:var(--wn-accent);background:var(--wn-accent-soft);color:var(--wn-accent);font-weight:600}
++.feedback button[aria-pressed="true"]{border-color:var(--wn-ink-2);background:var(--wn-well);color:var(--wn-ink);font-weight:600}
+ .feedback button[aria-disabled="true"]{opacity:0.7;cursor:default}
+ .swap{flex:1;border:1px solid var(--wn-accent);background:transparent;color:var(--wn-accent);font-weight:600;transition:background var(--wn-m2) ease}
+ @media (hover:hover){
+@@ -86,10 +159,9 @@ to{opacity:1;transform:none}
+ }
+ .swap:active{background:var(--wn-well)}
+ .swap:disabled{opacity:0.7;cursor:default}
+-.done-row{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);margin-top:var(--wn-s4);min-height:44px}
+-.done-state{display:flex;align-items:center;gap:6px;color:var(--wn-accent);font-size:0.75rem;font-weight:500}
+-.done-state svg{display:block;width:16px;height:16px}
+-.done-spacer{flex:1}
++.done-row{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
++.done-state{color:var(--wn-ink-2);font-size:0.75rem;font-weight:500}
++.done-row .textbtn{min-width:0}
+ .textbtn{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:400;cursor:pointer}
+ .share-note{margin:var(--wn-s2) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
+ .share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
+@@ -97,11 +169,12 @@ to{opacity:1;transform:none}
+ .empty-fig{width:64px;height:64px;margin:0 auto var(--wn-s3);color:var(--wn-ink-2);display:block}
+ .empty h2{margin:0;font-size:1.1875rem;font-weight:500;line-height:1.579}
+ .empty .hint{margin:var(--wn-s1) 0 0;color:var(--wn-ink-2);font-size:0.875rem}
+-.skeleton{margin-top:var(--wn-s6);padding:var(--wn-s5);min-height:269px;background:var(--wn-sheet);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2)}
++.skeleton{position:relative;margin-top:var(--wn-s6);padding:var(--wn-s5);min-height:269px;background:var(--wn-sheet);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2)}
++.skeleton::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;background:radial-gradient(circle 4px at 8px 0,var(--wn-paper) 4px,transparent 4.5px) 0 0/16px 8px repeat-x}
+ .sk-text{margin:0 0 var(--wn-s3);color:var(--wn-ink-2);font-size:0.875rem}
+-.sk{background:var(--wn-bone);border-radius:var(--wn-r1);animation:soak var(--wn-m4) ease-in-out infinite}
+-@keyframes soak{
+-50%{opacity:0.35}
++.sk{background:var(--wn-bone);border-radius:var(--wn-r1);animation:skIn 240ms ease-out both}
++@keyframes skIn{
++from{opacity:0}
+ }
+ .sk-meta{width:96px;height:20px}
+ .sk-title{height:18px;margin-top:var(--wn-s2)}
+@@ -111,7 +184,10 @@ to{opacity:1;transform:none}
+ .sk-line{height:12px;margin-top:var(--wn-s3)}
+ .sk-line.w1{width:88%}
+ .sk-line.w2{width:54%;margin-top:var(--wn-s2)}
+-.notice{position:relative;margin-top:var(--wn-s6);padding:var(--wn-s4);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2)}
++.notice{position:absolute;left:0;right:0;top:0;z-index:2;padding:var(--wn-s4);background:rgba(246,242,232,0.92);border:1px solid var(--wn-line);border-radius:var(--wn-r2);animation:noticeIn 200ms ease-out}
++@keyframes noticeIn{
++from{opacity:0}
++}
+ .notice::before{content:'';position:absolute;left:0;top:var(--wn-s4);bottom:var(--wn-s4);width:2px;border-radius:2px;background:var(--wn-alert)}
+ .notice-inner{display:flex;align-items:flex-start;gap:var(--wn-s3)}
+ .notice-fig{flex:none;width:48px;height:48px;color:var(--wn-ink-2);display:block}
+@@ -131,18 +207,27 @@ to{opacity:1;transform:none}
+ .page{padding-left:var(--wn-s4);padding-right:var(--wn-s4)}
+ .masthead{padding:0 var(--wn-s4)}
+ .brand-name{font-size:1.25rem}
+-.card h2{font-size:1.25rem}
+ .first-text{font-size:1.125rem}
+ }
+ @media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]) .card{box-shadow:none}
++:root:not([data-theme="light"]) .masthead{background:var(--wn-paper-2)}
++:root:not([data-theme="light"]) .card{box-shadow:var(--wn-dark-shadow)}
+ }
++:root[data-theme="dark"] .masthead{background:var(--wn-paper-2)}
+ :root[data-theme="dark"] .card{box-shadow:none}
+ @container (max-width:15em){
+ .card-actions,.card-actions.changed{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .feedback{display:grid;grid-column:1 / -1;grid-row:1 / 3;grid-template-columns:subgrid;grid-template-rows:subgrid}
+ .card-actions .swap{grid-column:2;grid-row:2}
+ .card-actions.changed .swap{grid-column:1 / -1;grid-row:3}
++.ticket-body{padding-right:0}
++.compact-feedback{display:inline-flex;margin-left:auto}
++.ticket-stub,.ticket-sep{display:none}
++.ticket-head{padding-right:44px}
++.ticket-valid{display:none}
++.ticket-stamp{top:16px;right:16px;width:40px;height:40px}
++.done-row{grid-template-columns:repeat(2,minmax(0,1fr))}
++.done-state{grid-column:1 / -1}
+ }
+ @container (max-width:13em){
+ .seg{grid-template-columns:repeat(2,minmax(0,1fr));border-radius:var(--wn-r2)}

@@ -1,0 +1,62 @@
+diff --git a/web/app.js b/web/app.js
+index 605c7d4..3aae627 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -267,11 +267,21 @@ async function shareCard() {
+     }
+   }
+ }
++function passCode(id) {
++  let h = 0;
++  for (let i = 0; i < id.length; i++) h = (h * 31 + id.charCodeAt(i)) >>> 0;
++  return (h % 1679616).toString(36).padStart(4, '0').toUpperCase();
++}
+ function buildCard() {
+   const card = state.card;
+   const article = el('article', 'card');
+   article.setAttribute('aria-labelledby', 'card-title');
+   article.setAttribute('aria-describedby', 'card-first');
++  const code = `NOW-${passCode(String(card.id || ''))}`;
++  const head = el('div', 'ticket-head');
++  head.setAttribute('aria-hidden', 'true');
++  head.append(el('span', 'ticket-code', `THIS PASS · ${code}`), el('span', 'ticket-valid', '有效'));
++  const body = el('div', 'ticket-body');
+   const meta = el('div', 'card-meta');
+   if (card.category) {
+     const cat = el('span', 'cat', CATEGORY_LABELS[card.category]);
+@@ -286,7 +296,13 @@ function buildCard() {
+   const first = el('div', 'first');
+   first.id = 'card-first';
+   first.append(el('span', 'first-label', '第一步'), el('p', 'first-text', card.first_step));
+-  article.append(meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
++  body.append(meta, title, first, el('p', 'detail', card.detail));
++  const stub = el('div', 'ticket-stub');
++  stub.setAttribute('aria-hidden', 'true');
++  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', code), el('span', 'ticket-void', '此刻作废'));
++  const sep = el('div', 'ticket-sep');
++  sep.setAttribute('aria-hidden', 'true');
++  article.append(head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {
+     const actions = el('div', 'card-actions');
+@@ -317,7 +333,10 @@ function setBusy(busy) {
+   result.setAttribute('aria-busy', String(busy));
+   askButton.disabled = busy;
+   askButton.setAttribute('aria-busy', String(busy));
+-  askButton.textContent = busy ? '正在找建议' : '给我一个建议';
++  if (busy) {
++    askButton.textContent = '出票中';
++    askButton.insertAdjacentHTML('beforeend', '<span class="ask-dots" aria-hidden="true"><i></i><i></i><i></i></span>');
++  } else askButton.textContent = '出一张现在';
+ }
+ async function ask(snapshot = conditions(), source = 'primary') {
+   if (state.busy) return;
+@@ -440,7 +459,7 @@ function applyTheme(theme) {
+   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
+   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
+-    meta.content = dark ? '#18211c' : '#f6f1e7';
++    meta.content = dark ? '#101827' : '#eaf0f8';
+   });
+ }
+ about.addEventListener('change', event => {

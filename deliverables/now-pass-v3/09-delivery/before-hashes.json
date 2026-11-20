@@ -1,0 +1,62 @@
+[
+  {
+    "path": "web/app.js",
+    "sha256": "0085517bb03cfc99bf34f4b533f67a01f8123c86297d68b1c5940672f2397423",
+    "bytes": 28104
+  },
+  {
+    "path": "web/apple-touch-icon.png",
+    "sha256": "e7837ff6fd78a6950bc3267ecfecaa3bd6344fd321baed495c29fb3280e93692",
+    "bytes": 487
+  },
+  {
+    "path": "web/icon-192.png",
+    "sha256": "755be23f5b9d8c0504799c34a6433119dc7a7256716721ecc854f9594fc47f57",
+    "bytes": 500
+  },
+  {
+    "path": "web/icon-512.png",
+    "sha256": "d1cbb056c601fee0b9e1bc84daa33e15d6433d4167172f30fd926bca80b15dd7",
+    "bytes": 1256
+  },
+  {
+    "path": "web/icon.svg",
+    "sha256": "620c8dbc9230ed9bee89e0a395979917b9b44e19f6f154ab740661787fdee418",
+    "bytes": 299
+  },
+  {
+    "path": "web/index.html",
+    "sha256": "36cdaf89968d0d2879eeddbdf7d827477d033dca9554c2427799081b857ff2b3",
+    "bytes": 6232
+  },
+  {
+    "path": "web/manifest.webmanifest",
+    "sha256": "96aaa1329f8e581c434ce43e37d51390c300a0b17d4d38411defc11d276d4f41",
+    "bytes": 404
+  },
+  {
+    "path": "web/style.css",
+    "sha256": "132066569a5197db7347663d15f20be4a00db7b30cab8dbf89afff08bd6b9d52",
+    "bytes": 20673
+  },
+  {
+    "path": "dev/generate-icons.mjs",
+    "sha256": "d97d15219ac7ebc4e73d4d484597ea5a37474593f60230efafbbaa1c85a3938c",
+    "bytes": 3213
+  },
+  {
+    "path": "dev/acceptance-ui.mjs",
+    "sha256": "115ef133e6a52f2f674a3f0c1bf576dbce3fee4d51365bc354fd6ee090e4f004",
+    "bytes": 55656
+  },
+  {
+    "path": "README.md",
+    "sha256": "5ef1343d91cc22bbf4a30d37cda3f7085c6d7e1afc58b4ce9e067af61aa80d9f",
+    "bytes": 11357
+  },
+  {
+    "path": "产品说明.md",
+    "sha256": "6e84d6b2ccc6020d514cf947a19987b8dd2bb19515199c1a0d9746e1028e6931",
+    "bytes": 9647
+  }
+]
