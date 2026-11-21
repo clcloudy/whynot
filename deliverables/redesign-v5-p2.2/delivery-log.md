@@ -93,3 +93,13 @@
 - [source-after/](source-after/)：P2.2 验收后的同类快照。
 - [changes.patch](changes.patch)：P2.2 相对 P2.1 的最小 diff。
 - **未提交、未推送、未部署。**
+
+## 8. 合并远端后复验
+
+- 远端 `main` 新增 `2cc30e1`（活动库存推荐与 AI 互动、模型/记忆检索改进），未修改 `web/` 或 `dev/acceptance-ui.mjs`。
+- 本地改版提交已 rebase 到 `2cc30e1` 之上；合并后重启 8895 与 8766，重新验收：
+  - UI：488/488（活动 CDP Edge，63s）。
+  - API：base 42/42、interactions 112/112。
+  - 远端新增单元测试：activities 47/47、interactions/model 44/44。
+- 复验日志：[dev-8895-merged.log](dev-8895-merged.log)、[fake-8766-merged.log](fake-8766-merged.log)、[api-base-merged.log](api-base-merged.log)、[api-interactions-merged.log](api-interactions-merged.log)、[test-activities.log](test-activities.log)、[test-interactions.log](test-interactions.log)。
+- 合并后 `ui-final.json` 已更新为 488/488；前端源码与 P2.2 归档内容未变。

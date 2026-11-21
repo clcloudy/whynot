@@ -1,0 +1,165 @@
+✔ 匿名基线汇总保留未知用量，按模型版本计算覆盖率和P95 (1196.2374ms)
+{"event":"model_attempt","operation":"opening","mode":"chat","attempt":1,"duration_ms":3,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"opening_cache","mode":"chat","hit":false,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":19}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":11}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":10}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":9}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":4,"success":1,"replay":0,"duration_ms":8}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":0,"duration_ms":8}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":6,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":7,"success":1,"replay":0,"duration_ms":7}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":8,"success":1,"replay":0,"duration_ms":6}
+✔ 实际HTTP：指定论文不被更新的三条记忆挤掉，同义问法只引用相关事项 (153.9112ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":7}
+✔ 实际HTTP：普通陈述和换话题不触发回忆 (29.6817ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":7}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":8}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":4,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":6,"success":1,"replay":0,"duration_ms":24}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":7,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":8,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：显式列表、无匹配、歧义澄清和旧正文检索 (106.997ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":7}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":4,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":0,"replay":0,"duration_ms":2}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":0,"replay":0,"duration_ms":0}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":1,"duration_ms":1}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":6,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":6,"success":1,"replay":1,"duration_ms":2}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":7,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":8,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：已确认、本人、未过期才可引用，编辑删除后重放隐去旧文 (128.6569ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":7}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":6}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":9}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":1,"duration_ms":1}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":8}
+✔ 实际HTTP：保存带问句的事实优先生成候选，删除会清除来源和传播上下文 (46.3171ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":4,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：更改主题重算稳定编号，同主题同相关性按确认时间选择 (58.5634ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"opening","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"opening_cache","mode":"chat","hit":false,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"model_attempt","operation":"opening","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"opening_cache","mode":"chat","hit":false,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":1,"duration_ms":1}
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"opening","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"opening_cache","mode":"chat","hit":false,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+✔ 实际HTTP：回访只选匹配主题并同步标题，冷却、低精力和更正继续生效 (80.9915ms)
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":0,"replay":0,"duration_ms":1}
+{"event":"model_attempt","operation":"opening","mode":"chat","attempt":1,"duration_ms":5,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"opening_cache","mode":"chat","hit":false,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":10}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":1,"duration_ms":109}
+✔ 实际HTTP：同号并发开场只生成一张卡与一次模型调用 (116.9686ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":0,"replay":0,"duration_ms":1}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":4,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":9}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":1,"duration_ms":112}
+✔ 实际HTTP：跨处理实例的同轮并发重试只调用一次模型，同号异内容409 (132.4418ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":false,"input_tokens":null,"cached_input_tokens":null,"output_tokens":null,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":0,"replay":0,"duration_ms":116}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：失效处理者允许接手，模型失败后可用同号重试 (132.4331ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":0,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：失去处理租约的旧调用不能提交轮次 (20.2241ms)
+{"event":"opening_cache","mode":"chat","hit":true,"eligible":true,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"opening","version":1,"turn_version":0,"success":1,"replay":0,"duration_ms":6}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":1,"success":1,"replay":0,"duration_ms":6}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":2,"success":1,"replay":0,"duration_ms":6}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":3,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":4,"success":1,"replay":0,"duration_ms":5}
+{"event":"model_attempt","operation":"reply","mode":"chat","attempt":1,"duration_ms":1,"success":true,"input_tokens":100,"cached_input_tokens":40,"output_tokens":20,"config_version":"ead6df51f26ea75d5495c88458f352415ce4562aa9698b509d0f6f6c4e109813","template_version":"conversation-v2"}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":5,"success":1,"replay":0,"duration_ms":6}
+{"event":"interaction_request","operation":"turn","version":1,"turn_version":6,"success":1,"replay":0,"duration_ms":5}
+✔ 实际HTTP：收尾尊重用户意愿，超过三轮仍传入最近有效问答 (51.9006ms)
+✔ 保留八个旧话题编号，补齐元数据并增加有实质差异的主题组 (0.8124ms)
+✔ 60种场景/精力/预算组合：筛选、实际抽签与兜底卡均合法 (13.759ms)
+✔ 场景、精力和时长在抽签前筛选；未选场景等价于null (0.5718ms)
+✔ waiting低精力有具体声音细节的一分钟问题，无忙事回访 (0.5064ms)
+✔ 相邻近似题按组一起降权，而不是仅降低已出现的topic (15.1697ms)
+✔ chat/discuss跨方式共用主题组历史 (0.2777ms)
+✔ 沿用最近三次开场位置的衰减；重复组不叠乘，滑出三轮恢复 (0.2964ms)
+✔ 只有progress标注稳定回访主题；所有低精力候选禁止回访 (0.2078ms)
+✔ builtinOpening保留原卡片接口，photo资格与返回内容不变 (0.4928ms)
+✔ micro原型避重与类别偏好继续交给pickBuiltin，沿用同一候选对象 (0.9673ms)
+✔ replacement只排除方式/当前题，不修改反馈或历史，也不扩大组级厌恶 (0.3772ms)
+✔ conversation intent: direct questions, voluntary continuation, stopping and switching (1.8494ms)
+✔ usage: DeepSeek/OpenAI, explicit zero, partial coverage and unknown/invalid counts (0.5418ms)
+✔ reply has a fixed system prefix including candidate rules; all dynamic messages are untrusted JSON (10.1797ms)
+✔ opening prefix stays stable and remains recognizable by existing fake-model (1.9492ms)
+✔ anonymous per-attempt metrics have an allowlisted shape and SHA-256 config identity (0.9979ms)
+✔ retry attempts preserve 7s x 2 bounds, unknown usage and safe default console metrics (0.7789ms)
+✔ HTTP, parse and schema failures retain retry semantics and record success accurately (2.5997ms)
+✔ HTTP errors retain reported usage; malformed 4xx bodies never retry (0.8652ms)
+✔ a broken metric observer never changes a response or causes extra retries (0.8519ms)
+✔ public opening cache hits return clones and log no text or raw model configuration (1.326ms)
+✔ cache key isolates all public context dimensions, model configuration and carries template version (5.6369ms)
+✔ personal exclusions pick another variant or refill, but never enter shared prompts (1.2735ms)
+✔ recent duplicate title OR question, including formatting differences, returns null (1.8748ms)
+✔ single-key pool holds at most three validated variants; invalid results are not cached (1.7094ms)
+✔ TTL is absolute, total keys are bounded, and evicted keys regenerate (32.7958ms)
+✔ in-flight public generation coalesces; every waiter rechecks its personal history (0.8607ms)
+✔ private/unknown contexts and custom settings are never shared, even concurrently (3.8017ms)
+✔ reply and vision are never cached, retain validation and custom provider payloads (1.8082ms)
+✔ missing key and unsupported modes do not fetch or manufacture a normal reply (0.3464ms)
+✔ actual API: opening/reply success, database-owned three-turn history and no-model 503 (1361.5733ms)
+ℹ tests 44
+ℹ suites 0
+ℹ pass 44
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 2470.3705
