@@ -1,6 +1,7 @@
-import { SCENES, ENERGIES, BUDGETS, pickBuiltin } from './suggestions.mjs';
-import { generateSuggestion, generateOpening, generateReply, generateVisionWord, listModels, validModelName } from './model.mjs';
-import { pickOpening, builtinOpening, CHAT_TOPICS, DISCUSS_TOPICS } from './interactions.mjs';
+import { SCENES, ENERGIES, BUDGETS, options, pickBuiltin } from './suggestions.mjs';
+import { CATEGORIES, generateOpening, generateReply, generateVisionWord, listModels, validModelName, conversationIntent } from './model.mjs';
+import { pickOpening, builtinOpening, topicGroup, eligibleTopics, CHAT_TOPICS, DISCUSS_TOPICS } from './interactions.mjs';
+import { memoryTopic, memoryLabel, recallIntent, retrieveMemories, recallReply } from './memories.mjs';
 
 const SCENE_SET = new Set(SCENES);
 const ENERGY_SET = new Set(ENERGIES);
@@ -21,10 +22,12 @@ const IDLE_TTL_MS = 24 * 60 * 60 * 1000;
 const MEMORY_TTL_MS = { status: 30 * 24 * 60 * 60 * 1000, word: 90 * 24 * 60 * 60 * 1000 };
 const REVISIT_PROBABILITY = 0.25;
 const REVISIT_COOLDOWN_MS = 7 * 24 * 60 * 60 * 1000;
-const RECALL_INTENT = /(上次|之前).{0,12}(说|提到|讲|记住)/;
+const REQUEST_LEASE_MS = 35000;
+const REQUEST_WAIT_MS = 37000;
 
 // Ownership comes from the verified session header, never from client JSON.
-export function application({ db, BackendError, env, validateImage, localModelSettings = false, random = Math.random, now = Date.now }) {
+export function application({ db, BackendError, env, validateImage, localModelSettings = false,
+  activityOptions = options, random = Math.random, now = Date.now }) {
   const fail = (code, status) => { throw new BackendError(code, status); };
   const rows = result => {
     if (result?.error) fail(result.error.code || 'STORAGE_UNAVAILABLE', result.error.status || 503);
@@ -34,6 +37,53 @@ export function application({ db, BackendError, env, validateImage, localModelSe
   function transaction(owner, work) {
     if (!db.transaction) fail('STORAGE_UNAVAILABLE', 503);
     return db.transaction(owner, work);
+  }
+
+  async function withRequest(owner, scope, requestId, payloadHash, replay, work, turnVersion = 0) {
+    const started = Date.now();
+    let lease;
+    let replayed = false;
+    let success = false;
+    const lookup = db => db.from('interaction_requests').select('payload_hash,claim_id,expires_at')
+      .eq('owner', owner).eq('scope', scope).eq('request_id', requestId);
+    try {
+      while (Date.now() - started < REQUEST_WAIT_MS) {
+        const prepared = await transaction(owner, async db => {
+          const response = await replay(db);
+          if (response) return { response };
+          const [current] = rows(await lookup(db).limit(1));
+          if (current && current.payload_hash !== payloadHash) fail('REQUEST_CONFLICT', 409);
+          if (current && Date.parse(current.expires_at) > Date.now()) return {};
+          const claim = { claim_id: crypto.randomUUID(), expires_at: new Date(Date.now() + REQUEST_LEASE_MS).toISOString() };
+          if (current) {
+            const updated = rows(await db.from('interaction_requests').update(claim)
+              .eq('owner', owner).eq('scope', scope).eq('request_id', requestId).select('claim_id'));
+            if (!updated.length) return {};
+          } else rows(await db.from('interaction_requests').insert({ owner, scope, request_id: requestId, payload_hash: payloadHash, ...claim }).select('claim_id'));
+          return { claim };
+        });
+        if (prepared.response) {
+          replayed = true;
+          success = true;
+          return prepared.response;
+        }
+        if (prepared.claim) { lease = prepared.claim; break; }
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      if (!lease) fail('MODEL_UNAVAILABLE', 503);
+      const fence = async db => {
+        const [current] = rows(await lookup(db).limit(1));
+        if (current?.claim_id !== lease.claim_id || Date.parse(current.expires_at) <= Date.now()) fail('MODEL_UNAVAILABLE', 503);
+      };
+      const response = await work(fence);
+      success = true;
+      return response;
+    } finally {
+      if (lease) await transaction(owner, async db => rows(await db.from('interaction_requests').delete()
+        .eq('owner', owner).eq('scope', scope).eq('request_id', requestId).eq('claim_id', lease.claim_id).select('claim_id')));
+      console.info(JSON.stringify({ event: 'interaction_request', operation: scope === 'opening' ? 'opening' : 'turn',
+        version: 1, turn_version: turnVersion, success: Number(success), replay: Number(replayed), duration_ms: Date.now() - started }));
+    }
   }
 
   async function digest(token) {
@@ -217,42 +267,41 @@ export function application({ db, BackendError, env, validateImage, localModelSe
     return json({ models });
   }
 
-  async function recommend(owner, context) {
-    const { scene, energy, budget } = context;
-    const recent = rows(await db.from('recommendations').select('action,title,scene')
-      .eq('owner', owner).order('created_at', { ascending: false }).limit(20))
-      .filter(row => row.scene === scene).slice(0, 3);
+  async function activityHistory(db, owner, scene) {
+    const recent = rows(await db.from('recommendations').select('action,title')
+      .eq('owner', owner).eq('scene', scene).in('category', CATEGORIES).neq('action', 'builtin')
+      .order('created_at', { ascending: false }).order('recommendation_seq', { ascending: false }).limit(3));
     const feedback = rows(await db.from('recommendations').select('category,preference')
-      .eq('owner', owner).limit(500));
+      .eq('owner', owner).in('category', CATEGORIES).order('created_at', { ascending: false }).limit(500));
     const scores = {};
     for (const row of feedback) {
       if (row.preference === 'like') scores[row.category] = (scores[row.category] ?? 0) + 1;
       if (row.preference === 'dislike') scores[row.category] = (scores[row.category] ?? 0) - 1;
     }
-    let card = null;
-    let source = 'builtin';
-    const model = await modelOptions(owner);
-    if (model.apiKey) {
-      card = await generateSuggestion({
-        ...model, budget, energy, scene,
-        recentTitles: recent.map(row => row.title),
-        liked: Object.keys(scores).filter(category => scores[category] > 0),
-        disliked: Object.keys(scores).filter(category => scores[category] < 0),
-      });
-      if (card) source = 'model';
-    }
-    if (!card) {
-      card = pickBuiltin({ scene, energy, budget, recentActions: recent.map(row => row.action), scores });
-    }
-    const id = crypto.randomUUID();
-    rows(await db.from('recommendations').insert({
-      id, owner, scene, energy, budget,
-      action: card.action, category: card.category, title: card.title,
-      first_step: card.first, detail: card.detail, minutes: card.minutes, source,
-    }).select('id'));
-    const saved = rows(await db.from('recommendations').select(CARD_COLUMNS).eq('id', id).limit(1));
-    if (!saved?.length) fail('STORAGE_UNAVAILABLE', 503);
-    return asCard(saved[0]);
+    return { recent, scores };
+  }
+
+  function inventoryGap({ version, scene, energy, budget, prototypes }) {
+    console.info(JSON.stringify({ event: 'activity_inventory_gap', version, combination: [scene, energy, budget], prototypes }));
+  }
+
+  async function recommend(owner, context) {
+    const save = async db => {
+      const { scene, energy, budget } = context;
+      const card = pickBuiltin({ ...context, ...await activityHistory(db, owner, scene),
+        candidates: activityOptions(scene, energy, budget), random, onGap: inventoryGap });
+      if (!card) fail('MODEL_UNAVAILABLE', 503);
+      const id = crypto.randomUUID();
+      rows(await db.from('recommendations').insert({
+        id, owner, scene, energy, budget,
+        action: card.action, category: card.category, title: card.title,
+        first_step: card.first, detail: card.detail, minutes: card.minutes, source: 'builtin', created_at: at(),
+      }).select('id'));
+      const saved = rows(await db.from('recommendations').select(CARD_COLUMNS).eq('id', id).limit(1));
+      if (!saved?.length) fail('STORAGE_UNAVAILABLE', 503);
+      return asCard(saved[0]);
+    };
+    return transaction(owner, save);
   }
 
   async function feedback(owner, id, data) {
@@ -316,7 +365,7 @@ export function application({ db, BackendError, env, validateImage, localModelSe
 
   async function activeMemory(db, owner, id, version, timestamp) {
     if (!id) return null;
-    return rows(await db.from('memories').select('id,text,version')
+    return rows(await db.from('memories').select('id,text,version,topic_id')
       .eq('owner', owner).eq('id', id).eq('version', version).gt('expires_at', timestamp).limit(1))[0];
   }
 
@@ -326,7 +375,12 @@ export function application({ db, BackendError, env, validateImage, localModelSe
     if (!saved) fail('STORAGE_UNAVAILABLE', 503);
     const card = asCard(saved);
     const memory = await activeMemory(db, owner, interaction.memory_id, interaction.memory_version, timestamp);
-    if (memory) card.first_step = `上次你说「${memory.text}」，最近怎么样了？`;
+    if (memory) {
+      card.title = `聊聊${memoryLabel(memory)}`;
+      card.first_step = `上次你说「${memory.text}」，最近怎么样了？`;
+      card.detail = '挑一个近况说说就好，随时可以停。';
+      card.minutes = Math.min(2, interaction.budget);
+    }
     return { card, memory };
   }
 
@@ -354,15 +408,26 @@ export function application({ db, BackendError, env, validateImage, localModelSe
   async function revisitCandidate(db, owner, topic) {
     const timestamp = at();
     const cutoff = new Date(now() - REVISIT_COOLDOWN_MS).toISOString();
-    const eligible = () => db.from('memories').select('id,version')
+    const allowed = topicFor({ mode: 'chat', topic })?.memoryTopics ?? [];
+    if (!allowed.length) return null;
+    const memories = rows(await db.from('memories').select('id,version,text,topic_id')
       .eq('owner', owner).eq('kind', 'status').gt('expires_at', timestamp).lt('last_prompted_at', cutoff)
-      .order('last_prompted_at').order('id').limit(1);
-    return rows(await eligible().eq('topic', topic))[0] ?? rows(await eligible())[0];
+      .order('last_prompted_at').order('id'));
+    const memory = memories.find(memory => allowed.includes(memory.topic_id ?? memoryTopic(memory.text)));
+    if (memory && !memory.topic_id) rows(await db.from('memories').update({ topic_id: memoryTopic(memory.text) })
+      .eq('id', memory.id).eq('owner', owner).eq('version', memory.version).select('id'));
+    return memory;
   }
 
   async function createInteraction(owner, request) {
     const { requestId, replaces, supports, ...context } = validateInteractionContext(await input(request));
     const payloadHash = await digest(JSON.stringify([context.scene, context.energy, context.budget, replaces, supports]));
+    return withRequest(owner, 'opening', requestId, payloadHash,
+      db => openingReplay(db, owner, requestId, payloadHash, at()),
+      fence => generateInteraction(owner, { requestId, replaces, supports, context, payloadHash }, fence));
+  }
+
+  async function generateInteraction(owner, { requestId, replaces, supports, context, payloadHash }, fence) {
     const model = await modelOptions(owner);
     const imageReady = model.imageEnabled && supports.includes('image');
     const prepared = await transaction(owner, async db => {
@@ -371,20 +436,26 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       const exclude = replaces ? await ownedInteraction(db, owner, replaces) : null;
       const history = rows(await db.from('interactions').select('mode,topic')
         .eq('owner', owner).order('created_at', { ascending: false }).order('opening_seq', { ascending: false }).limit(3));
-      const draw = pickOpening({ context, history, exclude, imageReady, random });
+      const microCandidates = activityOptions(context.scene, context.energy, context.budget);
+      const draw = pickOpening({ context, history, exclude, imageReady, random, microCandidates,
+        ...await activityHistory(db, owner, context.scene) });
       const revisit = draw.mode === 'chat' && random() < REVISIT_PROBABILITY
         ? await revisitCandidate(db, owner, draw.topic) : null;
-      return { ...draw, revisit };
+      const recentOpenings = rows(await db.from('recommendations').select('title,first_step')
+        .eq('owner', owner).in('category', ['chat', 'discuss'])
+        .order('recommendation_seq', { ascending: false }).limit(3));
+      return { ...draw, revisit, microCandidates, recentOpenings };
     });
     if (prepared.replay) return prepared.replay;
 
-    const { mode, topic, revisit } = prepared;
-    const builtin = builtinOpening(mode, topic, context);
+    const { mode, revisit, microCandidates } = prepared;
+    let { topic } = prepared;
+    const builtin = prepared.card ?? builtinOpening(mode, topic, context, microCandidates);
     const generated = model.apiKey && !revisit && (mode === 'chat' || mode === 'discuss')
       ? await generateOpening({
-        ...model, mode, topic: topicFor(prepared), ...context,
+        ...model, mode, topic: topicFor(prepared), ...context, recentOpenings: prepared.recentOpenings,
       }) : null;
-    const card = generated ?? builtin;
+    let card = generated ?? builtin;
     const cardId = await uuidFrom(`${owner}:${requestId}`);
     const state = mode === 'micro' ? 'card' : mode === 'photo' ? 'awaiting_image' : 'open';
 
@@ -392,13 +463,21 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       const timestamp = at();
       const replay = await openingReplay(db, owner, requestId, payloadHash, timestamp);
       if (replay) return replay;
+      await fence(db);
+      if (mode === 'micro') {
+        // Re-read after acquiring the session lock so concurrent openings also avoid the last card.
+        card = pickBuiltin({ ...context, ...await activityHistory(db, owner, context.scene),
+          candidates: microCandidates, random, onGap: inventoryGap });
+        if (!card) fail('MODEL_UNAVAILABLE', 503);
+        topic = card.action;
+      }
       const claimed = revisit && rows(await db.from('memories').update({ last_prompted_at: timestamp })
         .eq('id', revisit.id).eq('owner', owner).eq('version', revisit.version).gt('expires_at', timestamp)
         .lt('last_prompted_at', new Date(now() - REVISIT_COOLDOWN_MS).toISOString()).select('id'))[0];
       const values = {
         ...context, action: mode === 'micro' ? topic : generated ? 'model' : 'builtin',
-        category: builtin.category, title: card.title, first_step: card.first, detail: card.detail,
-        minutes: card.minutes, source: generated ? 'model' : 'builtin',
+        category: mode === 'micro' ? card.category : builtin.category, title: card.title, first_step: card.first, detail: card.detail,
+        minutes: card.minutes, source: generated ? 'model' : 'builtin', created_at: timestamp,
       };
       const inserted = rows(await db.from('recommendations')
         .insertIfAbsent({ id: cardId, owner, ...values }, { onConflict: 'id' }).select('id'));
@@ -508,12 +587,19 @@ export function application({ db, BackendError, env, validateImage, localModelSe
   async function createTurn(owner, id, request) {
     const turn = validateTurn(await input(request));
     const payloadHash = await digest([turn.version, turn.text ?? '', turn.imageRef ?? ''].join('\u001f'));
-    const recallIntent = RECALL_INTENT.test(turn.text ?? '');
-    const prepared = await transaction(owner, db => prepareTurn(db, owner, id, turn, payloadHash, recallIntent));
+    return withRequest(owner, `turn:${id}`, turn.requestId, payloadHash, async db => {
+      checkConversational(await ownedInteraction(db, owner, id));
+      return turnReplay(db, owner, id, turn.requestId, payloadHash, at());
+    }, fence => generateTurn(owner, id, turn, payloadHash, fence), turn.version);
+  }
+
+  async function generateTurn(owner, id, turn, payloadHash, fence) {
+    const intent = recallIntent(turn.text ?? '');
+    const prepared = await transaction(owner, db => prepareTurn(db, owner, id, turn, payloadHash, intent));
     if (prepared.replay) return prepared.replay;
 
     const { interaction, card, history, image, memory, dependencies = new Map() } = prepared;
-    const recall = interaction.mode === 'chat' && !image && recallIntent;
+    const recall = Boolean(interaction.mode === 'chat' && !image && intent);
     const model = await modelOptions(owner);
     let reply, word, candidate;
     if (image) {
@@ -531,6 +617,17 @@ export function application({ db, BackendError, env, validateImage, localModelSe
           reply = '看到了，确认一下要不要保存这句话。';
           dependencies.clear();
         }
+      }
+      if (!reply && ['chat', 'discuss'].includes(interaction.mode)) {
+        const behavior = conversationIntent(turn.text);
+        if (behavior === 'stop') reply = '好，今天就聊到这儿。';
+        if (behavior === 'change') {
+          const topics = eligibleTopics(interaction.mode, interaction);
+          const alternatives = topics.filter(topic => topic.group !== topicGroup(interaction.mode, interaction.topic));
+          const pool = alternatives.length ? alternatives : topics;
+          reply = `好，换个话题。${pool[Math.floor(random() * pool.length)].first}`;
+        }
+        if (reply) dependencies.clear();
       }
       if (!reply && model.apiKey) {
         const generated = await generateReply({
@@ -550,6 +647,7 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       const timestamp = at();
       const replay = await turnReplay(db, owner, id, turn.requestId, payloadHash, timestamp);
       if (replay) return replay;
+      await fence(db);
       if (current.version !== turn.version) fail('TURN_EXPIRED', 409);
       if (image) {
         const [stored] = rows(await db.from('images').select('id').eq('id', image.id)
@@ -557,10 +655,11 @@ export function application({ db, BackendError, env, validateImage, localModelSe
         if (!stored) fail('IMAGE_EXPIRED', 409);
       }
       if (recall) {
-        const memories = rows(await db.from('memories').select('id,text,version')
-          .eq('owner', owner).gt('expires_at', timestamp).order('confirmed_at', { ascending: false }).order('id').limit(3));
-        for (const m of memories) dependencies.set(m.id, { memory_id: m.id, version: m.version });
-        reply = memories.length ? `你确认保存过这些：${memories.map(m => `「${m.text}」`).join('、')}。` : NO_MEMORY_REPLY;
+        const memories = rows(await db.from('memories').select('id,text,version,topic_id,confirmed_at')
+          .eq('owner', owner).gt('expires_at', timestamp).order('confirmed_at', { ascending: false }).order('id'));
+        const result = retrieveMemories(memories, turn.text, intent);
+        for (const m of result.memories) dependencies.set(m.id, { memory_id: m.id, version: m.version });
+        reply = recallReply(result);
       } else if (!await dependenciesValid(db, owner, dependencies.values(), timestamp)) {
         reply = GENERIC_REPLY;
         candidate = null;
@@ -585,7 +684,7 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       let candidateOut = null;
       if (candidate) {
         [candidateOut] = rows(await db.from('memory_candidates').insert({
-          owner, interaction_id: id, turn_id: saved.id, ...candidate,
+          owner, interaction_id: id, turn_id: saved.id, ...candidate, topic_id: memoryTopic(candidate.text),
           expires_at: new Date(Date.parse(timestamp) + CANDIDATE_TTL_MS).toISOString(),
         }).select('id,text,kind,topic,version,expires_at'));
       }
@@ -685,9 +784,12 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       const [saved] = rows(await db.from('memories').insert({
         id: await uuidFrom(`${owner}:${candidate.id}`), owner,
         candidate_id: candidate.id, candidate_interaction_id: id, candidate_version: candidate.version,
-        kind: candidate.kind, topic: candidate.topic, text: finalText ?? candidate.text, confirmed_at: timestamp,
+        kind: candidate.kind, topic: candidate.topic, text: finalText ?? candidate.text,
+        topic_id: memoryTopic(finalText ?? candidate.text), confirmed_at: timestamp,
         expires_at: new Date(Date.parse(timestamp) + MEMORY_TTL_MS[candidate.kind]).toISOString(),
       }).select(MEMORY_COLUMNS));
+      rows(await db.from('turn_memories').insertIfAbsent({ turn_id: candidate.turn_id, memory_id: saved.id, version: saved.version },
+        { onConflict: 'turn_id,memory_id' }).select('turn_id'));
       rows(await db.from('memory_candidates').update({ status: 'consumed', text: '' })
         .eq('id', candidate.id).eq('owner', owner).select('id'));
       return json(asMemory(saved), 201);
@@ -720,7 +822,8 @@ export function application({ db, BackendError, env, validateImage, localModelSe
       if (memory.version === data.version + 1 && memory.text === text) return json(asMemory(memory));
       if (memory.version !== data.version) fail('VERSION_CONFLICT', 409);
       const [updated] = rows(await db.from('memories').update({
-        text, version: data.version + 1, expires_at: new Date(Date.parse(timestamp) + MEMORY_TTL_MS[memory.kind]).toISOString(),
+        text, topic_id: memoryTopic(text), version: data.version + 1,
+        expires_at: new Date(Date.parse(timestamp) + MEMORY_TTL_MS[memory.kind]).toISOString(),
       }).eq('id', id).eq('owner', owner).select(MEMORY_COLUMNS));
       await db.invalidateMemoryTurns(owner, timestamp);
       return json(asMemory(updated));

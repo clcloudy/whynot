@@ -3,11 +3,11 @@
 // list/edit/delete, revisit cooldown, expiry, recall and ownership.
 import { randomUUID, createHash } from 'node:crypto';
 import { setTimeout as delay } from 'node:timers/promises';
-import { modeWeights } from '../functions/interactions.mjs';
+import { modeWeights, pickOpening, CHAT_TOPICS } from '../functions/interactions.mjs';
 import { validateCandidate } from '../functions/model.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
-const FAKE = 'http://127.0.0.1:8766';
+const FAKE = process.env.FAKE || 'http://127.0.0.1:8766';
 const MODES = ['chat', 'discuss', 'micro'];
 let passed = 0, failed = 0;
 
@@ -91,8 +91,10 @@ function seedForChat(history, revisit) {
     const rng = mulberry(seed);
     const mode = rng();
     if (mode < low || mode >= high) continue;
+    const draw = pickOpening({ context: CONTEXT, history, random: mulberry(seed) });
     rng();
     const roll = rng();
+    if (revisit && !CHAT_TOPICS.find(topic => topic.topic === draw.topic)?.memoryTopics.length) continue;
     if (revisit ? roll < 0.25 : roll >= 0.25) return seed;
   }
   throw new Error('no seed found');

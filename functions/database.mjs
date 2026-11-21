@@ -20,7 +20,16 @@ export function createPostgresDb(query, begin) {
     };
     const builder = {
       select(names) { columns = projection(names); return builder; },
-      eq(name, value) { return filter(name, '=', value); },
+      eq(name, value) {
+        if (value !== null) return filter(name, '=', value);
+        filters.push(`${identifier(name)} IS NULL`);
+        return builder;
+      },
+      in(name, values) {
+        filters.push(values.length ? `${identifier(name)} IN (${values.map(bind).join(', ')})` : 'FALSE');
+        return builder;
+      },
+      neq(name, value) { return filter(name, '<>', value); },
       gt(name, value) { return filter(name, '>', value); },
       lt(name, value) { return filter(name, '<', value); },
       order(name, { ascending = true } = {}) {
@@ -89,8 +98,9 @@ export function createPostgresDb(query, begin) {
     clearInteraction(owner, id, state) {
       return query('SELECT app.clear_interaction($1, $2, $3)', [owner, id, state]);
     },
-    purgeExpired(at) {
-      return query('SELECT app.purge_expired($1)', [at]);
+    async purgeExpired(at) {
+      await query('SELECT app.purge_expired($1)', [at]);
+      await query("DELETE FROM app.interaction_requests WHERE expires_at < statement_timestamp() - interval '1 day'");
     },
   };
 }

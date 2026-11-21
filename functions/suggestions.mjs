@@ -1,5 +1,8 @@
-// Curated micro-actions. minutes include the first step. anywhere=true means
-// the action assumes no window, desk or other nearby object.
+import catalog from './activity-catalog.v1.json' with { type: 'json' };
+import { eligibleCard, validateCatalog } from './activity-catalog.mjs';
+
+if (validateCatalog(catalog, { requireCoverage: true }).length) throw new Error('INVALID_ACTIVITY_CATALOG');
+export const ACTIVITY_CATALOG = catalog;
 
 export const SCENES = ['waiting', 'desk', 'outside', 'home'];
 export const ENERGIES = ['low', 'steady', 'high'];
@@ -51,25 +54,67 @@ export const ANYWHERE = [
   { action: 'tale', title: '编一个三句话故事', first: '用「今天、忽然、原来」开头，在心里起一个故事。', detail: '三句话就好，不用写下来，讲给自己听。', minutes: 3, category: 'explore', anywhere: true },
 ];
 
-export function options(scene, energy, budget) {
+export function legacyOptions(scene, energy, budget, inventory = catalog) {
   const pool = [...(scene ? SCENE_ACTIONS[scene] : []), ...EXTRAS[energy], ...ANYWHERE];
   return pool.filter(item => item.minutes <= budget
     && (scene || item.anywhere)
-    && (energy !== 'low' || item.category !== 'explore'));
+    && (energy !== 'low' || item.category !== 'explore'))
+    .map(item => {
+      const version = catalog.cards.find(card => card.sources.some(source => source.kind === 'builtin' && source.action === item.action));
+      const current = version && inventory.cards.find(card => card.id === version.id);
+      return version && (!current || current.status === 'published') && eligibleCard(version, { scene, energy, budget })
+        ? { ...version, action: version.id, first: version.first_step, anywhere: version.scenes.includes(null) } : null;
+    }).filter(Boolean);
 }
 
-export function pickBuiltin({ scene, energy, budget, recentActions = [], scores = {} }) {
-  let choices = options(scene, energy, budget);
-  for (const action of recentActions) {
-    const remaining = choices.filter(item => item.action !== action);
-    if (remaining.length) choices = remaining;
+export function options(scene, energy, budget, { inventory = catalog, fallback = legacyOptions } = {}) {
+  const candidates = inventory.cards.filter(card => eligibleCard(card, { scene, energy, budget }))
+    .map(card => ({ ...card, action: card.id, first: card.first_step, anywhere: card.scenes.includes(null) }));
+  return candidates.length ? candidates : fallback(scene, energy, budget, inventory);
+}
+
+const normalizedTitle = title => (title ?? '').replace(/[\s\p{P}]/gu, '');
+export function prototypeFor(entry, inventory = catalog) {
+  const action = typeof entry === 'string' ? entry : entry.action;
+  const index = [...inventory.cards, ...inventory.history];
+  const exact = index.find(item => item.id === action);
+  if (exact) return exact.prototype_id;
+  if (typeof entry !== 'string' && action === 'model') {
+    return index.find(item => normalizedTitle(item.title) === normalizedTitle(entry.title))?.prototype_id ?? null;
   }
-  const weights = choices.map(item => 2 ** Math.max(-2, Math.min(2, scores[item.category] ?? 0)));
-  const total = weights.reduce((sum, weight) => sum + weight, 0);
-  let roll = Math.random() * total;
+  return null;
+}
+
+export function pickBuiltin({ scene, energy, budget, candidates = options(scene, energy, budget), recent = [],
+  scores = {}, inventory = catalog, random = Math.random, onGap = () => {} }) {
+  const groups = new Map();
+  for (const card of candidates) {
+    if (!groups.has(card.prototype_id)) groups.set(card.prototype_id, []);
+    groups.get(card.prototype_id).push(card);
+  }
+  if (groups.size < 2) onGap({ version: inventory.version, scene, energy, budget, prototypes: groups.size });
+  if (!groups.size) return null;
+  const history = recent.slice(0, 3).map(entry => prototypeFor(entry, inventory));
+  let blocked = new Set(history.filter(Boolean));
+  let choices = [...groups.keys()].filter(id => !blocked.has(id));
+  for (let i = history.length - 1; !choices.length && i >= 0; i--) {
+    blocked = new Set(history.slice(0, i).filter(Boolean));
+    choices = [...groups.keys()].filter(id => !blocked.has(id));
+  }
+  if (!choices.length) choices = [...groups.keys()];
+  const weights = choices.map(id => 2 ** Math.max(-2, Math.min(2, scores[groups.get(id)[0].category] ?? 0)));
+  let roll = random() * weights.reduce((sum, weight) => sum + weight, 0);
+  let selected = choices.at(-1);
   for (let i = 0; i < choices.length; i++) {
     roll -= weights[i];
-    if (roll < 0) return choices[i];
+    if (roll < 0) { selected = choices[i]; break; }
   }
-  return choices[choices.length - 1];
+  let versions = groups.get(selected);
+  const previous = recent[0];
+  if (previous && versions.length > 1) {
+    const different = versions.filter(card => card.action !== previous.action
+      && normalizedTitle(card.title) !== normalizedTitle(previous.title));
+    if (different.length) versions = different;
+  }
+  return versions[Math.floor(random() * versions.length)];
 }

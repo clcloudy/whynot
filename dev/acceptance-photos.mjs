@@ -7,7 +7,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { eligibleModes, modeWeights } from '../functions/interactions.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
-const FAKE = 'http://127.0.0.1:8766';
+const FAKE = process.env.FAKE || 'http://127.0.0.1:8766';
 let passed = 0, failed = 0;
 
 function check(name, condition, extra = '') {

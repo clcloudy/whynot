@@ -1,6 +1,6 @@
 // Acceptance checks against the local fixture server (dev/server.mjs).
 import { validateCard } from '../functions/model.mjs';
-import { ANYWHERE, EXTRAS } from '../functions/suggestions.mjs';
+import { options } from '../functions/suggestions.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
 let passed = 0, failed = 0;
@@ -86,7 +86,7 @@ check('非 JSON 请求 415', (await a.call('POST', '/api/recommendations', { bud
 check('未知路由 404', (await a.call('GET', '/api/nope')).status === 404);
 
 console.log('全部条件组合');
-const anywhereActions = new Set([...ANYWHERE, ...Object.values(EXTRAS).flat()].filter(item => item.anywhere).map(item => item.action));
+const anywhereActions = new Set(['low', 'steady', 'high'].flatMap(energy => options(null, energy, 15)).map(item => item.action));
 let combos = 0, comboFailures = [];
 for (const scene of [null, 'waiting', 'desk', 'outside', 'home']) {
   for (const energy of ['low', 'steady', 'high']) {

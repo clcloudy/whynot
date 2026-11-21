@@ -46,8 +46,8 @@ const server = createServer((request, response) => {
     counts[mode] = (counts[mode] ?? 0) + 1;
     if (mode === 'capture' || mode === 'hold') lastMessages = body?.messages ?? [];
     if (mode === 'hold' && kind === 'reply') {
-      const nearStatus = lastMessages[0].content.split('\n')
-        .find(line => line.includes('用户确认过的近况'))?.split('：').at(-1);
+      const nearStatus = lastMessages.filter(message => message.role === 'user' && typeof message.content === 'string')
+        .map(message => JSON.parse(message.content)).find(message => message.source === 'context')?.untrusted_user_data.memory;
       releaseReply = () => send(200, reply(JSON.stringify({ text: nearStatus || REPLY.text })));
       return;
     }
@@ -80,4 +80,5 @@ const server = createServer((request, response) => {
   });
 });
 
-server.listen(8766, '127.0.0.1', () => console.log('fake model  http://127.0.0.1:8766/<mode>'));
+const port = Number(process.argv[2] || 8766);
+server.listen(port, '127.0.0.1', () => console.log(`fake model  http://127.0.0.1:${port}/<mode>`));

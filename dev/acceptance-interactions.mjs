@@ -2,11 +2,11 @@
 // Covers plan phases 1-2: weighted draw, decay, replacement, idempotent
 // retries, turn versions, concurrency and model fallbacks.
 import { randomUUID, createHash } from 'node:crypto';
-import { modeWeights, eligibleModes, weightedPick, builtinOpening } from '../functions/interactions.mjs';
+import { modeWeights, eligibleModes, weightedPick, builtinOpening, pickOpening } from '../functions/interactions.mjs';
 import { options } from '../functions/suggestions.mjs';
 
 const BASE = process.env.BASE || 'http://127.0.0.1:8765';
-const FAKE = 'http://127.0.0.1:8766';
+const FAKE = process.env.FAKE || 'http://127.0.0.1:8766';
 const MODES = ['chat', 'discuss', 'micro'];
 let passed = 0, failed = 0;
 
@@ -200,13 +200,13 @@ for (let i = 0; i < 14; i++) {
   current = result.data;
   chain.push(current);
 }
-const chatTopics = chain.filter(card => card.mode === 'chat').map(card => card.topic);
 let switches = 0;
 for (let i = 0; i + 1 < chain.length; i++) {
   if (chain[i].mode !== chain[i + 1].mode) switches++;
 }
 check('多方式时逐次换一个必换方式', switches === chain.length - 1);
-check('链上话题允许重复', new Set(chatTopics).size < chatTopics.length);
+check('话题降权后仍允许重复', pickOpening({ context: CONTEXT,
+  history: [{ mode: 'chat', topic: 'week-focus' }], random: () => 0 }).topic === 'week-focus');
 check('单候选时抽取返回唯一项（单元）', weightedPick(['only'], { only: 1 }, 0.999) === 'only');
 const multi = jar();
 await multi.call('POST', '/api/session');
@@ -315,7 +315,9 @@ check('模型开场生效', modelRow?.source === 'model' && modelRow.title === '
 const modelTurn = await modelJar.call('POST', `/api/interactions/${modelCard.id}/turns`, { request_id: randomUUID(), version: 1, text: '在排练节目' });
 check('模型回复生效', modelTurn.status === 201 && modelTurn.data.reply === 'fake 追问：那件事里最让你在意的是什么？');
 for (const mode of ['chat', 'discuss']) {
-  const modelOpening = await openAs(modelJar, mode);
+  const fresh = jar();
+  await fresh.call('POST', '/api/session');
+  const modelOpening = await openAs(fresh, mode);
   const stored = (await db()).recommendations.find(row => row.id === modelOpening.data.id);
   check(`模型 ${mode} 开场按数据库契约入库`, modelOpening.status === 201 && stored?.source === 'model' && stored.category === mode);
 }
@@ -446,10 +448,13 @@ for (const [idx, letter] of [...'BCDE'].entries()) {
   check(`第 ${letter} 句可继续接话`, result.status === 201);
 }
 const messages = await (await fetch(`${FAKE}/messages`)).json();
-check('发给模型的是最新三轮、当前发言和实际开场', messages[1]?.content.includes(txOpen.data.first_step)
-  && messages.filter(message => message.role === 'user').map(message => message.content).join('|') === '第 B 句|第 C 句|第 D 句|第 E 句');
-check('送模包含已保存的场景、精力和时间', messages[0]?.content.includes('时间预算：5 分钟')
-  && messages[0].content.includes('精力：还可以') && messages[0].content.includes('场景：在桌前'));
+const sent = messages.slice(1).map(message => JSON.parse(message.content));
+check('发给模型的是最新三轮、当前发言和实际开场', sent.find(message => message.source === 'opening')?.text.includes(txOpen.data.first_step)
+  && sent.filter(message => ['history', 'latest_input'].includes(message.source) && typeof message.untrusted_user_data === 'object')
+    .map(message => message.untrusted_user_data.text).join('|') === '第 B 句|第 C 句|第 D 句|第 E 句');
+const sentContext = sent.find(message => message.source === 'context')?.untrusted_user_data;
+check('送模包含已保存的场景、精力和时间且不污染固定前缀', sentContext?.budget === 5
+  && sentContext.energy === '还可以' && sentContext.scene === '在桌前' && !messages[0].content.includes('在桌前'));
 const oldReplay = await txJar.call('POST', turnsPath, firstTurn);
 check('旧轮次重试返回初次响应版本', oldReplay.status === 200 && oldReplay.data.version === 2);
 const wrongVersion = await txJar.call('POST', turnsPath, { ...firstTurn, version: 6 });

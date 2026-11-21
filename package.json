@@ -3,6 +3,10 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env dev/server.mjs --local",
     "test:local": "node dev/acceptance-local.mjs",
+    "test:activities": "node --test dev/activity-catalog.test.mjs dev/activity-api.test.mjs dev/activity-generation.test.mjs",
+    "test:interactions": "node --test dev/interaction-improvements.test.mjs dev/interaction-topics.test.mjs dev/model-improvements.test.mjs",
+    "metrics:interactions": "node dev/interaction-metrics.mjs",
+    "activities": "node --env-file-if-exists=.env dev/activity-content.mjs",
     "build:function": "node dev/build-function.mjs"
   },
   "dependencies": {

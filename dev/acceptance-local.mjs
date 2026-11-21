@@ -143,7 +143,12 @@ try {
   const feedbackPath = `/api/recommendations/${card.data.id}/feedback`;
   await a('POST', feedbackPath, { kind: 'completed' });
   check('完成反馈幂等', (await a('POST', feedbackPath, { kind: 'completed' })).data.completed === true);
-  const opening = await a('POST', '/api/interactions', { ...context, supports: ['text'], request_id: randomUUID() });
+  let opening;
+  for (let i = 0; i < 12; i++) {
+    opening = await a('POST', '/api/interactions', { ...context, supports: ['text'], request_id: randomUUID() });
+    assert.equal(opening.status, 201);
+    if (opening.data.mode === 'chat') break;
+  }
   check('事务互动可用', opening.status === 201 && opening.data.mode === 'chat');
   const turnPath = `/api/interactions/${opening.data.id}/turns`;
   const turn = await a('POST', turnPath, { request_id: randomUUID(), version: 1, text: '帮我记住：本地持久化验收' });
@@ -177,7 +182,8 @@ try {
   check('换地址不能沿用旧密钥', (await a('PUT', modelPath, { ...modelSettings, endpoint: 'https://example.com/v1', api_key: '' })).data.error === 'MODEL_KEY_REQUIRED');
   check('同地址可以沿用密钥获取列表', (await a('POST', modelsPath, { endpoint: storedModel.data.endpoint })).status === 200);
   check('同地址换模型可以保留密钥', (await a('PUT', modelPath, { ...modelSettings, api_key: '', model: 'fixture-large' })).data.model === 'fixture-large');
-  check('推荐立即使用已选模型', (await a('POST', '/api/recommendations', context)).data.title === '自定义模型建议');
+  const inventoryCard = await a('POST', '/api/recommendations', context);
+  check('配置模型后推荐仍使用审核库存', inventoryCard.status === 201 && inventoryCard.data.title !== '自定义模型建议');
   const duplicate = launch(false, port + 1);
   const duplicateExit = await Promise.race([
     once(duplicate, 'exit').then(([code]) => code),

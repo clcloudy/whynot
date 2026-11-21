@@ -1,0 +1,58 @@
+{
+  "tasks": [
+    {
+      "id": "colors_wait_pair_v2",
+      "prototype_id": "find_colors",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "observe",
+      "variation": "只看眼前环境，找两处相同颜色，配成一对即结束，不需要图片或物品。"
+    },
+    {
+      "id": "colors_wait_shades_v3",
+      "prototype_id": "find_colors",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "observe",
+      "variation": "在眼前找同一种颜色的深浅变化，看出一处区别即结束，不为寻找颜色移动。"
+    },
+    {
+      "id": "sounds_wait_near_v2",
+      "prototype_id": "listen_ambient",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "listen",
+      "variation": "留意离自己最近的一种环境声音，听清一次变化即结束，同时听着叫号。"
+    },
+    {
+      "id": "sounds_wait_pause_v3",
+      "prototype_id": "listen_ambient",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "listen",
+      "variation": "留意一种持续声音的起伏，听半分钟即可结束，不使用耳机，不闭眼。"
+    },
+    {
+      "id": "breathe_wait_natural_v2",
+      "prototype_id": "breathe",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "rest",
+      "variation": "保持自己的自然呼吸节奏，数四次呼气就停，不屏息，也不刻意加深呼吸。"
+    },
+    {
+      "id": "breathe_wait_brief_v3",
+      "prototype_id": "breathe",
+      "scene": "waiting",
+      "energy": "low",
+      "budget": 3,
+      "category": "rest",
+      "variation": "留意两次舒适的自然呼吸，第二次结束就把注意力放回现场，不闭眼或屏息。"
+    }
+  ]
+}
