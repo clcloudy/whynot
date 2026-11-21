@@ -1,6 +1,5 @@
 const API = '/functions/v1/app';
 const SESSION_KEY = 'whynot-session';
-const GUIDE_KEY = 'whynot-guide';
 const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
 const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
 const CATEGORY_SHAPES = {
@@ -102,29 +101,129 @@ function cardResult(value) {
 }
 const state = {
   sessionReady: false, busy: false, seq: 0, conditions: null, conditionsMatch: true,
-  feedbackPending: false, feedbackAttempts: {}, card: null, ix: null, completionHeight: 0,
+  feedbackPending: false, feedbackAttempts: {}, card: null, ix: null, completionHeight: 0, animateTicket: false,
 };
 const result = document.getElementById('result');
 const status = document.getElementById('status');
 const feedbackStatus = document.getElementById('feedback-status');
-const guide = document.getElementById('guide');
 const laneForm = document.getElementById('lane-form');
-const lanes = [...laneForm.querySelectorAll('.lane')];
-const laneCollection = document.getElementById('lane-collection');
 const laneStatus = document.getElementById('lane-status');
-const laneState = { phase: 'IDLE', station: 0, confirmed: [false, false, false], epoch: 0, input: null };
-const LANE_KEY = 'whynot-lane';
-const SVG_CHECK = '<svg class="stamp-mini" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20"/><circle cx="22" cy="22" r="16"/><text x="22" y="29" text-anchor="middle">检</text></svg>';
+const formState = { phase: 'IDLE', step: 0, values: [null, null, null], touched: [false, false, false], epoch: 0, pressing: false };
+const LAST_KEY = 'whynot-lane';
+const FIELD_NAMES = ['时间', '精力', '场景'];
+const fieldNodes = [...laneForm.querySelectorAll('.field')];
+const progressItems = [...document.querySelectorAll('.progress li')];
+const bandNum = document.getElementById('band-num');
+const bandTime = document.getElementById('band-time');
+const issueButton = document.getElementById('issue');
+const issueHint = document.getElementById('issue-hint');
+const resetButton = document.getElementById('reset-form');
+const lastButton = document.getElementById('last-conditions');
+const replayButton = document.getElementById('replay-scene');
 const settingsToggle = document.getElementById('settings-toggle');
 const about = document.getElementById('about');
+const stage = document.querySelector('.stage');
+let sceneArrivalTimer = null, sceneRestTimer = null, sceneFlashTimer = null, sceneSlotTimer = null;
+const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function arriveScene() {
+  if (!stage) return;
+  clearTimeout(sceneArrivalTimer);
+  clearTimeout(sceneRestTimer);
+  stage.classList.remove('is-flashing');
+  if (reducedMotion()) {
+    stage.dataset.phase = 'stopped';
+    return;
+  }
+  stage.dataset.phase = 'idle';
+  void stage.offsetWidth;
+  stage.dataset.phase = 'arriving';
+  sceneArrivalTimer = setTimeout(() => {
+    if (stage?.dataset.phase === 'arriving') stage.dataset.phase = 'stopped';
+  }, 2400);
+  sceneRestTimer = setTimeout(() => {
+    if (stage?.dataset.phase === 'stopped') stage.dataset.phase = 'resting';
+  }, 20000);
+}
+function restScene() {
+  if (!stage) return;
+  clearTimeout(sceneArrivalTimer);
+  clearTimeout(sceneRestTimer);
+  stage.dataset.phase = 'resting';
+}
+function flashScene() {
+  if (!stage || reducedMotion()) return;
+  clearTimeout(sceneFlashTimer);
+  stage.classList.remove('is-flashing');
+  void stage.offsetWidth;
+  stage.classList.add('is-flashing');
+  sceneFlashTimer = setTimeout(() => stage.classList.remove('is-flashing'), 240);
+}
+function flashSlot() {
+  if (!stage || reducedMotion()) return;
+  clearTimeout(sceneSlotTimer);
+  stage.classList.remove('is-issuing');
+  void stage.offsetWidth;
+  stage.classList.add('is-issuing');
+  sceneSlotTimer = setTimeout(() => stage.classList.remove('is-issuing'), 760);
+}
+const stampGround = document.querySelector('.stamp-ground');
+const MARKS_KEY = 'whynot-marks';
+const MARK_SLOTS = [[58, 84], [64, 86], [61, 87], [68, 84], [55, 86]];
+let groundMarks = [];
+function todayKey() {
+  const date = new Date();
+  return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
+}
+function loadGroundMarks() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MARKS_KEY));
+    if (saved?.day === todayKey() && Array.isArray(saved.items)) {
+      groundMarks = saved.items.filter(item => Number.isFinite(item.x) && Number.isFinite(item.y)).slice(-5);
+    }
+  } catch {}
+}
+function saveGroundMarks() {
+  try { localStorage.setItem(MARKS_KEY, JSON.stringify({ day: todayKey(), items: groundMarks })); } catch {}
+}
+function renderGroundMarks(animate = false) {
+  if (!stampGround) return;
+  stampGround.replaceChildren();
+  groundMarks.forEach((mark, index) => {
+    const node = el('span', `stamp-mark${animate && index === groundMarks.length - 1 ? ' is-new' : ' is-settled'}`);
+    node.textContent = '此刻';
+    node.style.left = `${mark.x}%`;
+    node.style.top = `${mark.y}%`;
+    node.style.setProperty('--rot', `${mark.rot ?? -12}deg`);
+    stampGround.append(node);
+  });
+}
+function addGroundStamp() {
+  if (!stampGround) return;
+  const slot = MARK_SLOTS[groundMarks.length % MARK_SLOTS.length];
+  groundMarks.push({ x: slot[0], y: slot[1], rot: -16 + (groundMarks.length * 5) % 10, at: Date.now() });
+  if (groundMarks.length > 5) groundMarks = groundMarks.slice(-5);
+  saveGroundMarks();
+  renderGroundMarks(true);
+  setTimeout(() => {
+    const node = stampGround.querySelector('.stamp-mark.is-new');
+    if (node) {
+      node.classList.remove('is-new');
+      node.classList.add('is-settled');
+    }
+  }, 2000);
+}
 const localSettings = document.documentElement.dataset.localSettings === '1';
 const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
 const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
+function checkedInput(name) {
+  return document.querySelector(`input[name="${name}"]:checked`);
+}
 function conditions() {
+  const budget = checkedInput('budget'), energy = checkedInput('energy'), scene = checkedInput('scene');
   return {
-    budget: Number(document.querySelector('input[name="budget"]:checked').value),
-    energy: document.querySelector('input[name="energy"]:checked').value,
-    scene: document.querySelector('input[name="scene"]:checked').value || null,
+    budget: budget ? Number(budget.value) : 10,
+    energy: energy ? energy.value : 'steady',
+    scene: scene ? scene.value || null : null,
   };
 }
 function sameConditions(a, b) {
@@ -149,158 +248,279 @@ function el(tag, className, text) {
   return node;
 }
 function focus(node) { node?.focus({ preventScroll: true }); }
+function defer(fn) { setTimeout(fn, 0); }
 function reveal(node) {
   const top = node.getBoundingClientRect().top;
   if (top < 0 || top >= innerHeight) node.scrollIntoView({ block: 'start', behavior: 'instant' });
 }
 function conditionLabels(snapshot = conditions()) {
-  return [`${snapshot.budget} 分钟`, ENERGY_LABELS[snapshot.energy], SCENE_LABELS[snapshot.scene] || '先不选'];
+  return [`${snapshot.budget} 分钟`, ENERGY_LABELS[snapshot.energy], SCENE_LABELS[snapshot.scene] || '跳过'];
 }
-function lanePhase(phase) {
-  laneState.phase = phase;
+function fieldText(index, value = formState.values[index]) {
+  if (value === null || value === undefined) return '—';
+  if (index === 0) return `${value} 分钟`;
+  if (index === 1) return ENERGY_LABELS[value] || value;
+  return SCENE_LABELS[value] || '跳过';
+}
+function endClock(minutes) {
+  const date = new Date(Date.now() + minutes * 60000);
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+}
+function setPhase(phase) {
+  formState.phase = phase;
   document.documentElement.dataset.laneState = phase;
+  document.body.dataset.phase = phase;
 }
-function updateCollection() {
-  const labels = conditionLabels();
-  [...laneCollection.children].forEach((button, index) => {
-    const confirmed = laneState.confirmed[index];
-    button.classList.toggle('is-collected', confirmed);
-    button.disabled = state.busy || !confirmed;
-    button.querySelector('.collect-value').textContent = confirmed ? labels[index] : `第 ${index + 1} 站`;
-    button.setAttribute('aria-label', confirmed ? `第 ${index + 1} 站，已选 ${labels[index]}，返回修改` : `第 ${index + 1} 站，等待确认`);
-    if (index === laneState.station && laneState.phase !== 'TICKET') button.setAttribute('aria-current', 'step');
-    else button.removeAttribute('aria-current');
-    document.querySelectorAll('.station-marks i')[index].classList.toggle('is-collected', confirmed);
+function syncRadios() {
+  for (const input of laneForm.querySelectorAll('input[type="radio"]')) {
+    const index = input.name === 'budget' ? 0 : input.name === 'energy' ? 1 : 2;
+    input.checked = formState.values[index] !== null && String(formState.values[index]) === input.value;
+  }
+}
+function renderForm() {
+  const locked = ['ISSUING', 'TICKET', 'PRESSING'].includes(formState.phase);
+  fieldNodes.forEach((node, index) => {
+    const done = formState.values[index] !== null;
+    const active = !locked && !laneForm.hidden && formState.step === index;
+    node.classList.toggle('is-active', active);
+    node.classList.toggle('is-done', done);
+    node.querySelector('.f-val').textContent = done ? fieldText(index) : '—';
+    node.querySelector('.f-edit').hidden = !done || locked;
+    const body = node.querySelector('.f-body');
+    body.inert = !active;
+    body.setAttribute('aria-hidden', String(!active));
   });
-  laneCollection.hidden = laneState.phase === 'TICKET';
+  progressItems.forEach((item, index) => {
+    const done = formState.values[index] !== null;
+    item.classList.toggle('is-on', !locked && formState.step === index);
+    item.classList.toggle('is-done', done);
+    item.querySelector('b').textContent = done ? (index === 0 ? `${formState.values[0]}′` : fieldText(index)) : '—';
+  });
+  const budget = formState.values[0];
+  bandNum.textContent = budget === null ? '—' : `+${budget}′`;
+  bandTime.textContent = budget === null ? '' : endClock(Number(budget));
+  const missing = formState.values.filter(value => value === null).length;
+  issueButton.disabled = state.busy || locked || missing > 0;
+  issueHint.textContent = missing ? (formState.touched.some(Boolean) ? `还差 ${missing} 步` : '三步填完就能出票') : '三格齐了，出票';
+  document.getElementById('board').dataset.phase = formState.phase;
 }
-function showStation(index, moveFocus = true, keepAnnouncement = false) {
-  if (state.busy || index < 0 || index > 2 || !laneState.confirmed.slice(0, index).every(Boolean)) return;
-  laneState.epoch++;
-  laneState.input = null;
-  laneState.station = index;
-  laneState.confirmed.fill(false, index);
-  lanePhase(`AT_STATION_${index + 1}`);
+function focusField(index) {
+  const field = fieldNodes[index];
+  const input = field?.querySelector('input:checked') || field?.querySelector('input');
+  if (input) focus(input);
+}
+function activateField(index, moveFocus = true) {
+  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET', 'PRESSING'].includes(formState.phase)) return;
+  if (index < 0 || index > 2) return;
+  formState.epoch++;
+  formState.step = index;
+  setPhase(`AT_FIELD_${index + 1}`);
+  renderForm();
+  if (moveFocus) {
+    defer(() => focusField(index));
+    reveal(fieldNodes[index]);
+  }
+}
+function announcePick(index) {
+  const next = formState.values.findIndex(value => value === null);
+  laneStatus.textContent = next === -1
+    ? `已记下 ${fieldText(index)}，三格齐了，可以出票`
+    : `已记下 ${fieldText(index)}，下一步：${FIELD_NAMES[next]}`;
+}
+function fillField(input) {
+  const field = input.closest('.field');
+  if (!field) return;
+  const index = Number(field.dataset.step);
+  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET', 'PRESSING'].includes(formState.phase) || index !== formState.step) { syncRadios(); return; }
+  if (formState.values[index] === input.value) return;
+  formState.epoch++;
+  formState.values[index] = input.value;
+  formState.touched[index] = true;
+  syncRadios();
+  const next = formState.values.findIndex(value => value === null);
+  formState.step = next === -1 ? 3 : next;
+  setPhase(next === -1 ? 'READY' : `AT_FIELD_${next + 1}`);
+  renderForm();
+  announcePick(index);
+  defer(() => {
+    if (next === -1) focus(issueButton);
+    else focusField(next);
+  });
+}
+function rememberConditions(snapshot) {
+  try { localStorage.setItem(LAST_KEY, JSON.stringify(snapshot)); } catch {}
+}
+function completeTicket(snapshot) {
+  const current = conditions();
+  formState.values = [String(current.budget), current.energy, current.scene || ''];
+  formState.touched.fill(true);
+  formState.step = 3;
+  formState.pressing = false;
+  setPhase('TICKET');
+  laneForm.hidden = true;
+  result.hidden = false;
+  rememberConditions(snapshot);
+  renderForm();
+}
+function failTicket() {
+  formState.step = 2;
+  formState.pressing = false;
+  state.animateTicket = false;
+  issueButton.classList.remove('is-pressing');
+  stage?.classList.remove('is-issuing');
+  laneForm.hidden = false;
+  result.hidden = false;
+  setPhase('AT_FIELD_3');
+  renderForm();
+  const banner = result.querySelector('.notice');
+  banner?.classList.add('lane-banner');
+  defer(() => {
+    const retry = result.querySelector('.lane-banner .retry');
+    if (retry) focus(retry);
+    else focusField(2);
+  });
+}
+function resetForm(announce = true) {
+  if (state.busy || formState.pressing) return;
+  formState.epoch++;
+  formState.values = [null, null, null];
+  formState.touched = [false, false, false];
+  formState.step = 0;
+  state.animateTicket = false;
+  issueButton.classList.remove('is-pressing');
+  laneForm.hidden = false;
+  result.hidden = true;
+  status.textContent = '';
+  feedbackStatus.textContent = '';
+  clearShare();
+  syncRadios();
+  setPhase('AT_FIELD_1');
+  renderForm();
+  if (announce) laneStatus.textContent = '已清空，重新开始';
+  defer(() => focusField(0));
+}
+function validSaved(snapshot) {
+  return snapshot && [3, 5, 10, 15].includes(snapshot.budget)
+    && typeof snapshot.energy === 'string' && Object.hasOwn(ENERGY_LABELS, snapshot.energy)
+    && (snapshot.scene === null || (typeof snapshot.scene === 'string' && Object.hasOwn(SCENE_LABELS, snapshot.scene)));
+}
+function useLastConditions() {
+  if (state.busy || formState.pressing) return;
+  let saved = null;
+  try { saved = JSON.parse(localStorage.getItem(LAST_KEY)); } catch {}
+  if (!validSaved(saved)) {
+    laneStatus.textContent = '还没有上次的条件，先填一次';
+    focusField(0);
+    return;
+  }
+  formState.epoch++;
+  formState.values = [String(saved.budget), saved.energy, saved.scene || ''];
+  formState.touched = [true, true, true];
+  formState.step = 3;
+  syncRadios();
+  laneForm.hidden = false;
+  result.hidden = true;
+  setPhase('READY');
+  renderForm();
+  laneStatus.textContent = `已用上次的条件：${conditionLabels(saved).join('，')}`;
+  defer(() => focus(issueButton));
+}
+function openField(index) {
+  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET', 'PRESSING'].includes(formState.phase)) return;
+  activateField(index);
+}
+function initForm() {
+  laneForm.addEventListener('submit', event => event.preventDefault());
+  for (const input of laneForm.querySelectorAll('input[type="radio"]')) {
+    input.addEventListener('change', () => fillField(input));
+    input.addEventListener('keydown', event => {
+      if (event.key !== 'Enter') return;
+      event.preventDefault();
+      input.checked = true;
+      fillField(input);
+    });
+  }
+  fieldNodes.forEach((node, index) => {
+    node.querySelector('.f-edit').addEventListener('click', event => {
+      event.stopPropagation();
+      openField(index);
+    });
+    node.querySelector('.f-line').addEventListener('click', () => openField(index));
+  });
+  issueButton.addEventListener('click', () => {
+    if (issueButton.disabled || state.busy || formState.pressing) return;
+    if (formState.values.some(value => value === null)) return;
+    const snapshot = snapshotFromForm();
+    const finish = () => {
+      formState.pressing = false;
+      issueButton.classList.remove('is-pressing');
+      if (state.busy) {
+        setPhase('READY');
+        renderForm();
+        return;
+      }
+      flashScene();
+      state.animateTicket = true;
+      startInteraction(snapshot, { source: 'primary', replaces: state.ix?.id });
+    };
+    if (reducedMotion()) { finish(); return; }
+    formState.pressing = true;
+    setPhase('PRESSING');
+    renderForm();
+    issueButton.classList.add('is-pressing');
+    flashSlot();
+    setTimeout(() => { if (formState.pressing) finish(); }, 480);
+  });
+  resetButton.addEventListener('click', () => resetForm());
+  lastButton.addEventListener('click', useLastConditions);
+  replayButton.addEventListener('click', () => {
+    arriveScene();
+    laneStatus.textContent = '重新进站';
+  });
+  setPhase('AT_FIELD_1');
+  renderForm();
+}
+function snapshotFromForm() {
+  return {
+    budget: Number(formState.values[0]),
+    energy: formState.values[1],
+    scene: formState.values[2] || null,
+  };
+}
+function returnToForm(index) {
+  if (state.busy || formState.pressing) return;
+  formState.epoch++;
+  formState.step = index;
   laneForm.hidden = false;
   result.hidden = true;
   clearShare();
   feedbackStatus.textContent = '';
   status.textContent = '';
-  if (!keepAnnouncement) laneStatus.textContent = '';
-  lanes.forEach((lane, number) => {
-    lane.hidden = number !== index;
-    lane.className = number === index ? 'lane is-active station-in' : 'lane';
-    lane.querySelector('.station-ticket').className = 'station-ticket';
-    lane.querySelector('.stub-seal').replaceChildren();
-  });
-  const note = lanes[index].querySelector('.picked-note');
-  note.textContent = index ? `已选 · ${conditionLabels().slice(0, index).join(' · ')}。点下方票根可返回修改。` : '选中就前往下一站，也可以回来改。';
-  updateCollection();
-  if (moveFocus) {
-    focus(lanes[index].querySelector('.station-q'));
-    reveal(lanes[index]);
-  }
+  setPhase(`AT_FIELD_${index + 1}`);
+  renderForm();
+  laneStatus.textContent = `返回${FIELD_NAMES[index]}修改`;
+  defer(() => focusField(index));
 }
-function rememberConditions(snapshot) {
-  try { localStorage.setItem(LANE_KEY, JSON.stringify(snapshot)); } catch {}
-}
-function completeLane(snapshot) {
-  laneState.epoch++;
-  laneState.confirmed.fill(true);
-  lanePhase('TICKET');
-  laneForm.hidden = true;
-  result.hidden = false;
-  rememberConditions(snapshot);
-  updateCollection();
-}
-function failLane() {
-  laneState.confirmed = [true, true, false];
-  showStation(2);
-  result.hidden = false;
-  result.querySelector('.notice')?.classList.add('lane-banner');
+function routeBand() {
+  const budget = state.conditions?.budget;
+  const band = el('div', 'route-band');
+  band.setAttribute('aria-hidden', 'true');
+  band.innerHTML = `<span class="rb-from">现在</span><span class="rail" aria-hidden="true"></span><span class="rb-to">现在 <b>+${budget ?? 0}′</b><span class="rb-time">${budget ? endClock(budget) : ''}</span></span>`;
+  return band;
 }
 function ticketContext() {
   const context = el('div', 'ticket-context');
   context.setAttribute('role', 'group');
-  context.setAttribute('aria-label', '本次条件，点选可返回对应站修改');
+  context.setAttribute('aria-label', '本次条件，点选可返回修改');
   conditionLabels(state.conditions).forEach((label, index) => {
     const button = el('button', 'context-key', label);
     button.type = 'button';
     button.dataset.station = index;
-    button.setAttribute('aria-label', `${label}，返回第 ${index + 1} 站修改`);
-    button.addEventListener('click', () => showStation(index));
+    button.setAttribute('aria-label', `${label}，返回修改${FIELD_NAMES[index]}`);
+    button.addEventListener('click', () => returnToForm(index));
     context.append(button);
   });
   return context;
-}
-async function selectStation(input) {
-  const lane = input.closest('.lane');
-  if (state.busy || laneForm.hidden || lane?.hidden || !input.checked || Number(lane.dataset.station) !== laneState.station) return;
-  if (laneState.phase === 'STAMPING' && laneState.input === input) return;
-  const epoch = ++laneState.epoch, index = laneState.station;
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
-  const current = () => epoch === laneState.epoch;
-  const ticket = lane.querySelector('.station-ticket');
-  laneState.input = input;
-  laneState.confirmed[index] = false;
-  lane.classList.remove('station-out');
-  ticket.className = 'station-ticket';
-  ticket.querySelector('.stub-seal').innerHTML = SVG_CHECK;
-  void ticket.offsetWidth;
-  ticket.classList.add('stamping');
-  lanePhase('STAMPING');
-  updateCollection();
-  if (!reduced) await wait(120);
-  if (!current()) return;
-  ticket.classList.add('torn');
-  if (!reduced) await wait(360);
-  if (!current()) return;
-  const stub = ticket.querySelector('.stub');
-  const from = stub.getBoundingClientRect();
-  const to = laneCollection.children[index].querySelector('.collect-dot').getBoundingClientRect();
-  stub.style.setProperty('--stub-x', `${to.x - from.x}px`);
-  stub.style.setProperty('--stub-y', `${to.y - from.y}px`);
-  ticket.classList.add('collecting');
-  if (!reduced) await wait(200);
-  if (!current()) return;
-  laneState.confirmed[index] = true;
-  laneStatus.textContent = `已选 ${conditionLabels()[index]}，票根已撕下`;
-  updateCollection();
-  lane.classList.add('station-out');
-  if (!reduced) await wait(200);
-  if (!current()) return;
-  if (index < 2) showStation(index + 1, true, true);
-  else {
-    rememberConditions(conditions());
-    await startInteraction(conditions(), { replaces: state.ix?.id });
-  }
-}
-function initLane() {
-  try {
-    const saved = JSON.parse(localStorage.getItem(LANE_KEY));
-    if (saved && [3, 5, 10, 15].includes(saved.budget) && typeof saved.energy === 'string' && Object.hasOwn(ENERGY_LABELS, saved.energy)
-      && (saved.scene === null || (typeof saved.scene === 'string' && Object.hasOwn(SCENE_LABELS, saved.scene)))) {
-      for (const input of laneForm.querySelectorAll('input')) input.checked = String(saved[input.name] ?? '') === input.value;
-    }
-  } catch {}
-  laneForm.addEventListener('submit', event => event.preventDefault());
-  laneForm.addEventListener('keydown', event => {
-    if (![' ', 'Enter'].includes(event.key) || !event.target.matches('input[type="radio"]')) return;
-    event.preventDefault();
-    if (event.repeat || state.busy) return;
-    event.target.checked = true;
-    selectStation(event.target);
-  });
-  for (const name of ['click', 'change']) laneForm.addEventListener(name, event => {
-    if (event.target.matches('input[type="radio"]')) selectStation(event.target);
-  });
-  laneCollection.addEventListener('click', event => {
-    const button = event.target.closest('button[data-return]');
-    if (button && !button.disabled) showStation(Number(button.dataset.return));
-  });
-  showStation(0, false);
-  lanePhase('IDLE');
 }
 function renderLoading(text = '正在找建议') {
   const card = el('article', 'skeleton');
@@ -504,7 +724,9 @@ function buildCard() {
     article.classList.add('ticket-done');
     article.insertAdjacentHTML('beforeend', SVG_STAMP);
   }
-  article.append(ticketContext(), head, body, sep, stub);
+  const perf = el('div', 'perf');
+  perf.setAttribute('aria-hidden', 'true');
+  article.append(perf, routeBand(), ticketContext(), head, body, sep, stub);
   if (card.completed) article.append(completedRow());
   else {
     const actions = el('div', 'card-actions');
@@ -526,6 +748,12 @@ function renderCard() {
   if (!ticket || !state.card.completed) state.completionHeight = 0;
   else if (old) state.completionHeight = old.querySelector('.card-actions, .done-row').getBoundingClientRect().height;
   const article = ticket ? buildCard() : buildInteractionCard();
+  if (!old && state.animateTicket) {
+    article.classList.add('ticket-in');
+    state.animateTicket = false;
+  } else if (old) {
+    state.animateTicket = false;
+  }
   if (old) {
     article.classList.add('card-refresh');
     const animateFeedback = ticket && state.feedbackPending && state.card.preference && old.querySelector('.preference-mark')?.dataset.preference !== state.card.preference;
@@ -533,9 +761,14 @@ function renderCard() {
     old.replaceWith(article);
     if (animateFeedback) {
       const mark = [...article.querySelectorAll('.preference-mark svg')].find(node => node.getBoundingClientRect().width > 0);
-      mark.classList.add('feedback-in');
-      if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
-      else for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
+      if (mark) {
+        mark.classList.add('feedback-in');
+        if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
+        else {
+          for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
+          setTimeout(() => mark.classList.remove('feedback-in'), 140);
+        }
+      }
     }
   } else result.append(article);
   syncConditions();
@@ -548,23 +781,20 @@ function renderCard() {
   }
   syncTurnForm(state.ix);
 }
-function dismissGuide() {
-  try { localStorage.setItem(GUIDE_KEY, 'seen'); } catch {}
-  guide.hidden = true;
-}
 function setBusy(busy, busyText = '正在找建议') {
   state.busy = busy;
   result.setAttribute('aria-busy', String(busy));
   result.setAttribute('aria-label', busy ? `出票中，${busyText}` : '建议结果');
   laneForm.inert = busy;
   for (const fieldset of laneForm.querySelectorAll('fieldset')) fieldset.disabled = busy;
+  for (const input of laneForm.querySelectorAll('input[type="radio"]')) input.disabled = busy;
   if (busy) {
-    laneState.epoch++;
-    lanePhase('ISSUING');
+    formState.epoch++;
+    setPhase('ISSUING');
     laneForm.hidden = true;
     result.hidden = false;
   }
-  updateCollection();
+  renderForm();
 }
 function exitCard() {
   const old = result.querySelector('.card');
@@ -575,6 +805,7 @@ function exitCard() {
 async function ask(snapshot = conditions(), source = 'primary') {
   if (state.busy) return;
   snapshot = { ...snapshot };
+  if (source === 'swap') flashScene();
   clearShare();
   feedbackStatus.textContent = '';
   status.textContent = '正在找建议';
@@ -605,9 +836,8 @@ async function ask(snapshot = conditions(), source = 'primary') {
     state.feedbackPending = false;
     state.feedbackAttempts = {};
     result.replaceChildren();
-    dismissGuide();
     setBusy(false);
-    completeLane(snapshot);
+    completeTicket(snapshot);
     renderCard();
     status.textContent = '';
     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
@@ -621,7 +851,7 @@ async function ask(snapshot = conditions(), source = 'primary') {
     status.textContent = '';
     result.replaceChildren(renderNotice(error, snapshot));
     if (state.card) renderCard();
-    failLane();
+    failTicket();
   } finally {
     clearTimeout(timer);
     setBusy(false);
@@ -651,6 +881,7 @@ async function sendFeedback(kind) {
     const merged = state.ix ? { ...state.card, preference: card.preference, completed: card.completed } : card;
     redraw = Object.keys(merged).some(key => merged[key] !== state.card[key]);
     state.card = merged;
+    if (kind === 'completed' && merged.completed) setTimeout(addGroundStamp, 60);
     note = kind === 'completed' ? '已完成。这条记下了。' : kind === 'like' ? '记为喜欢，可以改。' : '记为不喜欢，可以改。';
   } catch (error) {
     if (!current()) return;
@@ -710,6 +941,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
   const replaces = opts.replaces ?? null;
   const requestId = opts.requestId || uuid();
   const source = opts.source || 'primary';
+  if (source === 'swap') flashScene();
   const payload = { ...snapshot, supports: SUPPORTS, request_id: requestId, ...(replaces ? { replaces } : {}) };
   clearShare();
   feedbackStatus.textContent = '';
@@ -741,8 +973,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
     state.feedbackAttempts = {};
     setBusy(false);
     result.replaceChildren();
-    dismissGuide();
-    completeLane(snapshot);
+    completeTicket(snapshot);
     renderCard();
     status.textContent = '';
     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
@@ -774,7 +1005,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
     }
     result.replaceChildren(renderNotice(error, snapshot, noticeOpts));
     if (state.card) renderCard();
-    failLane();
+    failTicket();
   } finally {
     clearTimeout(timer);
     setBusy(false);
@@ -989,9 +1220,20 @@ function buildInteractionCard() {
   const first = el('div', 'first');
   first.id = 'card-first';
   first.append(el('span', 'first-label', ix.mode === 'photo' ? '第一步' : '开场'), el('p', 'first-text', card.first_step));
-  article.append(ticketContext(), meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
+  const head = el('div', 'ticket-head');
+  head.setAttribute('aria-hidden', 'true');
+  head.append(el('span', 'ticket-code', 'WHYNOT · 此刻线 · 站台 03'), el('span', 'ticket-valid', `WN-${passCode(String(ix.id || ''))}`));
+  const perf = el('div', 'perf');
+  perf.setAttribute('aria-hidden', 'true');
+  article.append(perf, routeBand(), ticketContext(), head, meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
   if (ix.messages.length) article.append(turnLog(ix));
   if (ix.candidate) article.append(candidateBlock(ix));
+  const sep = el('div', 'ticket-sep');
+  sep.setAttribute('aria-hidden', 'true');
+  const stub = el('div', 'ticket-stub');
+  stub.setAttribute('aria-hidden', 'true');
+  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', `WN-${passCode(String(ix.id || ''))}`), el('span', 'ticket-void', '此刻作废'));
+  article.append(sep, stub);
   if (ix.status === 'open' || ix.status === 'awaiting_image') {
     if (ix.mode === 'photo' && ix.status === 'awaiting_image') article.append(photoArea(ix));
     if (ix.mode !== 'photo' || ix.pendingImage || ix.word) article.append(turnForm(ix));
@@ -1382,7 +1624,7 @@ function applyTheme(theme) {
   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
-    meta.content = dark ? '#101827' : '#eaf0f8';
+    meta.content = dark ? '#0d1526' : '#cfe0f2';
   });
 }
 about.addEventListener('change', event => {
@@ -1506,7 +1748,6 @@ for (const event of ['offline', 'online']) window.addEventListener(event, () => 
 (function init() {
   const now = new Date();
   document.getElementById('masthead-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日`;
-  guide.hidden = document.documentElement.dataset.guided === '1';
   if (localSettings) {
     document.getElementById('model-settings').hidden = false;
     document.getElementById('about-title').textContent = '设置';
@@ -1514,6 +1755,9 @@ for (const event of ['offline', 'online']) window.addEventListener(event, () => 
     settingsToggle.setAttribute('aria-label', '设置，AI 模型、主题设置与记忆管理');
   }
   applyTheme(document.documentElement.dataset.theme || 'system');
-  initLane();
+  loadGroundMarks();
+  renderGroundMarks(false);
+  initForm();
+  setTimeout(arriveScene, 50);
   ensureSession().catch(() => {});
 })();

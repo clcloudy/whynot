@@ -1,0 +1,125 @@
+入口校验
+  ok  无会话开场 401
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":7,"request_id":"ede6910e-fce7-4d8a-80
+  ok  无效输入 {"scene":"desk","energy":"tired","budget":5,"request_id":"3dc8001a-c73c-459b-bff
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":5}
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":5,"request_id":"not-a-uuid"}
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":5,"request_id":"be64c8a2-55c9-4efb-ba
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":5,"request_id":"9d603897-bca5-4ba9-82
+  ok  无效输入 {"scene":"desk","energy":"steady","budget":5,"request_id":"43af9212-776b-467b-80
+  ok  超 2KiB 请求体 413
+  ok  非 JSON 415
+  ok  无会话续聊 401
+固定「桌前、还可以、5 分钟」：权重边界逐一命中
+  ok  chat 下界 命中
+  ok  chat 上界内 命中
+  ok  discuss 下界 命中
+  ok  discuss 上界内 命中
+  ok  micro 下界 命中
+  ok  micro 上界内 命中
+  ok  响应含方式/话题/版本/期望输入
+  ok  互动编号复用卡片编号
+近期降权与恢复
+  ok  第 1 次强制聊天
+  ok  第 2 次强制聊天
+  ok  第 3 次强制聊天
+  ok  三连聊天后权重 7/20/20
+  ok  降权后抽到讨论而非聊天
+  ok  恢复序列强制 discuss
+  ok  恢复序列强制 micro
+  ok  恢复序列强制 discuss
+  ok  聊天滑出三轮后权重恢复 35
+  ok  恢复后可再抽中聊天
+换一个的方式排除与单候选路径
+  ok  低精力 3 分钟不含讨论
+  ok  取得微行动开场
+  ok  换一个排除当前方式
+  ok  再换不含上一方式
+  ok  取得聊天卡
+  ok  多方式时逐次换一个必换方式
+  ok  链上话题允许重复
+  ok  单候选时抽取返回唯一项（单元）
+  ok  多方式时换一个跳过当前方式
+  ok  换一个不产生反馈
+  ok  换一个计入历史
+  ok  换卡后旧互动已结束
+  ok  换卡后旧卡仍可反馈
+  ok  换非法编号 404
+  ok  换他人卡片 404
+开场幂等与冲突
+  ok  重试返回同一张卡
+  ok  重试不新增记录
+  ok  同键异载荷 409
+  ok  换一个重试同样幂等
+续聊：版本、幂等、并发与归属
+  ok  无模型时续聊 503 且保留轮次
+  ok  取得可续聊的开场
+  ok  首轮回复 201 且版本推进
+  ok  断线重发复用同一回复
+  ok  重发不再推进版本
+  ok  同键异文本 409
+  ok  过期版本 409
+  ok  并发回复只有一条推进
+  ok  并发后版本只加一
+  ok  续聊不重新抽签
+  ok  跨会话续聊 404
+  ok  跨会话换卡 404
+  ok  非法互动编号 404
+  ok  无效轮次输入 {"request_id":"9e204f95-c8fc-4412-867a-e1a32216bada","versio
+  ok  无效轮次输入 {"request_id":"1899c1c0-0306-4966-9686-b86f9938d4fe","text":
+  ok  无效轮次输入 {"request_id":"bad","version":3,"text":"你好"}
+  ok  无效轮次输入 {"request_id":"63d79910-9f22-4683-a3a2-c9202aa676d2","versio
+  ok  无效轮次输入 {"request_id":"22472364-bafd-4d3f-a74c-345f87eb8a93","versio
+  ok  无效轮次输入 {"request_id":"0d9f0c27-f605-4e42-9ef0-a2b90114bf49","versio
+  ok  无效轮次输入 {"request_id":"d464bd99-6c9e-4d31-8725-56ac004b8de9","versio
+  ok  无效轮次输入 {"request_id":"c07773ca-ac10-4b37-8870-53d7b16d5776","versio
+  ok  取得微行动卡
+  ok  微行动不接受续聊
+  ok  微行动沿用卡片反馈
+模型路径：开场与回复
+  ok  模型开场生效
+  ok  模型回复生效
+  ok  模型 chat 开场按数据库契约入库
+  ok  模型 discuss 开场按数据库契约入库
+  ok  开启模型后微行动仍落实抽中的条目
+  ok  超预算开场 → 同方式内置兜底
+  ok  非 JSON 开场 → 同方式内置兜底
+  ok  开场 5xx → 兜底
+  ok  开场 5xx 重试一次为止
+  ok  开场 401 → 兜底且不重试
+  ok  无效回复保留原轮次
+  ok  回复超时 → 503 保留轮次
+  ok  回复有限等待（两次 7 秒超时）
+  ok  失败后重试成功
+  ok  模型并发回复只有一条推进
+旧入口与旧卡反馈回归
+  ok  旧推荐入口仍 201
+  ok  旧入口不写互动表
+  ok  互动卡可喜欢
+  ok  互动卡可完成
+  ok  他人互动卡反馈 404
+全部条件组合
+  ok  60 种组合全部合规
+空历史抽样（随机，非种子）
+  ok  抽样全部成功
+  ok  聊天频率接近 35/75
+  ok  讨论频率接近 20/75
+  ok  微行动频率接近 20/75
+审查回归：事务、模型上下文和结束互动
+  ok  开场第二次写入失败时推荐和互动一起回滚
+  ok  开场相同请求重试成功
+  ok  推进版本失败时已插入轮次回滚
+  ok  相同请求重试可继续对话
+  ok  第 B 句可继续接话
+  ok  第 C 句可继续接话
+  ok  第 D 句可继续接话
+  ok  第 E 句可继续接话
+  ok  发给模型的是最新三轮、当前发言和实际开场
+  ok  送模包含已保存的场景、精力和时间
+  ok  旧轮次重试返回初次响应版本
+  ok  同键只改版本也冲突
+  ok  换卡成功即清除旧轮次正文
+  ok  结束的互动不可重放或续聊
+  ok  主动结束互动返回 204
+
+112 passed, 0 failed

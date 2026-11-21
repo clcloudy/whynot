@@ -28,7 +28,7 @@ export default async function run(group = 'state') {
     w.syncConditions();
   };
   const selectTheme = value => click(`input[name="theme"][value="${value}"]`);
-  const lane = () => w.eval('laneState');
+  const lane = () => w.eval('formState');
   const visible = (node, win = w) => !!node && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0 && win.getComputedStyle(node).visibility !== 'hidden';
   const waitFor = async (predicate, label, timeout = 35000) => {
     const end = performance.now() + timeout;
@@ -37,16 +37,28 @@ export default async function run(group = 'state') {
       await pause(10);
     }
   };
-  const stationInput = (index, doc = d) => doc.querySelector(`.lane[data-station="${index}"] input:checked`);
-  const enterLaneThroughUI = async ({ waitForTicket = true } = {}) => {
-    if (lane().station !== 0 || d.getElementById('lane-form').hidden) w.showStation(0, false);
-    for (let index = 0; index < 3; index++) {
-      const input = stationInput(index);
-      input.focus(); input.click();
-      if (index < 2) await waitFor(() => lane().station === index + 1 && lane().phase === `AT_STATION_${index + 2}`, `通道第${index + 2}站`, 2500);
-      else await waitFor(() => state().busy || lane().phase === 'TICKET' || !!d.querySelector('.lane-banner'), '第三站启动出票', 2500);
+  const stationInput = (index, doc = d) => {
+    const field = doc.querySelectorAll('.field')[index];
+    return field.querySelector('input:checked') || field.querySelector('input');
+  };
+  const enterLaneThroughUI = async ({ waitForTicket = true, budget = 'b10', energy = 'esteady', scene = 'snone' } = {}) => {
+    if (lane().phase !== 'AT_FIELD_1' || d.getElementById('lane-form').hidden) w.resetForm(false);
+    const picks = [budget, energy, scene];
+    for (let index = 0; index < picks.length; index++) {
+      const input = d.getElementById(picks[index]);
+      input.focus();
+      input.click();
+      await waitFor(() => lane().step > index || lane().phase === 'READY' || state().busy, `填第${index + 1}格`, 2500);
     }
-    if (waitForTicket) await waitFor(() => !state().busy && lane().phase !== 'STAMPING', '通道出票结束');
+    if (waitForTicket) {
+      await waitFor(() => lane().phase === 'READY', '三格齐了', 2500);
+      d.getElementById('issue').click();
+    } else {
+      await waitFor(() => lane().phase === 'READY', '三格齐了', 2500);
+      d.getElementById('issue').click();
+    }
+    await waitFor(() => state().busy || lane().phase === 'TICKET' || !!d.querySelector('.lane-banner'), '票面启动出票', 2500);
+    if (waitForTicket) await waitFor(() => !state().busy && lane().phase !== 'ISSUING', '通道出票结束');
   };
   const checkCardSemantics = () => {
     check('整卡不是 live region', !d.getElementById('result').hasAttribute('aria-live'));
@@ -217,7 +229,7 @@ export default async function run(group = 'state') {
     check('8秒只更新视觉文案', d.querySelector('.sk-text').textContent === '还在找，再等一下' && d.getElementById('status').textContent === '正在找建议');
     await pending;
     check('真实25秒超时文案且保留旧卡', timeoutMs === 25000 && d.querySelector('.notice-title').textContent.includes('等太久了') && state().card.id === retained);
-    check('结束清理加载状态并回第三站重试', d.getElementById('result').getAttribute('aria-busy') === 'false' && !state().busy && lane().phase === 'AT_STATION_3' && d.documentElement.dataset.laneState === 'AT_STATION_3' && !d.querySelector('.skeleton') && visible(d.querySelector('.notice.lane-banner')));
+    check('结束清理加载状态并回第三格重试', d.getElementById('result').getAttribute('aria-busy') === 'false' && !state().busy && lane().phase === 'AT_FIELD_3' && d.documentElement.dataset.laneState === 'AT_FIELD_3' && !d.querySelector('.skeleton') && visible(d.querySelector('.notice.lane-banner')));
     w.AbortSignal.timeout = nativeTimeout;
     w.fetch = native;
     Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => false });
@@ -243,7 +255,7 @@ export default async function run(group = 'state') {
       check(`${width}px四键一行且均≥44`, sizes.every(r => r.width >= 43.99 && r.height >= 43.99 && r.top === sizes[0].top), JSON.stringify(sizes.map(r => [r.width, r.height])));
       check(`${width}px四键等宽`, Math.max(...sizes.map(r => r.width)) - Math.min(...sizes.map(r => r.width)) < 1);
       if (width === 390) check('390px卡宽350', card.width === 350);
-      if (width === 768) check('768px单列480居中', d.querySelector('.page').offsetWidth === 480 && d.querySelector('.page').getBoundingClientRect().left === 144);
+      if (width === 768) check('768px单列且票宽460', w.getComputedStyle(d.querySelector('.board')).gridTemplateColumns.split(' ').length === 1 && Math.round(d.querySelector('.ticket-col').getBoundingClientRect().width) === 460 && d.querySelector('.page').getBoundingClientRect().width === 768);
     }
     frame.style.width = '320px'; frame.style.height = '568px';
     d.documentElement.style.fontSize = '32px';
@@ -252,55 +264,52 @@ export default async function run(group = 'state') {
     check('200%无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth);
     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
-    w.showStation(0);
+    w.resetForm(false);
     await pause(50);
-    const options = [...d.querySelectorAll('.lane[data-station="0"] input')].map(input => input.labels[0]);
+    const options = [...d.querySelectorAll('.field[data-step="0"] input')].map(input => input.labels[0]);
     const segments = options.map(node => node.getBoundingClientRect());
-    check('200%首站四选项可见且热区≥44不重叠', options.length === 4 && options.every(node => visible(node)) && segments.every((r, i) => r.width >= 44 && r.height >= 44 && segments.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
-    check('200%首站选项完整且无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth && options.every(node => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
+    check('200%首格四选项可见且热区≥44不重叠', options.length === 4 && options.every(node => visible(node)) && segments.every((r, i) => r.width >= 44 && r.height >= 44 && segments.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
+    check('200%首格选项完整且无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth && options.every(node => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
   }
   if (group === 'polish') {
     const root = d.documentElement, css = node => node.ownerDocument.defaultView.getComputedStyle(node);
     const html = await (await native('/')).text();
     const beforeApp = html.replace('<script src="/app.js"></script>', '');
-    const guideValue = w.localStorage.getItem('whynot-guide'), themeValue = w.localStorage.getItem('whynot-theme');
+    const themeValue = w.localStorage.getItem('whynot-theme');
     const probe = d.createElement('iframe');
     probe.hidden = true; d.body.append(probe);
     const load = async source => {
       const loaded = new Promise(resolve => { probe.onload = resolve; });
       probe.srcdoc = source; await loaded; return probe.contentWindow;
     };
-    w.localStorage.removeItem('whynot-guide'); w.localStorage.setItem('whynot-theme', 'dark');
+    w.localStorage.setItem('whynot-theme', 'dark');
     let p = await load(beforeApp);
-    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一屏一问 · 选完撕根/三根集齐，出一张现在/不合适随时换一张' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
-    check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgb(167, 177, 201)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
+    check('说明默认折叠且三行引导在外部脚本前存在', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一次只问一件事/答完一格，收成一行/三格齐了，出一张现在' && !p.document.querySelector('details.board-more').open && p.document.querySelector('details.board-more summary').textContent === '说明');
+    check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgba(246, 242, 232, 0.66)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
     p = await load(html); await p.ensureSession();
     const pFetch = p.fetch.bind(p);
     p.fetch = (url, init) => String(url).endsWith('/api/recommendations') ? Promise.reject(new TypeError('test offline')) : pFetch(url, init);
     await p.ask();
-    check('首次出票失败不收起引导也不写seen', !p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
+    check('首次出票失败不改变折叠说明', !p.document.querySelector('details.board-more').open);
     p.fetch = pFetch;
     const pending = p.ask();
     const pConditions = JSON.stringify(p.conditions());
     p.document.getElementById('b3').click();
     check('生成中结果播报忙碌且通道条件锁定', p.document.getElementById('result').getAttribute('aria-busy') === 'true' && p.document.documentElement.dataset.laneState === 'ISSUING' && !!p.document.getElementById('status').textContent && JSON.stringify(p.conditions()) === pConditions);
     await pending;
-    check('首次成功收起引导并写seen且通道让位票卡', p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === 'seen' && p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.ticket-context > button.context-key').length === 3);
+    check('首次成功出票且说明仍折叠', !p.document.querySelector('details.board-more').open && p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.ticket-context > button.context-key').length === 3);
     p = await load(beforeApp);
-    check('回访外部脚本前引导已隐藏且主题不闪回', p.getComputedStyle(p.document.getElementById('guide')).display === 'none' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
-    w.localStorage.removeItem('whynot-guide');
+    check('回访外部脚本前说明仍折叠且主题不闪回', !p.document.querySelector('details.board-more').open && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
     p = await load(html); await p.ensureSession();
     p.Storage.prototype.setItem = () => { throw new p.DOMException('test', 'QuotaExceededError'); };
     await p.ask();
-    check('存储写拒绝仍出票并在本页收起引导', !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
+    check('存储写拒绝仍出票且说明折叠', !!p.document.querySelector('.card') && !p.document.querySelector('details.board-more').open);
     p = await load(beforeApp);
-    check('写拒绝后刷新无法持久记住但仍可见引导', p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
+    check('写拒绝后刷新说明仍折叠', !p.document.querySelector('details.board-more').open);
     p = await load(html.replace('<head>', '<head><script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
     await p.ensureSession(); await p.ask();
-    check('存储读拒绝保持系统主题并能出票收起引导', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden);
-    for (const [key, value] of [['whynot-guide', guideValue], ['whynot-theme', themeValue]]) {
-      if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
-    }
+    check('存储读拒绝保持系统主题并能出票且说明折叠', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && !p.document.querySelector('details.board-more').open);
+    if (themeValue === null) w.localStorage.removeItem('whynot-theme'); else w.localStorage.setItem('whynot-theme', themeValue);
     const settings = d.getElementById('settings-toggle');
     check('关于入口可见文案包含于名称', settings.textContent === '关于与数据' && settings.getAttribute('aria-label').includes(settings.textContent));
     click('#settings-toggle');
@@ -324,8 +333,17 @@ export default async function run(group = 'state') {
     p = await load(html); await p.ensureSession();
     probe.hidden = false;
     probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:390px;height:844px;border:0';
-    p.showStation(0, false);
+    p.resetForm(false);
     const laneDoc = p.document, laneFetch = p.fetch.bind(p);
+    const windowFocused = () => laneDoc.hasFocus();
+    const focusRule = selector => {
+      const target = selector.replace(/\s+/g, '');
+      return [...laneDoc.styleSheets].some(sheet => [...sheet.cssRules].some(rule => rule.selectorText && rule.selectorText.replace(/\s+/g, '').includes(target)));
+    };
+    const focusPass = (selector, node, surface) => windowFocused()
+      ? (css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, surface) >= 3)
+      : focusRule(selector);
+    const focusDetail = () => windowFocused() ? '' : 'headless-no-focus; focus rule present';
     const rules = [...d.styleSheets, ...laneDoc.styleSheets].flatMap(sheet => [...sheet.cssRules]);
     const media = rules.filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
     const savedMedia = media.map(rule => rule.media.mediaText);
@@ -334,7 +352,7 @@ export default async function run(group = 'state') {
     w.fetch = (url, init) => { themeRequests++; return native(url, init); };
     p.fetch = (url, init) => { themeRequests++; return laneFetch(url, init); };
     const textSelectors = ['.masthead .brand-name', '.masthead-date', '.guide p', '.foot', '.settings', '.about h2', '.about p', '.about legend', '.share-note', '.card h2', '.first-label', '.first-text', '.detail', '.cat', '.gauge-label', '.feedback button', '.swap', '.ticket-context .context-key'];
-    const laneSelectors = ['.station-q', '.lane.is-active label', '#lane-collection button', '.collect-value'];
+    const laneSelectors = ['.f-q', '.field.is-active .opts label', '.progress span', '.progress b'];
     for (const dark of [false, true]) {
       media.forEach(rule => { rule.media.mediaText = dark ? 'all' : 'not all'; });
       for (const theme of ['system', 'light', 'dark']) {
@@ -343,28 +361,28 @@ export default async function run(group = 'state') {
         const contrasts = textSelectors.flatMap(selector => [...d.querySelectorAll(selector)].map(node => ({ selector, ratio: contrast(css(node).color, background(node)) })));
         contrasts.push(...laneSelectors.flatMap(selector => [...laneDoc.querySelectorAll(selector)].filter(node => visible(node, p)).map(node => ({ selector, ratio: contrast(css(node).color, background(node)) }))));
         check(`${key}页外与票面普通文字对比度≥4.5`, contrasts.every(x => x.ratio >= 4.5), JSON.stringify(contrasts));
-        const shadows = [...d.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().width > 0 && css(node).boxShadow !== 'none');
-        const expectedDark = theme === 'dark' || (theme === 'system' && dark);
-        check(`${key}仅浅色票面有黑色8px投影`, expectedDark ? shadows.length === 0 : shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px');
-        const laneShadows = [...laneDoc.querySelectorAll('body *')].filter(node => visible(node, p) && css(node).boxShadow !== 'none');
-        check(`${key}通道仅浅色纸面与票根保留8px投影`, expectedDark ? laneShadows.length === 0 : laneShadows.length === 2 && laneShadows.every(node => node.matches('.station-body,.stub') && css(node).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px'));
-        check(`${key}首站选中态深字对强调色≥4.5`, css(option).color === 'rgb(34, 18, 4)' && contrast(css(option).color, background(option)) >= 4.5);
+        const shadows = [d.querySelector('.card')].filter(node => visible(node) && css(node).boxShadow !== 'none');
+        check(`${key}结果票保留纸张投影`, shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow.includes('26px'));
+        const laneShadows = [...laneDoc.querySelectorAll('#lane-form, #lane-form *, .progress, .progress *')].filter(node => visible(node, p) && css(node).boxShadow !== 'none').map(node => css(node).boxShadow);
+        check(`${key}通道纸面不叠加硬投影`, laneShadows.every(shadow => shadow.includes('inset') || /0px -?1px/.test(shadow)) && css(laneDoc.querySelector('.sheet')).filter.includes('drop-shadow'));
+        check(`${key}首格选项文字对纸面≥4.5`, css(option).color === 'rgb(27, 35, 52)' && contrast(css(option).color, background(option)) >= 4.5);
         check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
         stationInput(0, laneDoc).focus({ preventScroll: true });
-        check(`${key}首站单选焦点对表面≥3`, css(option).outlineStyle === 'solid' && contrast(css(option).outlineColor, background(option)) >= 3);
+        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus + label', option, background(option)), focusDetail());
         for (const node of [settings, d.querySelector('.card h2')]) {
           node.focus({ preventScroll: true });
-          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, background(node)) >= 3);
+          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus' : '.card h2:focus', node, background(node)), focusDetail());
         }
         d.getElementById('theme-system').focus({ preventScroll: true });
         const themeLabel = d.querySelector('label[for="theme-system"]');
-        check(`${key}主题单选外圈对页底≥3`, css(themeLabel).outlineStyle === 'solid' && contrast(css(themeLabel).outlineColor, css(d.body).backgroundColor) >= 3);
+        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
       }
     }
     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });
     check('切换主题不改票据或提交请求', state().card.id === cardId && !state().busy && themeRequests === 0);
+    check('票面有印刷网点与套色偏移', css(d.querySelector('.card')).backgroundImage.includes('radial-gradient') && css(laneDoc.querySelector('.sheet')).backgroundImage.includes('radial-gradient') && css(d.querySelector('.card h2')).textShadow !== 'none');
     w.fetch = native;
-    const boxes = () => [...d.querySelectorAll('.masthead,.card,.card *,.foot,.about,.about *'), ...laneDoc.querySelectorAll('#lane-form,.lane.is-active,.lane.is-active *,#lane-collection,#lane-collection *')].map(node => { const r = node.getBoundingClientRect(), win = node.ownerDocument.defaultView; return [r.left + win.scrollX, r.top + win.scrollY, r.width, r.height]; });
+    const boxes = () => [...d.querySelectorAll('.masthead,.card,.card *,.foot,.about,.about *'), ...laneDoc.querySelectorAll('#lane-form,.field.is-active,.field.is-active *,.progress,.progress *')].map(node => { const r = node.getBoundingClientRect(), win = node.ownerDocument.defaultView; return [r.left + win.scrollX, r.top + win.scrollY, r.width, r.height]; });
     for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
       frame.style.width = probe.style.width = `${width}px`; root.style.fontSize = laneDoc.documentElement.style.fontSize = `${font}px`;
       w.applyTheme('light'); p.applyTheme('light'); await pause(200); const light = boxes();
@@ -505,6 +523,8 @@ export default async function run(group = 'state') {
   }
   if (group === 'completion') {
     const css = node => w.getComputedStyle(node);
+    w.localStorage.removeItem('whynot-marks');
+    if (w.eval('typeof groundMarks !== "undefined"')) w.eval('groundMarks.length = 0; renderGroundMarks(false)');
     const geometry = () => ['.card', '.ticket-body', '.foot'].map(selector => {
       const r = d.querySelector(selector).getBoundingClientRect();
       return [r.top, r.left, r.width, r.height];
@@ -562,6 +582,12 @@ export default async function run(group = 'state') {
       check(`${label}确认后不重复盖章且开放分享`, d.querySelector('.ticket-stamp') === stamp && d.querySelector('[data-focus="share"]').getAttribute('aria-disabled') === 'false');
       w.fetch = native;
     }
+    await pause(140);
+    check('完成成功后站台累积落印', d.querySelectorAll('.stamp-mark').length >= 1 && w.localStorage.getItem('whynot-marks') !== null);
+    for (let i = 0; i < 6; i++) w.addGroundStamp();
+    check('站台印记最多保留5枚', d.querySelectorAll('.stamp-mark').length === 5 && JSON.parse(w.localStorage.getItem('whynot-marks')).items.length === 5);
+    w.localStorage.removeItem('whynot-marks');
+    w.eval('groundMarks.length = 0; renderGroundMarks(false)');
     let sent = 0;
     w.fetch = (url, init) => { if (String(url).endsWith('/feedback')) sent++; return native(url, init); };
     await w.sendFeedback('completed'); await w.sendFeedback('completed');
@@ -595,7 +621,7 @@ export default async function run(group = 'state') {
     await pause(200);
     check('骨架接管后结果仍忙碌且通道不能重入', !!d.querySelector('.skeleton') && state().busy && lane().phase === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true');
     swapGate.resolve(); await swap;
-    check('换票失败保留隐藏完成票及第三站重试入口', !!d.querySelector('.ticket-done') && !visible(d.querySelector('.ticket-done')) && visible(d.querySelector('.notice.lane-banner .retry')) && lane().phase === 'AT_STATION_3' && recommendations === 1 && sent === 0);
+    check('换票失败保留隐藏完成票及第三格重试入口', !!d.querySelector('.ticket-done') && !visible(d.querySelector('.ticket-done')) && visible(d.querySelector('.notice.lane-banner .retry')) && lane().phase === 'AT_FIELD_3' && recommendations === 1 && sent === 0);
     check('换票失败保留完成区高度快照而不量隐藏卡', Math.abs(state().completionHeight - retainedHeight) < 1 && parseFloat(d.querySelector('.done-row').style.minHeight) >= retainedHeight - 1);
     const seen = [];
     select('budget', '3');
@@ -621,7 +647,7 @@ export default async function run(group = 'state') {
   }
   if (group === 'b4') {
     const root = d.documentElement, key = 'whynot-theme';
-    const stored = w.localStorage.getItem(key), guided = w.localStorage.getItem('whynot-guide');
+    const stored = w.localStorage.getItem(key);
     const media = [...d.styleSheets[0].cssRules].filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
     const originalMedia = media.map(rule => rule.media.mediaText);
     const readTheme = () => d.querySelector('input[name="theme"]:checked').value;
@@ -633,11 +659,15 @@ export default async function run(group = 'state') {
         selectTheme(theme);
         const expected = theme === 'dark' || (theme === 'system' && dark);
         check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(16, 24, 39)' : 'rgb(234, 240, 248)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
-        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#101827' : '#eaf0f8')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
+        check(`主题${theme}/系统${dark}同步meta及纸张投影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#0d1526' : '#cfe0f2')) && w.getComputedStyle(d.querySelector('.card')).boxShadow !== 'none');
       }
     }
     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
+    selectTheme('light');
+    const lightScene = w.getComputedStyle(d.querySelector('.stage')).backgroundImage;
+    const lightTitle = w.getComputedStyle(d.querySelector('.ghost')).color;
     selectTheme('dark');
+    check('深浅主题同时改变月台与纸外文字', lightScene !== w.getComputedStyle(d.querySelector('.stage')).backgroundImage && lightTitle === 'rgb(27, 35, 52)' && w.getComputedStyle(d.querySelector('.ghost')).color === 'rgb(246, 242, 232)');
     check('显式主题写入存储', w.localStorage.getItem(key) === 'dark');
     selectTheme('system');
     check('跟随系统清除覆盖值', w.localStorage.getItem(key) === null && !root.hasAttribute('data-theme'));
@@ -663,14 +693,12 @@ export default async function run(group = 'state') {
     }
     const beforeApp = html.replace('<script src="/app.js"></script>', '');
     w.localStorage.setItem(key, 'dark');
-    w.localStorage.setItem('whynot-guide', 'seen');
     let p = await probePage(beforeApp);
-    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
-    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#101827'));
-    w.localStorage.removeItem('whynot-guide');
+    check('外部app运行前已是深色且说明折叠', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && !p.document.querySelector('details.board-more').open);
+    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#0d1526'));
     w.localStorage.setItem(key, 'unknown');
     p = await probePage(beforeApp);
-    check('无效主题忽略且首访引导无需app即可见', !p.document.documentElement.hasAttribute('data-theme') && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
+    check('无效主题忽略且说明默认折叠', !p.document.documentElement.hasAttribute('data-theme') && !p.document.querySelector('details.board-more').open);
     p = await probePage(html.replace('<head>', '<head><script>window.testErrors=[];addEventListener("error",e=>testErrors.push(e.message));Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
     await p.ensureSession();
     await p.ask();
@@ -678,7 +706,6 @@ export default async function run(group = 'state') {
     check('存储读取被拒仍能生成及反馈，主题跟随系统', !p.document.documentElement.hasAttribute('data-theme') && p.document.querySelector('input[name="theme"]:checked').value === 'system' && p.eval('state.card.preference') === 'like' && !p.testErrors.length);
     probe.remove();
     if (stored === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, stored);
-    if (guided === null) w.localStorage.removeItem('whynot-guide'); else w.localStorage.setItem('whynot-guide', guided);
     w.applyTheme(stored === 'light' || stored === 'dark' ? stored : 'system');
 
     check('未完成卡无分享入口', !d.querySelector('[data-focus="share"]'));
@@ -813,14 +840,17 @@ export default async function run(group = 'state') {
   }
   if (group === 'lane') {
     const root = d.documentElement, form = d.getElementById('lane-form');
-    const stations = [...d.querySelectorAll('form#lane-form > section.lane')];
-    const collection = () => [...d.querySelectorAll('#lane-collection > button[data-return]')];
-    const onlyStation = index => !form.hidden && stations.length === 3 && stations.every((node, i) => node.hidden === (i !== index) && node.classList.contains('is-active') === (i === index)) && stations.filter(node => visible(node)).length === 1;
-    const at = index => lane().station === index && lane().phase === `AT_STATION_${index + 1}`;
-    const confirmed = values => JSON.stringify(lane().confirmed) === JSON.stringify(values);
+    const fields = [...d.querySelectorAll('form#lane-form .field')];
+    const activeField = () => fields.findIndex(node => node.classList.contains('is-active'));
+    const at = index => lane().step === index && lane().phase === `AT_FIELD_${index + 1}`;
+    const doneValues = () => fields.map(node => node.classList.contains('is-done'));
     const css = node => w.getComputedStyle(node);
-    const clickStation = index => { const input = stationInput(index); input.focus(); input.click(); return input; };
-    const nextStation = index => waitFor(() => at(index), `进入第${index + 1}站`, 2500);
+    const pick = id => {
+      const input = d.getElementById(id);
+      input.focus();
+      input.click();
+      return input;
+    };
     const settleTicket = () => waitFor(() => !state().busy && lane().phase === 'TICKET', '实际API出票');
     const setEnv = (name, value) => native('/__local/env', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, value }) });
     const motionRules = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]).filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
@@ -829,7 +859,7 @@ export default async function run(group = 'state') {
       motionRules.forEach(rule => { rule.media.mediaText = reduced ? 'all' : 'not all'; });
       w.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: reduced, media: query, addEventListener() {}, removeEventListener() {} } : match.call(w, query);
     };
-    const stored = w.localStorage.getItem('whynot-lane'), guided = w.localStorage.getItem('whynot-guide');
+    const stored = w.localStorage.getItem('whynot-lane');
     const openingCalls = [], recommendationCalls = [], feedbackCalls = [];
     const gate = deferred();
     let failOpening = false, probe;
@@ -848,128 +878,131 @@ export default async function run(group = 'state') {
         if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
         return native(url, init);
       };
-      check('lane/初始只呈现首站且不自动出票', onlyStation(0) && lane().station === 0 && ['IDLE', 'AT_STATION_1'].includes(lane().phase) && confirmed([false, false, false]) && !state().card && openingCalls.length === 0);
-      check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase);
-      check('lane/退役控件全部移除而非隐藏兼容', !d.querySelector('#ask,.panel,.seg,#scene-toggle,#scene-panel'));
+
+      w.resetForm(false);
+      await pause(140);
+      check('lane/进站编排不依赖可见帧启动', ['arriving', 'stopped', 'resting'].includes(d.querySelector('.stage').dataset.phase));
+      check('lane/初始是一张三格空票且不自动出票', !form.hidden && d.getElementById('result').hidden && lane().step === 0 && lane().phase === 'AT_FIELD_1' && lane().values.every(value => value === null) && doneValues().every(value => !value) && d.getElementById('issue').disabled && !state().card && openingCalls.length === 0);
+      check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase && d.body.dataset.phase === lane().phase);
+      check('lane/票面骨架完整且齿孔票头基线存在', !!form.querySelector('.perf') && !!form.querySelector('.thead') && !!form.querySelector('.band') && getComputedStyle(form).maskImage.includes('radial-gradient'));
+      check('lane/退役控件全部移除而非隐藏兼容', !d.querySelector('#ask,.panel,.seg,#scene-toggle,#scene-panel,#lane-collection,.lane,.station-ticket'));
       const contract = [
         ['budget', 'b3', '3', 0], ['budget', 'b5', '5', 0], ['budget', 'b10', '10', 0], ['budget', 'b15', '15', 0],
         ['energy', 'elow', 'low', 1], ['energy', 'esteady', 'steady', 1], ['energy', 'ehigh', 'high', 1],
         ['scene', 'snone', '', 2], ['scene', 'swaiting', 'waiting', 2], ['scene', 'sdesk', 'desk', 2], ['scene', 'soutside', 'outside', 2], ['scene', 'shome', 'home', 2],
       ];
-      check('lane/12个radio的name id value和所属站保持原契约', form.querySelectorAll('input[type="radio"]').length === contract.length && contract.every(([name, id, value, index]) => { const input = d.getElementById(id); return input?.type === 'radio' && input.name === name && input.value === value && input.closest('.lane') === stations[index] && input.labels.length === 1 && !!input.labels[0].textContent.trim(); }));
-      check('lane/每站恰有一个预选且问题可程序聚焦', stations.every(node => node.querySelectorAll('input:checked').length === 1 && node.querySelector('legend.station-q')?.getAttribute('tabindex') === '-1'));
-      check('lane/收集条恰有三枚带名称的返回按钮', collection().length === 3 && collection().every((node, i) => node.type === 'button' && node.dataset.return === String(i) && !!node.querySelector('.collect-value') && !!node.getAttribute('aria-label') && node.disabled));
-      const beforeEpoch = lane().epoch, selected = stationInput(0), selectedText = selected.labels[0].textContent.trim();
-      const started = performance.now();
-      clickStation(0);
-      check('lane/预选项click也确认且立即开始盖章', lane().phase === 'STAMPING' && lane().epoch > beforeEpoch && !!stations[0].querySelector('.station-ticket.stamping .stamp-mini') && css(stations[0].querySelector('.stamp-mini')).animationName !== 'none');
-      const stampingEpoch = lane().epoch;
-      selected.dispatchEvent(new w.Event('change', { bubbles: true })); selected.click();
-      check('lane/click及重复change同一选项不重复确认', lane().epoch === stampingEpoch && openingCalls.length === 0 && !lane().confirmed[0]);
-      await waitFor(() => !!stations[0].querySelector('.station-ticket.torn'), '首站撕根', 700);
-      check('lane/撕根阶段仍停本站且票根有位移动效', onlyStation(0) && css(stations[0].querySelector('.stub')).transform !== 'none' && openingCalls.length === 0);
-      await waitFor(() => !!stations[0].querySelector('.station-ticket.collecting'), '首站收根', 1000);
-      check('lane/收根有目标位移且不发API', !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-x') && !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-y') && openingCalls.length === 0);
-      await nextStation(1);
-      check('lane/正常动效约880ms后只进入第二站', performance.now() - started >= 800 && onlyStation(1) && confirmed([true, false, false]));
-      check('lane/首根标记值与可访问名称同步', collection()[0].classList.contains('is-collected') && !collection()[0].disabled && collection()[0].querySelector('.collect-value').textContent === selectedText && collection()[0].getAttribute('aria-label').includes(selectedText));
-      check('lane/新站问题获得焦点且收根有状态播报', d.activeElement === stations[1].querySelector('.station-q') && !!d.getElementById('lane-status').textContent && d.getElementById('lane-status').getAttribute('role') === 'status');
-      clickStation(1); await nextStation(2);
-      check('lane/前两站不发推荐互动或反馈请求', openingCalls.length === 0 && recommendationCalls.length === 0 && feedbackCalls.length === 0 && confirmed([true, true, false]) && onlyStation(2));
-      check('lane/第三站问题获得焦点且已收两根', d.activeElement === stations[2].querySelector('.station-q') && collection().filter(node => node.classList.contains('is-collected')).length === 2);
+      check('lane/12个radio的name id value和所属格保持原契约', form.querySelectorAll('input[type="radio"]').length === contract.length && contract.every(([name, id, value, index]) => { const input = d.getElementById(id); return input?.type === 'radio' && input.name === name && input.value === value && input.closest('.field') === fields[index] && input.labels.length === 1 && !!input.labels[0].textContent.trim(); }));
+      check('lane/初始没有预选且一次只展开一格', form.querySelectorAll('input:checked').length === 0 && fields.filter(node => node.classList.contains('is-active')).length === 1 && fields.map(node => node.querySelector('.f-body').inert).join() === 'false,true,true');
+      check('lane/三行都显示空横线且问题仅第一格可见', [...form.querySelectorAll('.f-val')].every(node => node.textContent === '—') && fields[0].querySelector('.f-body').getBoundingClientRect().height > 0 && fields[1].querySelector('.f-body').getBoundingClientRect().height === 0 && fields[2].querySelector('.f-body').getBoundingClientRect().height === 0);
+
+      const beforeEpoch = lane().epoch;
+      const budgetInput = pick('b10');
+      await pause(80);
+      check('lane/选时间后本格收成一行且下一格展开', lane().phase === 'AT_FIELD_2' && lane().step === 1 && lane().epoch > beforeEpoch && fields[0].classList.contains('is-done') && fields[0].querySelector('.f-val').textContent === '10 分钟' && fields[1].classList.contains('is-active') && !fields[1].querySelector('.f-body').inert && fields[0].querySelector('.f-body').inert);
+      check('lane/区间带立刻写入+10′并带到达时间', d.getElementById('band-num').textContent === '+10′' && /^\d{2}:\d{2}$/.test(d.getElementById('band-time').textContent));
+      check('lane/焦点移到下一格第一个选项', d.activeElement === d.getElementById('elow') && d.activeElement.type === 'radio');
+      check('lane/只填一格不发任何API', openingCalls.length === 0 && recommendationCalls.length === 0 && feedbackCalls.length === 0 && d.getElementById('issue').disabled);
+
+      const stampEpoch = lane().epoch;
+      budgetInput.click();
+      budgetInput.dispatchEvent(new w.Event('change', { bubbles: true }));
+      check('lane/重复点击同一选项不重复推进', lane().epoch === stampEpoch && lane().step === 1 && openingCalls.length === 0);
+      pick('esteady'); await pause(60);
+      pick('snone'); await pause(80);
+      check('lane/三格填完进入READY且主按钮可点', lane().phase === 'READY' && lane().step === 3 && doneValues().every(Boolean) && [...form.querySelectorAll('.f-val')].map(node => node.textContent).join('·') === '10 分钟·还可以·跳过' && !d.getElementById('issue').disabled && d.activeElement === d.getElementById('issue'));
+      check('lane/进度条与播报同步', [...d.querySelectorAll('.progress li')].every(node => node.classList.contains('is-done')) && d.getElementById('band-num').textContent === '+10′' && d.getElementById('lane-status').getAttribute('role') === 'status' && d.getElementById('lane-status').textContent.includes('三格齐了'));
+
+      click('.field[data-step="0"] .f-edit'); await pause(60);
+      check('lane/点改回到已填格并保留选择', at(0) && d.activeElement === d.getElementById('b10') && fields[0].classList.contains('is-active'));
+      pick('b15'); await pause(60);
+      check('lane/改完自动回到READY并更新区间带', lane().phase === 'READY' && lane().values[0] === '15' && d.getElementById('band-num').textContent === '+15′' && !d.getElementById('issue').disabled);
+
       const firstSnapshot = { ...w.conditions() };
-      const third = clickStation(2);
-      third.dispatchEvent(new w.Event('change', { bubbles: true })); third.click();
-      await waitFor(() => state().busy && openingCalls.length === 1, '第三站单次实际请求', 3000);
-      check('lane/第三站仅开启一个互动并传完整条件及UUID', recommendationCalls.length === 0 && feedbackCalls.length === 0 && Object.entries(firstSnapshot).every(([key, value]) => openingCalls[0][key] === value) && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(openingCalls[0].request_id) && openingCalls[0].supports.includes('image'));
-      check('lane/ISSUING同步结果busy且三根已收齐', lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true' && d.getElementById('result').getAttribute('aria-label').includes('出票中') && confirmed([true, true, true]));
+      const oldCard = state().card;
+      d.getElementById('issue').click();
+      await waitFor(() => state().busy && openingCalls.length === 1, '票面单次实际请求', 3000);
+      check('lane/出票只开启一个互动并传完整条件及UUID', recommendationCalls.length === 0 && feedbackCalls.length === 0 && Object.entries(firstSnapshot).every(([key, value]) => openingCalls[0][key] === value) && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(openingCalls[0].request_id) && openingCalls[0].supports.includes('image'));
+      check('lane/ISSUING同步结果busy且三格齐了', lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true' && d.getElementById('result').getAttribute('aria-label').includes('出票中') && form.hidden && doneValues().every(Boolean));
       const issuingEpoch = lane().epoch, locked = JSON.stringify(w.conditions());
       d.getElementById(firstSnapshot.budget === 3 ? 'b15' : 'b3').click();
       d.getElementById(firstSnapshot.scene === 'desk' ? 'shome' : 'sdesk').click();
-      collection().forEach(node => node.click());
-      form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
-      w.showStation(0);
+      click('.field[data-step="1"] .f-line');
+      w.resetForm(false);
       await pause(30);
-      check('lane/在途DOM点击和回站不改条件或重入', JSON.stringify(w.conditions()) === locked && lane().epoch === issuingEpoch && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0);
+      check('lane/在途DOM点击不回改条件或重入', JSON.stringify(w.conditions()) === locked && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0 && d.getElementById('issue').disabled);
       gate.resolve(); await settleTicket();
-      check('lane/真实API成功只留一张结果卡且通道隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
-      check('lane/首次成功焦点到标题而引导才收起', d.activeElement.id === 'card-title' && d.getElementById('guide').hidden && w.localStorage.getItem('whynot-guide') === 'seen');
+      check('lane/真实API成功只留一张结果票且票面隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
+      check('lane/首次成功焦点到标题且说明仍折叠', d.activeElement.id === 'card-title' && !d.querySelector('details.board-more').open);
       checkCardSemantics();
+      check('lane/结果票有区间带与票头票根', !!d.querySelector('.card .route-band') && !!d.querySelector('.card .ticket-head') && !!d.querySelector('.card .ticket-stub') && d.querySelector('.card .route-band').textContent.includes('+15′'));
       const contextKeys = [...d.querySelectorAll('.ticket-context > button.context-key')];
       check('lane/结果三枚条件键可见可访问且可返回', contextKeys.length === 3 && contextKeys.every((node, i) => node.dataset.station === String(i) && node.type === 'button' && visible(node) && !!node.textContent.trim() && node.getAttribute('aria-label')?.includes(node.textContent.trim())));
+
       const oldId = state().ix.id, preReturn = JSON.stringify(w.conditions());
-      click('.ticket-context > button[data-station="1"]');
-      check('lane/结果回第二站保留radio但清除本站及后续确认', onlyStation(1) && at(1) && confirmed([true, false, false]) && JSON.stringify(w.conditions()) === preReturn && d.activeElement === stations[1].querySelector('.station-q') && state().ix.id === oldId && !visible(d.querySelector('.card')));
-      w.showStation(2);
-      check('lane/不能跳过未重验站直达第三站', at(1) && confirmed([true, false, false]) && openingCalls.length === 1);
-      click('#lane-collection > button[data-return="0"]');
-      check('lane/收集条回首站清除全部确认但保留预选', onlyStation(0) && confirmed([false, false, false]) && JSON.stringify(w.conditions()) === preReturn && collection().every(node => !node.classList.contains('is-collected')) && d.activeElement === stations[0].querySelector('.station-q'));
-      click('#b3'); await pause(100);
-      const rapidEpoch = lane().epoch, lastClick = performance.now();
-      click('#b15');
-      check('lane/快速改选推进epoch使旧计时作废', lane().phase === 'STAMPING' && lane().epoch > rapidEpoch && w.conditions().budget === 15);
-      await nextStation(1);
-      const passedEpoch = lane().epoch;
-      check('lane/仅最后改选通行且等待其完整动效', performance.now() - lastClick >= 800 && w.conditions().budget === 15 && collection()[0].querySelector('.collect-value').textContent === '15 分钟' && confirmed([true, false, false]));
-      await pause(250);
-      check('lane/旧计时不能跨过重验站或发起请求', onlyStation(1) && lane().epoch === passedEpoch && openingCalls.length === 1);
-      clickStation(1); await nextStation(2);
-      check('lane/回退后必须重新确认第二站且仍未出票', onlyStation(2) && confirmed([true, true, false]) && openingCalls.length === 1);
-      clickStation(2); await settleTicket();
-      check('lane/逐站重验后仅一个新请求带旧互动replaces', openingCalls.length === 2 && openingCalls[1].replaces === oldId && openingCalls[1].budget === 15 && state().ix.id !== oldId && feedbackCalls.length === 0);
+      click('.ticket-context > button[data-station="1"]'); await pause(60);
+      check('lane/条件键返回对应格并保留全部选择', at(1) && !form.hidden && d.getElementById('result').hidden && d.activeElement === d.getElementById('e' + (w.conditions().energy)) && lane().values.every(value => value !== null) && state().ix.id === oldId && !visible(d.querySelector('.card')));
+      pick('ehigh'); await pause(60);
+      check('lane/回改后仍需重新出票', lane().phase === 'READY' && lane().values[1] === 'high' && !d.getElementById('issue').disabled && openingCalls.length === 1);
+      d.getElementById('issue').click(); await settleTicket();
+      check('lane/再次出票带旧互动replaces且条件为新值', openingCalls.length === 2 && openingCalls[1].replaces === oldId && openingCalls[1].energy === 'high' && openingCalls[1].budget === 15 && state().ix.id !== oldId && feedbackCalls.length === 0 && preReturn.length > 0);
 
       const retained = state().ix.id;
-      click('.ticket-context > button[data-station="2"]');
-      check('lane/结果直接回第三站仅清除第三根', onlyStation(2) && confirmed([true, true, false]) && d.activeElement === stations[2].querySelector('.station-q'));
+      click('.ticket-context > button[data-station="2"]'); await pause(60);
+      check('lane/结果回第三格保留已填值', at(2) && lane().values[2] === '' && d.activeElement === d.getElementById('snone'));
       failOpening = true;
-      click('#sdesk');
-      await waitFor(() => !state().busy && !!d.querySelector('.notice.lane-banner'), '出票失败返回第三站');
+      pick('sdesk');
+      d.getElementById('issue').click();
+      await waitFor(() => !state().busy && !!d.querySelector('.notice.lane-banner'), '出票失败回到票面');
       const failedPayload = openingCalls.at(-1), failedCount = openingCalls.length;
-      check('lane/网络失败不自动重试且回第三站显示错误重试', failedCount === 3 && at(2) && onlyStation(2) && confirmed([true, true, false]) && visible(d.querySelector('.notice.lane-banner')) && !!d.querySelector('.lane-banner .notice-title').textContent && visible(d.querySelector('.lane-banner .retry')));
-      check('lane/失败保留旧卡DOM与互动但视觉隐藏', state().ix.id === retained && state().card.id === retained && d.querySelectorAll('.card').length === 1 && !visible(d.querySelector('.card')) && d.activeElement === stations[2].querySelector('.station-q'));
-      select('budget', '3'); select('energy', 'high'); select('scene', 'home');
+      check('lane/网络失败不自动重试且显示错误重试', failedCount === 3 && lane().phase === 'AT_FIELD_3' && !form.hidden && visible(d.querySelector('.notice.lane-banner')) && !!d.querySelector('.lane-banner .notice-title').textContent && visible(d.querySelector('.lane-banner .retry')) && d.activeElement === d.querySelector('.lane-banner .retry'));
+      check('lane/失败保留旧票DOM与全部条件', state().ix.id === retained && state().card.id === retained && d.querySelectorAll('.card').length === 1 && !visible(d.querySelector('.card')) && lane().values.join('·') === '15·high·desk' && !d.getElementById('issue').disabled);
       failOpening = false;
       click('.notice.lane-banner .retry'); await settleTicket();
-      check('lane/手动重试复用原request_id及完整snapshot和replaces', openingCalls.length === failedCount + 1 && JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedPayload) && state().conditions.budget === failedPayload.budget && state().conditions.energy === failedPayload.energy && state().conditions.scene === failedPayload.scene && state().card.minutes <= failedPayload.budget && w.conditions().budget === 3);
-      check('lane/重试成功清除错误且恢复单张可见票卡', !d.querySelector('.notice.lane-banner') && form.hidden && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')));
+      check('lane/手动重试复用原request_id及完整snapshot', openingCalls.length === failedCount + 1 && JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedPayload) && state().conditions.budget === failedPayload.budget && state().conditions.energy === failedPayload.energy && state().conditions.scene === failedPayload.scene && state().card.minutes <= failedPayload.budget);
+      check('lane/重试成功清除错误且恢复单张可见票', !d.querySelector('.notice.lane-banner') && form.hidden && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')));
+
+      w.resetForm(false);
+      w.localStorage.setItem('whynot-lane', JSON.stringify({ budget: 5, energy: 'high', scene: 'desk' }));
+      w.useLastConditions(); await pause(60);
+      check('lane/用上次的条件一键填满并聚焦出票', lane().phase === 'READY' && lane().values.join('·') === '5·high·desk' && !d.getElementById('issue').disabled && d.activeElement === d.getElementById('issue') && d.getElementById('band-num').textContent === '+5′');
+      click('#reset-form'); await pause(60);
+      check('lane/重填清空三格并回到第一格', at(0) && lane().values.every(value => value === null) && form.querySelectorAll('input:checked').length === 0 && d.getElementById('issue').disabled && d.getElementById('result').hidden);
 
       motion(true);
-      click('.ticket-context > button[data-station="0"]');
-      for (let index = 0; index < 2; index++) {
-        clickStation(index);
-        check(`lane/reduced-motion第${index + 1}站同一任务立即通行`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
-      }
+      pick('b3'); pick('elow'); pick('soutside');
+      check('lane/reduced-motion三格立即填完', lane().phase === 'READY' && lane().values.join('·') === '3·low·outside');
       const beforeReduced = openingCalls.length;
-      clickStation(2);
-      check('lane/reduced-motion第三站立即ISSUING无需880ms', state().busy && lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING');
+      d.getElementById('issue').click();
+      check('lane/reduced-motion出票立即ISSUING且无过场', state().busy && lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING');
       await settleTicket();
       check('lane/reduced-motion仍只生成一次且标题聚焦', openingCalls.length === beforeReduced + 1 && d.activeElement.id === 'card-title');
-      const reducedId = state().ix.id, beforeSwap = openingCalls.length;
-      click('[data-focus="swap"]'); await settleTicket();
-      check('lane/换卡仍聚焦swap且不提交反馈', openingCalls.length === beforeSwap + 1 && openingCalls.at(-1).replaces === reducedId && d.activeElement.dataset.focus === 'swap' && feedbackCalls.length === 0);
-      w.showStation(0);
-      for (const [index, key] of [[0, ' '], [1, 'Enter']]) {
-        const input = stationInput(index);
-        input.focus();
-        input.dispatchEvent(new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
-        check(`lane/已选项用${key === ' ' ? '空格' : '回车'}也可确认`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
-      }
+      motion(false);
+
+      w.resetForm(false);
+      const enter = d.getElementById('b10');
+      enter.focus();
+      enter.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+      await pause(60);
+      check('lane/已选项用回车也可确认并前进', at(1) && d.activeElement === d.getElementById('elow'));
+
       for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 35.2]]) {
         frame.style.width = `${width}px`; root.style.fontSize = `${font}px`;
-        w.showStation(0);
+        const labelPrefix = `lane/${width}px/${Math.round(font / 16 * 100)}%`;
+        w.resetForm(false);
         for (let index = 0; index < 3; index++) {
-          await pause(0);
-          const question = stations[index].querySelector('.station-q');
-          const options = [...stations[index].querySelectorAll('input')].map(input => input.labels[0]);
+          await pause(30);
+          const field = fields[index], question = field.querySelector('.f-q');
+          const options = [...field.querySelectorAll('input')].map(input => input.labels[0]);
           const boxes = options.map(node => node.getBoundingClientRect());
-          const label = `lane/${width}px/${Math.round(font / 16 * 100)}%/第${index + 1}站`;
-          check(`${label}单站无横滚且问题选项不裁切`, onlyStation(index) && root.scrollWidth === root.clientWidth && [question, ...options].every(node => visible(node) && node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
-          check(`${label}选项及返回热区≥44且选项不重叠`, boxes.every((r, i) => r.width >= 44 && r.height >= 44 && boxes.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)) && collection().every(node => { const r = node.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
-          const animated = [d.body, ...d.body.querySelectorAll('*')].filter(node => visible(node)).filter(node => [null, '::before', '::after'].some(pseudo => { const s = w.getComputedStyle(node, pseudo); return s.animationName !== 'none' || s.transitionDuration.split(',').some(value => parseFloat(value) > .001); }));
-          check(`${label}减少动态包含伪元素且所有动画瞬时`, animated.length === 0, animated.map(node => node.className).join(','));
-          if (index < 2) clickStation(index);
+          const label = `${labelPrefix}/第${index + 1}格`;
+          check(`${label}单格无横滚且问题选项不裁切`, at(index) && activeField() === index && root.scrollWidth === root.clientWidth && [question, ...options].every(node => visible(node) && node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
+          check(`${label}选项热区≥44且不重叠`, boxes.every((r, i) => r.width >= 44 && r.height >= 44 && boxes.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
+          pick(field.querySelector('input').id);
+          await pause(30);
         }
+        check(`${labelPrefix}三格填完不横滚且主按钮可点`, lane().phase === 'READY' && root.scrollWidth === root.clientWidth && !d.getElementById('issue').disabled);
       }
+      frame.style.width = '390px'; root.style.fontSize = '';
 
       const html = await (await native('/')).text();
       probe = d.createElement('iframe');
@@ -986,10 +1019,10 @@ export default async function run(group = 'state') {
         await p.ensureSession();
         return p;
       };
-      const idleProbe = p => p.eval('laneState.station') === 0 && p.eval('laneState.confirmed.every(v => !v)') && !p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.lane.is-active:not([hidden])').length === 1 && p.laneProbeCalls.length === 0 && !p.laneProbeErrors.length && p.document.activeElement === p.document.body;
+      const idleProbe = p => p.eval('formState.step') === 0 && p.eval('formState.values.every(value => value === null)') && !p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.field.is-active:not([hidden])').length === 1 && p.laneProbeCalls.length === 0 && !p.laneProbeErrors.length && p.document.activeElement === p.document.body;
       for (const saved of [{ budget: 3, energy: 'low', scene: null }, { budget: 5, energy: 'steady', scene: 'waiting' }, { budget: 10, energy: 'high', scene: 'desk' }, { budget: 15, energy: 'low', scene: 'outside' }, { budget: 15, energy: 'steady', scene: 'home' }]) {
         const p = await loadProbe(JSON.stringify(saved));
-        check(`lane/合法预选${JSON.stringify(saved)}回访仍停首站不自动出票`, idleProbe(p) && Object.entries(saved).every(([key, value]) => p.conditions()[key] === value));
+        check(`lane/合法上次条件${JSON.stringify(saved)}不自动填入或出票`, idleProbe(p) && p.document.querySelectorAll('#lane-form input:checked').length === 0 && p.conditions().budget === 10 && p.conditions().energy === 'steady' && p.conditions().scene === null);
       }
       for (const raw of ['{bad', 'null', '[]', '"bad"', '{}', '{"budget":0,"energy":"low","scene":null}', '{"budget":16,"energy":"low","scene":null}', '{"budget":3.5,"energy":"low","scene":null}', '{"budget":"10","energy":"steady","scene":null}', '{"budget":10,"energy":"toString","scene":null}', '{"budget":10,"energy":"steady","scene":"__proto__"}', '{"budget":10,"energy":"steady","scene":[]}', '{"budget":10,"energy":["steady"],"scene":null}', '{"budget":10,"energy":"steady","scene":["desk"]}', '{"budget":10,"energy":"steady","scene":"<svg onload=alert(1)>"}']) {
         const p = await loadProbe(raw);
@@ -998,21 +1031,34 @@ export default async function run(group = 'state') {
       const walkProbe = async p => {
         const originalMatch = p.matchMedia.bind(p);
         p.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: true } : originalMatch(query);
-        for (let index = 0; index < 3; index++) {
-          const input = stationInput(index, p.document);
+        for (const id of ['b10', 'esteady', 'snone']) {
+          const input = p.document.getElementById(id);
           input.focus(); input.click();
-          if (index < 2) await waitFor(() => p.eval('laneState.station') === index + 1, '存储拒绝后仍能换站', 1000);
+          await waitFor(() => p.eval('formState.step') > ['b10', 'esteady', 'snone'].indexOf(id) || p.eval('formState.phase') === 'READY', '存储拒绝后仍能填格', 1000);
         }
-        await waitFor(() => !p.eval('state.busy') && p.eval('laneState.phase') === 'TICKET', '存储拒绝后真实出票');
+        p.document.getElementById('issue').click();
+        await waitFor(() => !p.eval('state.busy') && p.eval('formState.phase') === 'TICKET', '存储拒绝后真实出票');
       };
-      w.localStorage.removeItem('whynot-guide');
       let p = await loadProbe(null, '<script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})<\/script>');
-      check('lane/存储读取拒绝仍初始化首站', idleProbe(p));
+      check('lane/存储读取拒绝仍初始化空票', idleProbe(p));
       await walkProbe(p);
-      check('lane/存储读取拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && !p.laneProbeErrors.length);
+      check('lane/存储读取拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && !p.laneProbeErrors.length);
       p = await loadProbe(null, '<script>Storage.prototype.setItem=function(){throw new DOMException("test","QuotaExceededError")}<\/script>');
       await walkProbe(p);
-      check('lane/存储写入拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
+      check('lane/存储写入拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
+
+      const stage = d.querySelector('.stage');
+      check('lane/进站编排已停站或静息', ['stopped', 'resting'].includes(stage.dataset.phase));
+      w.restScene();
+      await pause(800);
+      check('lane/静息后场景运行中动画为0', stage.dataset.phase === 'resting' && d.getAnimations().filter(animation => animation.playState === 'running' && animation.effect?.target?.closest?.('.stage')).length === 0);
+      click('#replay-scene');
+      await pause(60);
+      check('lane/重播进站可重新触发场景', ['arriving', 'stopped'].includes(stage.dataset.phase));
+      w.restScene();
+      const reducedProbe = await loadProbe(null, '<script>const _m=window.matchMedia;window.matchMedia=q=>q.includes("prefers-reduced-motion")?{matches:true,media:q,addEventListener(){},removeEventListener(){}}:_m.call(window,q);addEventListener("load",()=>{for(const s of document.styleSheets){try{for(const r of s.cssRules){if(r.media&&r.media.mediaText.includes("prefers-reduced-motion"))r.media.mediaText="all";}}catch{}}});<\/script>');
+      await pause(220);
+      check('lane/reduced-motion首帧停站且无场景动画', reducedProbe.document.querySelector('.stage').dataset.phase === 'stopped' && reducedProbe.document.getAnimations().filter(animation => animation.playState === 'running').length === 0);
     } finally {
       gate.resolve();
       probe?.remove();
@@ -1020,13 +1066,14 @@ export default async function run(group = 'state') {
       w.matchMedia = match;
       motionRules.forEach((rule, i) => { rule.media.mediaText = savedMotion[i]; });
       frame.style.width = '390px'; root.style.fontSize = '';
-      for (const [key, value] of [['whynot-lane', stored], ['whynot-guide', guided]]) {
+      for (const [key, value] of [['whynot-lane', stored]]) {
         if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
       }
       await setEnv('MODEL_API_KEY', null);
       await setEnv('MODEL_ENDPOINT', null);
     }
   }
+
   if (group === 'ix') {
     const until = async fn => { for (let i = 0; i < 800 && !fn(); i++) await pause(10); };
     const ixOf = () => w.eval('state.ix');
@@ -1073,7 +1120,7 @@ export default async function run(group = 'state') {
       if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
       return native(url, init);
     };
-    check('V4.1由三站原生单选入口替代出票按钮', !d.getElementById('ask') && d.querySelectorAll('form#lane-form section.lane').length === 3 && d.querySelector('.lane.is-active .station-q').getAttribute('tabindex') === '-1');
+    check('P0由三格票面与出票按钮替代三站', !d.getElementById('ask') && d.querySelectorAll('form#lane-form .field').length === 3 && d.querySelectorAll('form#lane-form .field.is-active').length === 1 && !!d.getElementById('issue'));
     try {
       await enterLaneThroughUI({ waitForTicket: false });
       check('互动开场在结果与通道体现出票忙碌', d.getElementById('result').getAttribute('aria-busy') === 'true' && d.documentElement.dataset.laneState === 'ISSUING' && d.getElementById('status').textContent.includes('正在开启互动') && state().busy);
@@ -1095,7 +1142,7 @@ export default async function run(group = 'state') {
     select('budget', '15'); select('energy', 'high');
     openingFailure = null;
     click('.notice .retry'); await until(() => !state().busy);
-    check('互动开场重试保留UUID和失败条件快照', JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedOpening) && state().card.budget === 5 && state().card.energy === 'low');
+    check('互动开场重试保留UUID和失败条件快照', JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedOpening) && state().card.budget === failedOpening.budget && state().card.energy === failedOpening.energy);
     openingFailure = 'STORAGE_UNAVAILABLE';
     await enterLaneThroughUI();
     check('互动503明确原因并提供普通推荐降级', d.querySelector('.notice').textContent.includes('互动存储') && [...d.querySelectorAll('.notice button')].some(n => n.textContent === '看一条普通建议'));
@@ -1131,13 +1178,13 @@ export default async function run(group = 'state') {
     await w.sendTurn();
     check('发送中防双击', turnCalls === 1 && ix.messages.length === 1 && ix.sending && d.querySelector('[data-focus="send"]').disabled, JSON.stringify({ turnCalls, msgs: ix.messages.length, sending: ix.sending }));
     gate.resolve(); await firstSend;
-    check('第一轮回复上卡且版本推进', ix.messages.length === 2 && ix.messages[1].role === 'ai' && ix.version === 2 && d.querySelectorAll('.msg').length === 2);
+    check('第一轮回复上卡且版本推进', ix.messages.length === 2 && ix.messages[1].role === 'ai' && ix.version === 2 && d.querySelectorAll('.msg').length === 2, JSON.stringify({ msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length, ixStatus: ix.status, busy: state().busy }));
 
     const bodies = [];
     w.fetch = (url, init) => { if (String(url).endsWith('/turns')) bodies.push(JSON.parse(init.body)); return native(url, init); };
     setDraft('第二轮的话');
     await w.sendTurn();
-    check('第二轮使用第一次回复的版本', bodies[0].version === 2 && ix.version === 3 && ix.messages.length === 4);
+    check('第二轮使用第一次回复的版本', bodies[0].version === 2 && ix.version === 3 && ix.messages.length === 4, JSON.stringify({ bodies, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length, sending: ix.sending }));
 
     let failOnce = true;
     const retryBodies = [];
@@ -1154,7 +1201,7 @@ export default async function run(group = 'state') {
     const failedId = retryBodies[0].request_id, failedVersion = retryBodies[0].version;
     click(`[data-focus="retry-${failedId}"]`);
     await until(() => !ix.sending);
-    check('重试复用同一UUID版本与内容', retryBodies[1].request_id === failedId && retryBodies[1].version === failedVersion && retryBodies[1].text === '会失败的一句' && ix.messages.at(-1).status === 'sent');
+    check('重试复用同一UUID版本与内容', retryBodies[1].request_id === failedId && retryBodies[1].version === failedVersion && retryBodies[1].text === '会失败的一句' && ix.messages.at(-1).status === 'sent', JSON.stringify({ retryBodies, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length }));
 
     gate = deferred();
     w.fetch = async (url, init) => { const r = await native(url, init); if (String(url).endsWith('/turns')) await gate.promise; return r; };
@@ -1301,14 +1348,14 @@ export default async function run(group = 'state') {
     check('服务端拒绝损坏图片后可重新上传', d.querySelector('.photo-error')?.textContent.includes('没能读取') && ix.messages.length === 0 && !ix.uploadBusy);
     await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/ambiguous');
     await w.uploadPhoto(new w.File([image], 'fixture.png', { type: 'image/png' }));
-    check('真实上传入口歧义时先问不伪造词卡', ix.messages.length === 2 && !d.querySelector('.word-card') && !!d.querySelector('.msg-img') && ix.version === 2);
+    check('真实上传入口歧义时先问不伪造词卡', ix.messages.length === 2 && !d.querySelector('.word-card') && !!d.querySelector('.msg-img') && ix.version === 2, JSON.stringify({ msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text, hasWord: !!m.word })), version: ix.version, dom: d.querySelectorAll('.msg').length, sending: ix.sending, uploadBusy: ix.uploadBusy }));
     await w.uploadPhoto(new w.File([image], 'fixture-again.png', { type: 'image/png' }));
-    check('歧义时重拍推进版本并保留会话', ixOf() === ix && ix.version === 3 && d.querySelectorAll('.msg-img').length === 2 && d.querySelector('[data-focus="photo"]').textContent === '重拍或换一张');
+    check('歧义时重拍推进版本并保留会话', ixOf() === ix && ix.version === 3 && d.querySelectorAll('.msg-img').length === 2 && d.querySelector('[data-focus="photo"]').textContent === '重拍或换一张', JSON.stringify({ version: ix.version, imgs: d.querySelectorAll('.msg-img').length, label: d.querySelector('[data-focus="photo"]')?.textContent, msgs: ix.messages.length, sending: ix.sending }));
     await contrastCheck('图片上传', ['.mode-photo', '.photo-pick', '.photo-hint']);
     await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/valid');
     setDraft('左边的订书机');
     await w.sendTurn();
-    check('图片澄清续聊呈现完整词卡', d.querySelector('.word-en')?.textContent === 'stapler' && !!d.querySelector('.word-ipa') && !!d.querySelector('.word-meaning') && !!d.querySelector('.word-practice') && ix.version === 4);
+    check('图片澄清续聊呈现完整词卡', d.querySelector('.word-en')?.textContent === 'stapler' && !!d.querySelector('.word-ipa') && !!d.querySelector('.word-meaning') && !!d.querySelector('.word-practice') && ix.version === 4, JSON.stringify({ version: ix.version, word: d.querySelector('.word-en')?.textContent, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), dom: d.querySelectorAll('.msg').length, sending: ix.sending }));
     await contrastCheck('图片词卡', ['.mode-photo', '.photo-pick', '.photo-hint', '.word-en', '.word-ipa', '.word-meaning', '.word-practice']);
     for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
       frame.style.width = `${width}px`; d.documentElement.style.fontSize = `${font}px`;

@@ -1,0 +1,51 @@
+会话与健康检查
+  ok  health
+  ok  无会话推荐被拒绝
+  ok  创建会话
+  ok  重复会话复用
+3 分钟 + 低精力（跳过场景）
+  ok  返回 201
+  ok  耗时不超过 3 分钟
+  ok  含第一步
+  ok  场景为空
+  ok  初始无反馈
+  ok  推荐响应含 category
+  ok  category 属于 5 类集合
+换一个
+  ok  新建议编号不同
+  ok  换一个不产生反馈
+  ok  低精力不含 explore
+  ok  无模型 Key 时走内置兜底
+反馈幂等与改选
+  ok  已完成两次都成功
+  ok  已完成只生效一次
+  ok  喜欢
+  ok  改选不喜欢
+  ok  再改选喜欢
+  ok  无效反馈类型
+  ok  反馈多余字段
+错误输入与他人建议
+  ok  无效条件 {"budget":7,"energy":"low"}
+  ok  无效条件 {"budget":"3","energy":"low"}
+  ok  无效条件 {"budget":3,"energy":"tired"}
+  ok  无效条件 {"budget":3,"energy":"low","scene":"moon"}
+  ok  无效条件 {"energy":"low"}
+  ok  无效条件 {"budget":3,"energy":"low","scene":null,"extra":1}
+  ok  他人建议反馈 404
+  ok  非法编号 404
+  ok  原记录保持正确
+  ok  非 JSON 请求 415
+  ok  未知路由 404
+全部条件组合
+  ok  60 种组合全部合规
+模型输出校验（单元）
+  ok  合法输出通过
+  ok  超预算拒绝
+  ok  低精力 explore 拒绝
+  ok  缺第一步拒绝
+  ok  超长标题拒绝
+  ok  非整数耗时拒绝
+  ok  未知类型拒绝
+  ok  控制字符拒绝
+
+42 passed, 0 failed

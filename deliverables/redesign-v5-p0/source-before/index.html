@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="zh-CN" data-image="0" data-local-settings="0">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>WhyNot · 此刻</title>
+  <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
+  <meta name="color-scheme" content="light dark">
+  <link rel="icon" href="/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <header class="masthead">
+    <div class="masthead-left">
+      <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+        <path d="M12.5 3 H3 V17 H17 V8" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+        <circle cx="12" cy="12" r="1.5" fill="currentColor"/>
+      </svg>
+      <span class="brand-name">WhyNot</span>
+    </div>
+    <div class="masthead-left">
+      <span class="masthead-date" id="masthead-date"></span>
+      <span class="station-marks" aria-hidden="true"><i></i><i></i><i></i></span>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="guide" id="guide">
+      <p>一屏一问 · 选完撕根</p>
+      <p>三根集齐，出一张现在</p>
+      <p>不合适随时换一张</p>
+    </div>
+
+    <form id="lane-form" aria-label="三站选择，选中后自动前往下一站">
+      <section class="lane is-active" data-station="0" role="group" aria-labelledby="station-q-1">
+        <p class="station-label">第 1 站 · 共 3 站</p>
+        <div class="station-ticket">
+          <fieldset class="station-body">
+            <legend class="station-q" id="station-q-1" tabindex="-1">你有多少时间？</legend>
+            <div class="chips station-opts">
+              <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
+              <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
+              <input type="radio" name="budget" id="b10" value="10" checked><label for="b10">10 分钟</label>
+              <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
+            </div>
+          </fieldset>
+          <span class="stub" aria-hidden="true"><span class="stub-code">01<br>时间</span><span class="stub-seal"></span></span>
+        </div>
+        <p class="picked-note">选中就前往下一站，也可以回来改。</p>
+      </section>
+      <section class="lane" data-station="1" role="group" aria-labelledby="station-q-2" hidden>
+        <p class="station-label">第 2 站 · 共 3 站</p>
+        <div class="station-ticket">
+          <fieldset class="station-body">
+            <legend class="station-q" id="station-q-2" tabindex="-1">现在的精力如何？</legend>
+            <div class="chips station-opts">
+              <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
+              <input type="radio" name="energy" id="esteady" value="steady" checked><label for="esteady">还可以</label>
+              <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
+            </div>
+          </fieldset>
+          <span class="stub" aria-hidden="true"><span class="stub-code">02<br>精力</span><span class="stub-seal"></span></span>
+        </div>
+        <p class="picked-note"></p>
+      </section>
+      <section class="lane" data-station="2" role="group" aria-labelledby="station-q-3" hidden>
+        <p class="station-label">第 3 站 · 共 3 站</p>
+        <div class="station-ticket">
+          <fieldset class="station-body">
+            <legend class="station-q" id="station-q-3" tabindex="-1">你在哪儿？</legend>
+            <div class="chips station-opts">
+              <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
+              <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
+              <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
+              <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">在路上</label>
+              <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家／宿舍</label>
+            </div>
+          </fieldset>
+          <span class="stub" aria-hidden="true"><span class="stub-code">03<br>场景</span><span class="stub-seal"></span></span>
+        </div>
+        <p class="picked-note"></p>
+      </section>
+    </form>
+    <div id="lane-collection" class="collection-strip" role="group" aria-label="已收集的票根，点已完成站可返回修改">
+      <button type="button" class="collection-item" data-return="0" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 1 站</span></button>
+      <button type="button" class="collection-item" data-return="1" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 2 站</span></button>
+      <button type="button" class="collection-item" data-return="2" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 3 站</span></button>
+    </div>
+    <div id="lane-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false" hidden></section>
+    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
+    <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
+    <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
+
+    <noscript>
+      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
+    </noscript>
+
+    <footer class="foot">
+      <span>随时可以停下</span>
+      <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about" aria-label="关于与数据，主题设置与记忆管理">关于与数据</button>
+    </footer>
+    <section class="about" id="about" aria-labelledby="about-title" hidden>
+      <h2 id="about-title">关于与数据</h2>
+      <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
+      <section id="model-settings" aria-labelledby="model-settings-title" hidden>
+        <h3 id="model-settings-title">AI 模型</h3>
+        <p id="model-source"></p>
+        <form id="model-form" autocomplete="off">
+          <fieldset id="model-fields" aria-labelledby="model-settings-title" disabled>
+            <label for="model-endpoint">API 地址</label>
+            <input id="model-endpoint" type="url" placeholder="https://api.deepseek.com" maxlength="512" spellcheck="false" required>
+            <label for="model-key">API 密钥</label>
+            <input id="model-key" type="password" maxlength="1024" aria-describedby="model-key-note">
+            <p id="model-key-note">密钥保存在本机，聊天内容会发送给所选服务。</p>
+            <button id="model-discover" type="button" class="retry">获取模型列表</button>
+            <div id="model-choices" hidden>
+              <label for="model-select">可用模型</label>
+              <select id="model-select"></select>
+            </div>
+            <label for="model-name">模型名称</label>
+            <input id="model-name" type="text" placeholder="选择模型或手动输入" maxlength="128" spellcheck="false" required>
+            <label class="model-image"><input id="model-image" type="checkbox">模型支持图片输入</label>
+            <div class="model-actions">
+              <button type="submit" class="retry">保存设置</button>
+              <button id="model-reset" type="button" class="retry" hidden>移除自定义设置</button>
+            </div>
+          </fieldset>
+        </form>
+        <p id="model-notice" role="status"></p>
+      </section>
+      <fieldset>
+        <legend>主题</legend>
+        <div class="chips">
+          <input type="radio" name="theme" id="theme-system" value="system" checked><label for="theme-system">跟随系统</label>
+          <input type="radio" name="theme" id="theme-light" value="light"><label for="theme-light">浅色</label>
+          <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark">深色</label>
+        </div>
+      </fieldset>
+      <h3>数据说明</h3>
+      <p>不注册。你的条件、反馈、对话和确认过的记忆保存在服务端，用来生成回应和调整建议。</p>
+      <p>对话内容和你主动上传的照片会发送给 AI 服务。只有你点「保存」确认的话才会成为记忆；跳过不会保存。</p>
+      <p>此设备只保存匿名会话、主题、引导状态和上次选择的条件。清除浏览器数据不会删除服务端记录。</p>
+      <h3 id="memories-title">我让 WhyNot 记住的事</h3>
+      <div id="memories" aria-labelledby="memories-title"></div>
+      <p class="version">WhyNot · 首版 P0</p>
+    </section>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>

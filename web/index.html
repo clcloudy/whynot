@@ -4,17 +4,48 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>WhyNot · 此刻</title>
-  <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
+  <meta name="description" content="填一张票，三步出门。WhyNot 给你一件现在就能开始的小事。">
+  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#cfe0f2">
+  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1526">
   <meta name="color-scheme" content="light dark">
   <link rel="icon" href="/icon.svg" type="image/svg+xml">
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
+  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#0d1526':'#cfe0f2')}}catch{}</script>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
+  <div class="stage" data-phase="idle" aria-hidden="true">
+    <div class="st-world">
+      <div class="st-sky"></div>
+      <div class="st-city"></div>
+      <div class="st-shed">
+        <i class="st-brace a"></i><i class="st-brace b"></i><i class="st-brace c"></i>
+        <i class="st-glass"></i>
+      </div>
+      <div class="st-catenary"></div>
+      <div class="st-signal"></div>
+      <div class="st-track"></div>
+      <div class="st-train">
+        <i class="st-headlight"></i>
+        <i class="st-win w1"></i><i class="st-win w2"></i><i class="st-win w3"></i><i class="st-win w4"></i>
+        <i class="st-door"><i></i></i>
+      </div>
+      <i class="st-speed a"></i><i class="st-speed b"></i><i class="st-speed c"></i>
+      <div class="st-cone"></div>
+      <div class="st-reflect"></div>
+      <div class="st-platform"></div>
+      <div class="stamp-ground"></div>
+      <div class="st-doorlight"></div>
+      <div class="st-sweep"></div>
+      <div class="st-yellow"></div>
+      <div class="st-machine"><i></i></div>
+      <div class="st-pillar a"></div><div class="st-pillar b"></div>
+      <div class="st-dust"></div>
+    </div>
+    <div class="st-veil"></div>
+  </div>
+
   <header class="masthead">
     <div class="masthead-left">
       <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
@@ -30,82 +61,130 @@
   </header>
 
   <main class="page">
-    <div class="guide" id="guide">
-      <p>一屏一问 · 选完撕根</p>
-      <p>三根集齐，出一张现在</p>
-      <p>不合适随时换一张</p>
-    </div>
+    <div class="board" id="board">
+      <div class="board-copy">
+        <h1 class="sr-only">填一张票，三步出门</h1>
 
-    <form id="lane-form" aria-label="三站选择，选中后自动前往下一站">
-      <section class="lane is-active" data-station="0" role="group" aria-labelledby="station-q-1">
-        <p class="station-label">第 1 站 · 共 3 站</p>
-        <div class="station-ticket">
-          <fieldset class="station-body">
-            <legend class="station-q" id="station-q-1" tabindex="-1">你有多少时间？</legend>
-            <div class="chips station-opts">
-              <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
-              <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
-              <input type="radio" name="budget" id="b10" value="10" checked><label for="b10">10 分钟</label>
-              <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
-            </div>
-          </fieldset>
-          <span class="stub" aria-hidden="true"><span class="stub-code">01<br>时间</span><span class="stub-seal"></span></span>
+        <ol class="progress" aria-label="填写进度">
+          <li data-field="0"><i>01</i><span>时间</span><b>—</b></li>
+          <li data-field="1"><i>02</i><span>精力</span><b>—</b></li>
+          <li data-field="2"><i>03</i><span>场景</span><b>—</b></li>
+        </ol>
+
+        <div class="board-actions">
+          <button class="ghost" id="last-conditions" type="button">用上次的条件</button>
+          <button class="ghost" id="reset-form" type="button">重填</button>
+          <button class="ghost" id="replay-scene" type="button">重播进站</button>
         </div>
-        <p class="picked-note">选中就前往下一站，也可以回来改。</p>
-      </section>
-      <section class="lane" data-station="1" role="group" aria-labelledby="station-q-2" hidden>
-        <p class="station-label">第 2 站 · 共 3 站</p>
-        <div class="station-ticket">
-          <fieldset class="station-body">
-            <legend class="station-q" id="station-q-2" tabindex="-1">现在的精力如何？</legend>
-            <div class="chips station-opts">
-              <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
-              <input type="radio" name="energy" id="esteady" value="steady" checked><label for="esteady">还可以</label>
-              <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
+
+        <details class="board-more">
+          <summary>说明</summary>
+          <p class="board-lead">一次只问一件事。选完，答案就印在票上——上一格收成一行，下一格才展开。</p>
+          <div class="guide" id="guide">
+            <p>一次只问一件事</p>
+            <p>答完一格，收成一行</p>
+            <p>三格齐了，出一张现在</p>
+          </div>
+          <p class="board-note">月台铺满整个视口，票是页面上唯一的实体。黄线永远在票的下方——那是你站在站台边的证据。</p>
+        </details>
+      </div>
+
+      <div class="ticket-col">
+        <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false" hidden></section>
+
+        <form id="lane-form" class="sheet" aria-label="填一张此刻的车票">
+          <div class="perf" aria-hidden="true"></div>
+          <div class="thead"><span>WHYNOT · 此刻线 · 站台 03</span><b><span class="punch" aria-hidden="true"></span>WN-0417</b></div>
+          <div class="band">
+            <span class="rb-from">现在</span>
+            <span class="rail" aria-hidden="true"></span>
+            <span class="rb-to">现在 <b id="band-num">—</b><span class="rb-time" id="band-time"></span></span>
+          </div>
+
+          <div class="fields">
+            <div class="field is-active" data-step="0">
+              <div class="f-line">
+                <span class="f-no">01</span><span class="f-name">时间</span>
+                <span class="f-val">—</span>
+                <button class="f-edit" type="button" hidden>改</button>
+              </div>
+              <div class="f-body">
+                <div class="f-inner">
+                  <p class="f-q" id="q-0">你有多少时间？</p>
+                  <div class="opts" role="radiogroup" aria-labelledby="q-0">
+                    <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
+                    <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
+                    <input type="radio" name="budget" id="b10" value="10"><label for="b10">10 分钟</label>
+                    <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
+                  </div>
+                </div>
+              </div>
             </div>
-          </fieldset>
-          <span class="stub" aria-hidden="true"><span class="stub-code">02<br>精力</span><span class="stub-seal"></span></span>
-        </div>
-        <p class="picked-note"></p>
-      </section>
-      <section class="lane" data-station="2" role="group" aria-labelledby="station-q-3" hidden>
-        <p class="station-label">第 3 站 · 共 3 站</p>
-        <div class="station-ticket">
-          <fieldset class="station-body">
-            <legend class="station-q" id="station-q-3" tabindex="-1">你在哪儿？</legend>
-            <div class="chips station-opts">
-              <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
-              <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
-              <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
-              <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">在路上</label>
-              <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家／宿舍</label>
+
+            <div class="field" data-step="1">
+              <div class="f-line">
+                <span class="f-no">02</span><span class="f-name">精力</span>
+                <span class="f-val">—</span>
+                <button class="f-edit" type="button" hidden>改</button>
+              </div>
+              <div class="f-body">
+                <div class="f-inner">
+                  <p class="f-q" id="q-1">现在的精力如何？</p>
+                  <div class="opts" role="radiogroup" aria-labelledby="q-1">
+                    <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
+                    <input type="radio" name="energy" id="esteady" value="steady"><label for="esteady">还可以</label>
+                    <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
+                  </div>
+                </div>
+              </div>
             </div>
-          </fieldset>
-          <span class="stub" aria-hidden="true"><span class="stub-code">03<br>场景</span><span class="stub-seal"></span></span>
-        </div>
-        <p class="picked-note"></p>
-      </section>
-    </form>
-    <div id="lane-collection" class="collection-strip" role="group" aria-label="已收集的票根，点已完成站可返回修改">
-      <button type="button" class="collection-item" data-return="0" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 1 站</span></button>
-      <button type="button" class="collection-item" data-return="1" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 2 站</span></button>
-      <button type="button" class="collection-item" data-return="2" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 3 站</span></button>
+
+            <div class="field" data-step="2">
+              <div class="f-line">
+                <span class="f-no">03</span><span class="f-name">场景</span>
+                <span class="f-val">—</span>
+                <button class="f-edit" type="button" hidden>改</button>
+              </div>
+              <div class="f-body">
+                <div class="f-inner">
+                  <p class="f-q" id="q-2">你在哪儿？</p>
+                  <div class="opts opts-5" role="radiogroup" aria-labelledby="q-2">
+                    <input type="radio" name="scene" id="snone" value=""><label for="snone">跳过</label>
+                    <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭</label>
+                    <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">桌前</label>
+                    <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">路上</label>
+                    <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家</label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="micro" aria-hidden="true">WHYNOT · THIS PASS · 0417 · NOT TRANSFERABLE · 03 · WHYNOT · THIS PASS · 0417 · NOT TRANSFERABLE · 03 · WHYNOT · THIS PASS · 0417</div>
+          <div class="tear" aria-hidden="true"><span class="notch"></span><span class="notch r"></span></div>
+          <div class="sheet-foot">
+            <button class="issue" id="issue" type="button" disabled>出一张现在</button>
+            <small id="issue-hint">三步填完就能出票</small>
+          </div>
+        </form>
+
+        <div id="lane-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+        <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+        <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
+        <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
+        <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
+      </div>
     </div>
-    <div id="lane-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
-    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
-    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false" hidden></section>
-    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
-    <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
-    <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
 
     <noscript>
-      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
+      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。三组默认值：10 分钟 / 还可以 / 跳过。</p>
     </noscript>
 
     <footer class="foot">
       <span>随时可以停下</span>
       <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about" aria-label="关于与数据，主题设置与记忆管理">关于与数据</button>
     </footer>
+
     <section class="about" id="about" aria-labelledby="about-title" hidden>
       <h2 id="about-title">关于与数据</h2>
       <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>

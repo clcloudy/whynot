@@ -1,0 +1,124 @@
+{
+  "date": "2026-11-21",
+  "files": [
+    {
+      "path": "web/index.html",
+      "sha256": "bc25b0feefdf8eed1005db561863a42affe6e39fbda61eb96d1bed743566591e",
+      "bytes": 13442
+    },
+    {
+      "path": "web/style.css",
+      "sha256": "082cd81bf36236d520cd73b69e77becd015b0846164c878e13ef525f635d9edd",
+      "bytes": 53747
+    },
+    {
+      "path": "web/app.js",
+      "sha256": "8da4d716980a6eba1210087f6e846ba2379bd65f16c1749843207efc67b869e8",
+      "bytes": 81267
+    },
+    {
+      "path": "dev/acceptance-ui.mjs",
+      "sha256": "c7bf0903cb9d682a151686d6a1c355e89a86c2f0ffeed30703472105cc551a5e",
+      "bytes": 114886
+    }
+  ],
+  "budget": {
+    "target": 24576,
+    "before": {
+      "raw": 144782,
+      "gzip": 38642
+    },
+    "after": {
+      "raw": 151901,
+      "gzip": 40064
+    },
+    "over": 15488,
+    "pass": false
+  },
+  "rows": {
+    "before": [
+      {
+        "name": "index.html",
+        "raw": 12789,
+        "gzip": 4028
+      },
+      {
+        "name": "style.css",
+        "raw": 50083,
+        "gzip": 11052
+      },
+      {
+        "name": "app.js",
+        "raw": 78465,
+        "gzip": 20456
+      },
+      {
+        "name": "manifest.webmanifest",
+        "raw": 419,
+        "gzip": 225
+      },
+      {
+        "name": "icon.svg",
+        "raw": 288,
+        "gzip": 215
+      },
+      {
+        "name": "icon-192.png",
+        "raw": 634,
+        "gzip": 657
+      },
+      {
+        "name": "icon-512.png",
+        "raw": 1594,
+        "gzip": 1478
+      },
+      {
+        "name": "apple-touch-icon.png",
+        "raw": 510,
+        "gzip": 531
+      }
+    ],
+    "after": [
+      {
+        "name": "index.html",
+        "raw": 13442,
+        "gzip": 4137
+      },
+      {
+        "name": "style.css",
+        "raw": 53747,
+        "gzip": 11579
+      },
+      {
+        "name": "app.js",
+        "raw": 81267,
+        "gzip": 21242
+      },
+      {
+        "name": "manifest.webmanifest",
+        "raw": 419,
+        "gzip": 225
+      },
+      {
+        "name": "icon.svg",
+        "raw": 288,
+        "gzip": 215
+      },
+      {
+        "name": "icon-192.png",
+        "raw": 634,
+        "gzip": 657
+      },
+      {
+        "name": "icon-512.png",
+        "raw": 1594,
+        "gzip": 1478
+      },
+      {
+        "name": "apple-touch-icon.png",
+        "raw": 510,
+        "gzip": 531
+      }
+    ]
+  }
+}

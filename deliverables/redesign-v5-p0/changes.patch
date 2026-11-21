@@ -1,0 +1,2432 @@
+diff --git a/dev/acceptance-ui.mjs b/dev/acceptance-ui.mjs
+index ff8d820..eaac92a 100644
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -28,7 +28,7 @@ export default async function run(group = 'state') {
+     w.syncConditions();
+   };
+   const selectTheme = value => click(`input[name="theme"][value="${value}"]`);
+-  const lane = () => w.eval('laneState');
++  const lane = () => w.eval('formState');
+   const visible = (node, win = w) => !!node && node.getBoundingClientRect().width > 0 && node.getBoundingClientRect().height > 0 && win.getComputedStyle(node).visibility !== 'hidden';
+   const waitFor = async (predicate, label, timeout = 35000) => {
+     const end = performance.now() + timeout;
+@@ -37,16 +37,28 @@ export default async function run(group = 'state') {
+       await pause(10);
+     }
+   };
+-  const stationInput = (index, doc = d) => doc.querySelector(`.lane[data-station="${index}"] input:checked`);
+-  const enterLaneThroughUI = async ({ waitForTicket = true } = {}) => {
+-    if (lane().station !== 0 || d.getElementById('lane-form').hidden) w.showStation(0, false);
+-    for (let index = 0; index < 3; index++) {
+-      const input = stationInput(index);
+-      input.focus(); input.click();
+-      if (index < 2) await waitFor(() => lane().station === index + 1 && lane().phase === `AT_STATION_${index + 2}`, `通道第${index + 2}站`, 2500);
+-      else await waitFor(() => state().busy || lane().phase === 'TICKET' || !!d.querySelector('.lane-banner'), '第三站启动出票', 2500);
++  const stationInput = (index, doc = d) => {
++    const field = doc.querySelectorAll('.field')[index];
++    return field.querySelector('input:checked') || field.querySelector('input');
++  };
++  const enterLaneThroughUI = async ({ waitForTicket = true, budget = 'b10', energy = 'esteady', scene = 'snone' } = {}) => {
++    if (lane().phase !== 'AT_FIELD_1' || d.getElementById('lane-form').hidden) w.resetForm(false);
++    const picks = [budget, energy, scene];
++    for (let index = 0; index < picks.length; index++) {
++      const input = d.getElementById(picks[index]);
++      input.focus();
++      input.click();
++      await waitFor(() => lane().step > index || lane().phase === 'READY' || state().busy, `填第${index + 1}格`, 2500);
++    }
++    if (waitForTicket) {
++      await waitFor(() => lane().phase === 'READY', '三格齐了', 2500);
++      d.getElementById('issue').click();
++    } else {
++      await waitFor(() => lane().phase === 'READY', '三格齐了', 2500);
++      d.getElementById('issue').click();
+     }
+-    if (waitForTicket) await waitFor(() => !state().busy && lane().phase !== 'STAMPING', '通道出票结束');
++    await waitFor(() => state().busy || lane().phase === 'TICKET' || !!d.querySelector('.lane-banner'), '票面启动出票', 2500);
++    if (waitForTicket) await waitFor(() => !state().busy && lane().phase !== 'ISSUING', '通道出票结束');
+   };
+   const checkCardSemantics = () => {
+     check('整卡不是 live region', !d.getElementById('result').hasAttribute('aria-live'));
+@@ -217,7 +229,7 @@ export default async function run(group = 'state') {
+     check('8秒只更新视觉文案', d.querySelector('.sk-text').textContent === '还在找，再等一下' && d.getElementById('status').textContent === '正在找建议');
+     await pending;
+     check('真实25秒超时文案且保留旧卡', timeoutMs === 25000 && d.querySelector('.notice-title').textContent.includes('等太久了') && state().card.id === retained);
+-    check('结束清理加载状态并回第三站重试', d.getElementById('result').getAttribute('aria-busy') === 'false' && !state().busy && lane().phase === 'AT_STATION_3' && d.documentElement.dataset.laneState === 'AT_STATION_3' && !d.querySelector('.skeleton') && visible(d.querySelector('.notice.lane-banner')));
++    check('结束清理加载状态并回第三格重试', d.getElementById('result').getAttribute('aria-busy') === 'false' && !state().busy && lane().phase === 'AT_FIELD_3' && d.documentElement.dataset.laneState === 'AT_FIELD_3' && !d.querySelector('.skeleton') && visible(d.querySelector('.notice.lane-banner')));
+     w.AbortSignal.timeout = nativeTimeout;
+     w.fetch = native;
+     Object.defineProperty(w.navigator, 'onLine', { configurable: true, get: () => false });
+@@ -243,7 +255,7 @@ export default async function run(group = 'state') {
+       check(`${width}px四键一行且均≥44`, sizes.every(r => r.width >= 43.99 && r.height >= 43.99 && r.top === sizes[0].top), JSON.stringify(sizes.map(r => [r.width, r.height])));
+       check(`${width}px四键等宽`, Math.max(...sizes.map(r => r.width)) - Math.min(...sizes.map(r => r.width)) < 1);
+       if (width === 390) check('390px卡宽350', card.width === 350);
+-      if (width === 768) check('768px单列480居中', d.querySelector('.page').offsetWidth === 480 && d.querySelector('.page').getBoundingClientRect().left === 144);
++      if (width === 768) check('768px单列且票宽460', w.getComputedStyle(d.querySelector('.board')).gridTemplateColumns.split(' ').length === 1 && Math.round(d.querySelector('.ticket-col').getBoundingClientRect().width) === 460 && d.querySelector('.page').getBoundingClientRect().width === 768);
+     }
+     frame.style.width = '320px'; frame.style.height = '568px';
+     d.documentElement.style.fontSize = '32px';
+@@ -252,12 +264,12 @@ export default async function run(group = 'state') {
+     check('200%无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth);
+     check('200%四键2×2且≥44', keys[0].top === keys[1].top && keys[2].top === keys[3].top && keys[2].top > keys[0].top && keys.every(r => r.height >= 44 && r.width >= 44));
+     check('200%第一步与耗时不裁切', d.querySelector('.first-text').scrollHeight <= d.querySelector('.first-text').clientHeight && d.querySelector('.gauge-label').scrollHeight <= d.querySelector('.gauge-label').clientHeight);
+-    w.showStation(0);
++    w.resetForm(false);
+     await pause(50);
+-    const options = [...d.querySelectorAll('.lane[data-station="0"] input')].map(input => input.labels[0]);
++    const options = [...d.querySelectorAll('.field[data-step="0"] input')].map(input => input.labels[0]);
+     const segments = options.map(node => node.getBoundingClientRect());
+-    check('200%首站四选项可见且热区≥44不重叠', options.length === 4 && options.every(node => visible(node)) && segments.every((r, i) => r.width >= 44 && r.height >= 44 && segments.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
+-    check('200%首站选项完整且无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth && options.every(node => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
++    check('200%首格四选项可见且热区≥44不重叠', options.length === 4 && options.every(node => visible(node)) && segments.every((r, i) => r.width >= 44 && r.height >= 44 && segments.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
++    check('200%首格选项完整且无横向滚动', d.documentElement.scrollWidth === d.documentElement.clientWidth && options.every(node => node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
+   }
+   if (group === 'polish') {
+     const root = d.documentElement, css = node => node.ownerDocument.defaultView.getComputedStyle(node);
+@@ -272,8 +284,8 @@ export default async function run(group = 'state') {
+     };
+     w.localStorage.removeItem('whynot-guide'); w.localStorage.setItem('whynot-theme', 'dark');
+     let p = await load(beforeApp);
+-    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一屏一问 · 选完撕根/三根集齐，出一张现在/不合适随时换一张' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
+-    check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgb(167, 177, 201)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
++    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一次只问一件事/答完一格，收成一行/三格齐了，出一张现在' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgba(246, 242, 232, 0.66)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
+     p = await load(html); await p.ensureSession();
+     const pFetch = p.fetch.bind(p);
+     p.fetch = (url, init) => String(url).endsWith('/api/recommendations') ? Promise.reject(new TypeError('test offline')) : pFetch(url, init);
+@@ -324,7 +336,7 @@ export default async function run(group = 'state') {
+     p = await load(html); await p.ensureSession();
+     probe.hidden = false;
+     probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:390px;height:844px;border:0';
+-    p.showStation(0, false);
++    p.resetForm(false);
+     const laneDoc = p.document, laneFetch = p.fetch.bind(p);
+     const rules = [...d.styleSheets, ...laneDoc.styleSheets].flatMap(sheet => [...sheet.cssRules]);
+     const media = rules.filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
+@@ -334,7 +346,7 @@ export default async function run(group = 'state') {
+     w.fetch = (url, init) => { themeRequests++; return native(url, init); };
+     p.fetch = (url, init) => { themeRequests++; return laneFetch(url, init); };
+     const textSelectors = ['.masthead .brand-name', '.masthead-date', '.guide p', '.foot', '.settings', '.about h2', '.about p', '.about legend', '.share-note', '.card h2', '.first-label', '.first-text', '.detail', '.cat', '.gauge-label', '.feedback button', '.swap', '.ticket-context .context-key'];
+-    const laneSelectors = ['.station-q', '.lane.is-active label', '#lane-collection button', '.collect-value'];
++    const laneSelectors = ['.f-q', '.field.is-active .opts label', '.progress span', '.progress b'];
+     for (const dark of [false, true]) {
+       media.forEach(rule => { rule.media.mediaText = dark ? 'all' : 'not all'; });
+       for (const theme of ['system', 'light', 'dark']) {
+@@ -343,12 +355,11 @@ export default async function run(group = 'state') {
+         const contrasts = textSelectors.flatMap(selector => [...d.querySelectorAll(selector)].map(node => ({ selector, ratio: contrast(css(node).color, background(node)) })));
+         contrasts.push(...laneSelectors.flatMap(selector => [...laneDoc.querySelectorAll(selector)].filter(node => visible(node, p)).map(node => ({ selector, ratio: contrast(css(node).color, background(node)) }))));
+         check(`${key}页外与票面普通文字对比度≥4.5`, contrasts.every(x => x.ratio >= 4.5), JSON.stringify(contrasts));
+-        const shadows = [...d.querySelectorAll('body *')].filter(node => node.getBoundingClientRect().width > 0 && css(node).boxShadow !== 'none');
+-        const expectedDark = theme === 'dark' || (theme === 'system' && dark);
+-        check(`${key}仅浅色票面有黑色8px投影`, expectedDark ? shadows.length === 0 : shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px');
+-        const laneShadows = [...laneDoc.querySelectorAll('body *')].filter(node => visible(node, p) && css(node).boxShadow !== 'none');
+-        check(`${key}通道仅浅色纸面与票根保留8px投影`, expectedDark ? laneShadows.length === 0 : laneShadows.length === 2 && laneShadows.every(node => node.matches('.station-body,.stub') && css(node).boxShadow === 'rgba(0, 0, 0, 0.14) 0px 4px 8px 0px'));
+-        check(`${key}首站选中态深字对强调色≥4.5`, css(option).color === 'rgb(34, 18, 4)' && contrast(css(option).color, background(option)) >= 4.5);
++        const shadows = [d.querySelector('.card')].filter(node => visible(node) && css(node).boxShadow !== 'none');
++        check(`${key}结果票保留纸张投影`, shadows.length === 1 && shadows[0].classList.contains('card') && css(shadows[0]).boxShadow.includes('26px'));
++        const laneShadows = [...laneDoc.querySelectorAll('#lane-form, #lane-form *, .progress, .progress *')].filter(node => visible(node, p) && css(node).boxShadow !== 'none').map(node => css(node).boxShadow);
++        check(`${key}通道纸面不叠加硬投影`, laneShadows.every(shadow => shadow.includes('inset') || /0px -?1px/.test(shadow)) && css(laneDoc.querySelector('.sheet')).filter.includes('drop-shadow'));
++        check(`${key}首格选项文字对纸面≥4.5`, css(option).color === 'rgb(27, 35, 52)' && contrast(css(option).color, background(option)) >= 4.5);
+         check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
+         stationInput(0, laneDoc).focus({ preventScroll: true });
+         check(`${key}首站单选焦点对表面≥3`, css(option).outlineStyle === 'solid' && contrast(css(option).outlineColor, background(option)) >= 3);
+@@ -358,13 +369,13 @@ export default async function run(group = 'state') {
+         }
+         d.getElementById('theme-system').focus({ preventScroll: true });
+         const themeLabel = d.querySelector('label[for="theme-system"]');
+-        check(`${key}主题单选外圈对页底≥3`, css(themeLabel).outlineStyle === 'solid' && contrast(css(themeLabel).outlineColor, css(d.body).backgroundColor) >= 3);
++        check(`${key}主题单选外圈对面板≥3`, css(themeLabel).outlineStyle === 'solid' && contrast(css(themeLabel).outlineColor, css(d.getElementById('about')).backgroundColor) >= 3);
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });
+     check('切换主题不改票据或提交请求', state().card.id === cardId && !state().busy && themeRequests === 0);
+     w.fetch = native;
+-    const boxes = () => [...d.querySelectorAll('.masthead,.card,.card *,.foot,.about,.about *'), ...laneDoc.querySelectorAll('#lane-form,.lane.is-active,.lane.is-active *,#lane-collection,#lane-collection *')].map(node => { const r = node.getBoundingClientRect(), win = node.ownerDocument.defaultView; return [r.left + win.scrollX, r.top + win.scrollY, r.width, r.height]; });
++    const boxes = () => [...d.querySelectorAll('.masthead,.card,.card *,.foot,.about,.about *'), ...laneDoc.querySelectorAll('#lane-form,.field.is-active,.field.is-active *,.progress,.progress *')].map(node => { const r = node.getBoundingClientRect(), win = node.ownerDocument.defaultView; return [r.left + win.scrollX, r.top + win.scrollY, r.width, r.height]; });
+     for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
+       frame.style.width = probe.style.width = `${width}px`; root.style.fontSize = laneDoc.documentElement.style.fontSize = `${font}px`;
+       w.applyTheme('light'); p.applyTheme('light'); await pause(200); const light = boxes();
+@@ -595,7 +606,7 @@ export default async function run(group = 'state') {
+     await pause(200);
+     check('骨架接管后结果仍忙碌且通道不能重入', !!d.querySelector('.skeleton') && state().busy && lane().phase === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true');
+     swapGate.resolve(); await swap;
+-    check('换票失败保留隐藏完成票及第三站重试入口', !!d.querySelector('.ticket-done') && !visible(d.querySelector('.ticket-done')) && visible(d.querySelector('.notice.lane-banner .retry')) && lane().phase === 'AT_STATION_3' && recommendations === 1 && sent === 0);
++    check('换票失败保留隐藏完成票及第三格重试入口', !!d.querySelector('.ticket-done') && !visible(d.querySelector('.ticket-done')) && visible(d.querySelector('.notice.lane-banner .retry')) && lane().phase === 'AT_FIELD_3' && recommendations === 1 && sent === 0);
+     check('换票失败保留完成区高度快照而不量隐藏卡', Math.abs(state().completionHeight - retainedHeight) < 1 && parseFloat(d.querySelector('.done-row').style.minHeight) >= retainedHeight - 1);
+     const seen = [];
+     select('budget', '3');
+@@ -633,7 +644,7 @@ export default async function run(group = 'state') {
+         selectTheme(theme);
+         const expected = theme === 'dark' || (theme === 'system' && dark);
+         check(`CSS系统${dark ? '深' : '浅'}色/选择${theme}`, w.getComputedStyle(d.body).backgroundColor === (expected ? 'rgb(16, 24, 39)' : 'rgb(234, 240, 248)') && w.getComputedStyle(root).colorScheme === (expected ? 'dark' : 'light'));
+-        check(`主题${theme}/系统${dark}同步meta及阴影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#101827' : '#eaf0f8')) && (w.getComputedStyle(d.querySelector('.card')).boxShadow === 'none') === expected);
++        check(`主题${theme}/系统${dark}同步meta及纸张投影`, [...d.querySelectorAll('meta[name="theme-color"]')].every(meta => meta.content === ((theme === 'dark' || (theme === 'system' && meta.media.includes('dark'))) ? '#0d1526' : '#cfe0f2')) && w.getComputedStyle(d.querySelector('.card')).boxShadow !== 'none');
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
+@@ -666,7 +677,7 @@ export default async function run(group = 'state') {
+     w.localStorage.setItem('whynot-guide', 'seen');
+     let p = await probePage(beforeApp);
+     check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
+-    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#101827'));
++    check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#0d1526'));
+     w.localStorage.removeItem('whynot-guide');
+     w.localStorage.setItem(key, 'unknown');
+     p = await probePage(beforeApp);
+@@ -813,14 +824,17 @@ export default async function run(group = 'state') {
+   }
+   if (group === 'lane') {
+     const root = d.documentElement, form = d.getElementById('lane-form');
+-    const stations = [...d.querySelectorAll('form#lane-form > section.lane')];
+-    const collection = () => [...d.querySelectorAll('#lane-collection > button[data-return]')];
+-    const onlyStation = index => !form.hidden && stations.length === 3 && stations.every((node, i) => node.hidden === (i !== index) && node.classList.contains('is-active') === (i === index)) && stations.filter(node => visible(node)).length === 1;
+-    const at = index => lane().station === index && lane().phase === `AT_STATION_${index + 1}`;
+-    const confirmed = values => JSON.stringify(lane().confirmed) === JSON.stringify(values);
++    const fields = [...d.querySelectorAll('form#lane-form .field')];
++    const activeField = () => fields.findIndex(node => node.classList.contains('is-active'));
++    const at = index => lane().step === index && lane().phase === `AT_FIELD_${index + 1}`;
++    const doneValues = () => fields.map(node => node.classList.contains('is-done'));
+     const css = node => w.getComputedStyle(node);
+-    const clickStation = index => { const input = stationInput(index); input.focus(); input.click(); return input; };
+-    const nextStation = index => waitFor(() => at(index), `进入第${index + 1}站`, 2500);
++    const pick = id => {
++      const input = d.getElementById(id);
++      input.focus();
++      input.click();
++      return input;
++    };
+     const settleTicket = () => waitFor(() => !state().busy && lane().phase === 'TICKET', '实际API出票');
+     const setEnv = (name, value) => native('/__local/env', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ name, value }) });
+     const motionRules = [...d.styleSheets].flatMap(sheet => [...sheet.cssRules]).filter(rule => rule.media?.mediaText.includes('prefers-reduced-motion'));
+@@ -848,128 +862,129 @@ export default async function run(group = 'state') {
+         if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
+         return native(url, init);
+       };
+-      check('lane/初始只呈现首站且不自动出票', onlyStation(0) && lane().station === 0 && ['IDLE', 'AT_STATION_1'].includes(lane().phase) && confirmed([false, false, false]) && !state().card && openingCalls.length === 0);
+-      check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase);
+-      check('lane/退役控件全部移除而非隐藏兼容', !d.querySelector('#ask,.panel,.seg,#scene-toggle,#scene-panel'));
++
++      w.resetForm(false);
++      check('lane/初始是一张三格空票且不自动出票', !form.hidden && d.getElementById('result').hidden && lane().step === 0 && lane().phase === 'AT_FIELD_1' && lane().values.every(value => value === null) && doneValues().every(value => !value) && d.getElementById('issue').disabled && !state().card && openingCalls.length === 0);
++      check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase && d.body.dataset.phase === lane().phase);
++      check('lane/票面骨架完整且齿孔票头基线存在', !!form.querySelector('.perf') && !!form.querySelector('.thead') && !!form.querySelector('.band') && getComputedStyle(form).maskImage.includes('radial-gradient'));
++      check('lane/退役控件全部移除而非隐藏兼容', !d.querySelector('#ask,.panel,.seg,#scene-toggle,#scene-panel,#lane-collection,.lane,.station-ticket'));
+       const contract = [
+         ['budget', 'b3', '3', 0], ['budget', 'b5', '5', 0], ['budget', 'b10', '10', 0], ['budget', 'b15', '15', 0],
+         ['energy', 'elow', 'low', 1], ['energy', 'esteady', 'steady', 1], ['energy', 'ehigh', 'high', 1],
+         ['scene', 'snone', '', 2], ['scene', 'swaiting', 'waiting', 2], ['scene', 'sdesk', 'desk', 2], ['scene', 'soutside', 'outside', 2], ['scene', 'shome', 'home', 2],
+       ];
+-      check('lane/12个radio的name id value和所属站保持原契约', form.querySelectorAll('input[type="radio"]').length === contract.length && contract.every(([name, id, value, index]) => { const input = d.getElementById(id); return input?.type === 'radio' && input.name === name && input.value === value && input.closest('.lane') === stations[index] && input.labels.length === 1 && !!input.labels[0].textContent.trim(); }));
+-      check('lane/每站恰有一个预选且问题可程序聚焦', stations.every(node => node.querySelectorAll('input:checked').length === 1 && node.querySelector('legend.station-q')?.getAttribute('tabindex') === '-1'));
+-      check('lane/收集条恰有三枚带名称的返回按钮', collection().length === 3 && collection().every((node, i) => node.type === 'button' && node.dataset.return === String(i) && !!node.querySelector('.collect-value') && !!node.getAttribute('aria-label') && node.disabled));
+-      const beforeEpoch = lane().epoch, selected = stationInput(0), selectedText = selected.labels[0].textContent.trim();
+-      const started = performance.now();
+-      clickStation(0);
+-      check('lane/预选项click也确认且立即开始盖章', lane().phase === 'STAMPING' && lane().epoch > beforeEpoch && !!stations[0].querySelector('.station-ticket.stamping .stamp-mini') && css(stations[0].querySelector('.stamp-mini')).animationName !== 'none');
+-      const stampingEpoch = lane().epoch;
+-      selected.dispatchEvent(new w.Event('change', { bubbles: true })); selected.click();
+-      check('lane/click及重复change同一选项不重复确认', lane().epoch === stampingEpoch && openingCalls.length === 0 && !lane().confirmed[0]);
+-      await waitFor(() => !!stations[0].querySelector('.station-ticket.torn'), '首站撕根', 700);
+-      check('lane/撕根阶段仍停本站且票根有位移动效', onlyStation(0) && css(stations[0].querySelector('.stub')).transform !== 'none' && openingCalls.length === 0);
+-      await waitFor(() => !!stations[0].querySelector('.station-ticket.collecting'), '首站收根', 1000);
+-      check('lane/收根有目标位移且不发API', !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-x') && !!stations[0].querySelector('.stub').style.getPropertyValue('--stub-y') && openingCalls.length === 0);
+-      await nextStation(1);
+-      check('lane/正常动效约880ms后只进入第二站', performance.now() - started >= 800 && onlyStation(1) && confirmed([true, false, false]));
+-      check('lane/首根标记值与可访问名称同步', collection()[0].classList.contains('is-collected') && !collection()[0].disabled && collection()[0].querySelector('.collect-value').textContent === selectedText && collection()[0].getAttribute('aria-label').includes(selectedText));
+-      check('lane/新站问题获得焦点且收根有状态播报', d.activeElement === stations[1].querySelector('.station-q') && !!d.getElementById('lane-status').textContent && d.getElementById('lane-status').getAttribute('role') === 'status');
+-      clickStation(1); await nextStation(2);
+-      check('lane/前两站不发推荐互动或反馈请求', openingCalls.length === 0 && recommendationCalls.length === 0 && feedbackCalls.length === 0 && confirmed([true, true, false]) && onlyStation(2));
+-      check('lane/第三站问题获得焦点且已收两根', d.activeElement === stations[2].querySelector('.station-q') && collection().filter(node => node.classList.contains('is-collected')).length === 2);
++      check('lane/12个radio的name id value和所属格保持原契约', form.querySelectorAll('input[type="radio"]').length === contract.length && contract.every(([name, id, value, index]) => { const input = d.getElementById(id); return input?.type === 'radio' && input.name === name && input.value === value && input.closest('.field') === fields[index] && input.labels.length === 1 && !!input.labels[0].textContent.trim(); }));
++      check('lane/初始没有预选且一次只展开一格', form.querySelectorAll('input:checked').length === 0 && fields.filter(node => node.classList.contains('is-active')).length === 1 && fields.map(node => node.querySelector('.f-body').inert).join() === 'false,true,true');
++      check('lane/三行都显示空横线且问题仅第一格可见', [...form.querySelectorAll('.f-val')].every(node => node.textContent === '—') && fields[0].querySelector('.f-body').getBoundingClientRect().height > 0 && fields[1].querySelector('.f-body').getBoundingClientRect().height === 0 && fields[2].querySelector('.f-body').getBoundingClientRect().height === 0);
++
++      const beforeEpoch = lane().epoch;
++      const budgetInput = pick('b10');
++      await pause(80);
++      check('lane/选时间后本格收成一行且下一格展开', lane().phase === 'AT_FIELD_2' && lane().step === 1 && lane().epoch > beforeEpoch && fields[0].classList.contains('is-done') && fields[0].querySelector('.f-val').textContent === '10 分钟' && fields[1].classList.contains('is-active') && !fields[1].querySelector('.f-body').inert && fields[0].querySelector('.f-body').inert);
++      check('lane/区间带立刻写入+10′并带到达时间', d.getElementById('band-num').textContent === '+10′' && /^\d{2}:\d{2}$/.test(d.getElementById('band-time').textContent));
++      check('lane/焦点移到下一格第一个选项', d.activeElement === d.getElementById('elow') && d.activeElement.type === 'radio');
++      check('lane/只填一格不发任何API', openingCalls.length === 0 && recommendationCalls.length === 0 && feedbackCalls.length === 0 && d.getElementById('issue').disabled);
++
++      const stampEpoch = lane().epoch;
++      budgetInput.click();
++      budgetInput.dispatchEvent(new w.Event('change', { bubbles: true }));
++      check('lane/重复点击同一选项不重复推进', lane().epoch === stampEpoch && lane().step === 1 && openingCalls.length === 0);
++      pick('esteady'); await pause(60);
++      pick('snone'); await pause(80);
++      check('lane/三格填完进入READY且主按钮可点', lane().phase === 'READY' && lane().step === 3 && doneValues().every(Boolean) && [...form.querySelectorAll('.f-val')].map(node => node.textContent).join('·') === '10 分钟·还可以·跳过' && !d.getElementById('issue').disabled && d.activeElement === d.getElementById('issue'));
++      check('lane/进度条与播报同步', [...d.querySelectorAll('.progress li')].every(node => node.classList.contains('is-done')) && d.getElementById('band-num').textContent === '+10′' && d.getElementById('lane-status').getAttribute('role') === 'status' && d.getElementById('lane-status').textContent.includes('三格齐了'));
++
++      click('.field[data-step="0"] .f-edit'); await pause(60);
++      check('lane/点改回到已填格并保留选择', at(0) && d.activeElement === d.getElementById('b10') && fields[0].classList.contains('is-active'));
++      pick('b15'); await pause(60);
++      check('lane/改完自动回到READY并更新区间带', lane().phase === 'READY' && lane().values[0] === '15' && d.getElementById('band-num').textContent === '+15′' && !d.getElementById('issue').disabled);
++
+       const firstSnapshot = { ...w.conditions() };
+-      const third = clickStation(2);
+-      third.dispatchEvent(new w.Event('change', { bubbles: true })); third.click();
+-      await waitFor(() => state().busy && openingCalls.length === 1, '第三站单次实际请求', 3000);
+-      check('lane/第三站仅开启一个互动并传完整条件及UUID', recommendationCalls.length === 0 && feedbackCalls.length === 0 && Object.entries(firstSnapshot).every(([key, value]) => openingCalls[0][key] === value) && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(openingCalls[0].request_id) && openingCalls[0].supports.includes('image'));
+-      check('lane/ISSUING同步结果busy且三根已收齐', lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true' && d.getElementById('result').getAttribute('aria-label').includes('出票中') && confirmed([true, true, true]));
++      const oldCard = state().card;
++      d.getElementById('issue').click();
++      await waitFor(() => state().busy && openingCalls.length === 1, '票面单次实际请求', 3000);
++      check('lane/出票只开启一个互动并传完整条件及UUID', recommendationCalls.length === 0 && feedbackCalls.length === 0 && Object.entries(firstSnapshot).every(([key, value]) => openingCalls[0][key] === value) && /^[\da-f]{8}(?:-[\da-f]{4}){3}-[\da-f]{12}$/i.test(openingCalls[0].request_id) && openingCalls[0].supports.includes('image'));
++      check('lane/ISSUING同步结果busy且三格齐了', lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING' && d.getElementById('result').getAttribute('aria-busy') === 'true' && d.getElementById('result').getAttribute('aria-label').includes('出票中') && form.hidden && doneValues().every(Boolean));
+       const issuingEpoch = lane().epoch, locked = JSON.stringify(w.conditions());
+       d.getElementById(firstSnapshot.budget === 3 ? 'b15' : 'b3').click();
+       d.getElementById(firstSnapshot.scene === 'desk' ? 'shome' : 'sdesk').click();
+-      collection().forEach(node => node.click());
+-      form.dispatchEvent(new w.Event('submit', { bubbles: true, cancelable: true }));
+-      w.showStation(0);
++      click('.field[data-step="1"] .f-line');
++      w.resetForm(false);
+       await pause(30);
+-      check('lane/在途DOM点击和回站不改条件或重入', JSON.stringify(w.conditions()) === locked && lane().epoch === issuingEpoch && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0);
++      check('lane/在途DOM点击不回改条件或重入', JSON.stringify(w.conditions()) === locked && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0 && d.getElementById('issue').disabled);
+       gate.resolve(); await settleTicket();
+-      check('lane/真实API成功只留一张结果卡且通道隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
++      check('lane/真实API成功只留一张结果票且票面隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
+       check('lane/首次成功焦点到标题而引导才收起', d.activeElement.id === 'card-title' && d.getElementById('guide').hidden && w.localStorage.getItem('whynot-guide') === 'seen');
+       checkCardSemantics();
++      check('lane/结果票有区间带与票头票根', !!d.querySelector('.card .route-band') && !!d.querySelector('.card .ticket-head') && !!d.querySelector('.card .ticket-stub') && d.querySelector('.card .route-band').textContent.includes('+15′'));
+       const contextKeys = [...d.querySelectorAll('.ticket-context > button.context-key')];
+       check('lane/结果三枚条件键可见可访问且可返回', contextKeys.length === 3 && contextKeys.every((node, i) => node.dataset.station === String(i) && node.type === 'button' && visible(node) && !!node.textContent.trim() && node.getAttribute('aria-label')?.includes(node.textContent.trim())));
++
+       const oldId = state().ix.id, preReturn = JSON.stringify(w.conditions());
+-      click('.ticket-context > button[data-station="1"]');
+-      check('lane/结果回第二站保留radio但清除本站及后续确认', onlyStation(1) && at(1) && confirmed([true, false, false]) && JSON.stringify(w.conditions()) === preReturn && d.activeElement === stations[1].querySelector('.station-q') && state().ix.id === oldId && !visible(d.querySelector('.card')));
+-      w.showStation(2);
+-      check('lane/不能跳过未重验站直达第三站', at(1) && confirmed([true, false, false]) && openingCalls.length === 1);
+-      click('#lane-collection > button[data-return="0"]');
+-      check('lane/收集条回首站清除全部确认但保留预选', onlyStation(0) && confirmed([false, false, false]) && JSON.stringify(w.conditions()) === preReturn && collection().every(node => !node.classList.contains('is-collected')) && d.activeElement === stations[0].querySelector('.station-q'));
+-      click('#b3'); await pause(100);
+-      const rapidEpoch = lane().epoch, lastClick = performance.now();
+-      click('#b15');
+-      check('lane/快速改选推进epoch使旧计时作废', lane().phase === 'STAMPING' && lane().epoch > rapidEpoch && w.conditions().budget === 15);
+-      await nextStation(1);
+-      const passedEpoch = lane().epoch;
+-      check('lane/仅最后改选通行且等待其完整动效', performance.now() - lastClick >= 800 && w.conditions().budget === 15 && collection()[0].querySelector('.collect-value').textContent === '15 分钟' && confirmed([true, false, false]));
+-      await pause(250);
+-      check('lane/旧计时不能跨过重验站或发起请求', onlyStation(1) && lane().epoch === passedEpoch && openingCalls.length === 1);
+-      clickStation(1); await nextStation(2);
+-      check('lane/回退后必须重新确认第二站且仍未出票', onlyStation(2) && confirmed([true, true, false]) && openingCalls.length === 1);
+-      clickStation(2); await settleTicket();
+-      check('lane/逐站重验后仅一个新请求带旧互动replaces', openingCalls.length === 2 && openingCalls[1].replaces === oldId && openingCalls[1].budget === 15 && state().ix.id !== oldId && feedbackCalls.length === 0);
++      click('.ticket-context > button[data-station="1"]'); await pause(60);
++      check('lane/条件键返回对应格并保留全部选择', at(1) && !form.hidden && d.getElementById('result').hidden && d.activeElement === d.getElementById('e' + (w.conditions().energy)) && lane().values.every(value => value !== null) && state().ix.id === oldId && !visible(d.querySelector('.card')));
++      pick('ehigh'); await pause(60);
++      check('lane/回改后仍需重新出票', lane().phase === 'READY' && lane().values[1] === 'high' && !d.getElementById('issue').disabled && openingCalls.length === 1);
++      d.getElementById('issue').click(); await settleTicket();
++      check('lane/再次出票带旧互动replaces且条件为新值', openingCalls.length === 2 && openingCalls[1].replaces === oldId && openingCalls[1].energy === 'high' && openingCalls[1].budget === 15 && state().ix.id !== oldId && feedbackCalls.length === 0 && preReturn.length > 0);
+ 
+       const retained = state().ix.id;
+-      click('.ticket-context > button[data-station="2"]');
+-      check('lane/结果直接回第三站仅清除第三根', onlyStation(2) && confirmed([true, true, false]) && d.activeElement === stations[2].querySelector('.station-q'));
++      click('.ticket-context > button[data-station="2"]'); await pause(60);
++      check('lane/结果回第三格保留已填值', at(2) && lane().values[2] === '' && d.activeElement === d.getElementById('snone'));
+       failOpening = true;
+-      click('#sdesk');
+-      await waitFor(() => !state().busy && !!d.querySelector('.notice.lane-banner'), '出票失败返回第三站');
++      pick('sdesk');
++      d.getElementById('issue').click();
++      await waitFor(() => !state().busy && !!d.querySelector('.notice.lane-banner'), '出票失败回到票面');
+       const failedPayload = openingCalls.at(-1), failedCount = openingCalls.length;
+-      check('lane/网络失败不自动重试且回第三站显示错误重试', failedCount === 3 && at(2) && onlyStation(2) && confirmed([true, true, false]) && visible(d.querySelector('.notice.lane-banner')) && !!d.querySelector('.lane-banner .notice-title').textContent && visible(d.querySelector('.lane-banner .retry')));
+-      check('lane/失败保留旧卡DOM与互动但视觉隐藏', state().ix.id === retained && state().card.id === retained && d.querySelectorAll('.card').length === 1 && !visible(d.querySelector('.card')) && d.activeElement === stations[2].querySelector('.station-q'));
+-      select('budget', '3'); select('energy', 'high'); select('scene', 'home');
++      check('lane/网络失败不自动重试且显示错误重试', failedCount === 3 && lane().phase === 'AT_FIELD_3' && !form.hidden && visible(d.querySelector('.notice.lane-banner')) && !!d.querySelector('.lane-banner .notice-title').textContent && visible(d.querySelector('.lane-banner .retry')) && d.activeElement === d.querySelector('.lane-banner .retry'));
++      check('lane/失败保留旧票DOM与全部条件', state().ix.id === retained && state().card.id === retained && d.querySelectorAll('.card').length === 1 && !visible(d.querySelector('.card')) && lane().values.join('·') === '15·high·desk' && !d.getElementById('issue').disabled);
+       failOpening = false;
+       click('.notice.lane-banner .retry'); await settleTicket();
+-      check('lane/手动重试复用原request_id及完整snapshot和replaces', openingCalls.length === failedCount + 1 && JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedPayload) && state().conditions.budget === failedPayload.budget && state().conditions.energy === failedPayload.energy && state().conditions.scene === failedPayload.scene && state().card.minutes <= failedPayload.budget && w.conditions().budget === 3);
+-      check('lane/重试成功清除错误且恢复单张可见票卡', !d.querySelector('.notice.lane-banner') && form.hidden && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')));
++      check('lane/手动重试复用原request_id及完整snapshot', openingCalls.length === failedCount + 1 && JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedPayload) && state().conditions.budget === failedPayload.budget && state().conditions.energy === failedPayload.energy && state().conditions.scene === failedPayload.scene && state().card.minutes <= failedPayload.budget);
++      check('lane/重试成功清除错误且恢复单张可见票', !d.querySelector('.notice.lane-banner') && form.hidden && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')));
++
++      w.resetForm(false);
++      w.localStorage.setItem('whynot-lane', JSON.stringify({ budget: 5, energy: 'high', scene: 'desk' }));
++      w.useLastConditions(); await pause(60);
++      check('lane/用上次的条件一键填满并聚焦出票', lane().phase === 'READY' && lane().values.join('·') === '5·high·desk' && !d.getElementById('issue').disabled && d.activeElement === d.getElementById('issue') && d.getElementById('band-num').textContent === '+5′');
++      click('#reset-form'); await pause(60);
++      check('lane/重填清空三格并回到第一格', at(0) && lane().values.every(value => value === null) && form.querySelectorAll('input:checked').length === 0 && d.getElementById('issue').disabled && d.getElementById('result').hidden);
+ 
+       motion(true);
+-      click('.ticket-context > button[data-station="0"]');
+-      for (let index = 0; index < 2; index++) {
+-        clickStation(index);
+-        check(`lane/reduced-motion第${index + 1}站同一任务立即通行`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
+-      }
++      pick('b3'); pick('elow'); pick('soutside');
++      check('lane/reduced-motion三格立即填完', lane().phase === 'READY' && lane().values.join('·') === '3·low·outside');
+       const beforeReduced = openingCalls.length;
+-      clickStation(2);
+-      check('lane/reduced-motion第三站立即ISSUING无需880ms', state().busy && lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING');
++      d.getElementById('issue').click();
++      check('lane/reduced-motion出票立即ISSUING且无过场', state().busy && lane().phase === 'ISSUING' && root.dataset.laneState === 'ISSUING');
+       await settleTicket();
+       check('lane/reduced-motion仍只生成一次且标题聚焦', openingCalls.length === beforeReduced + 1 && d.activeElement.id === 'card-title');
+-      const reducedId = state().ix.id, beforeSwap = openingCalls.length;
+-      click('[data-focus="swap"]'); await settleTicket();
+-      check('lane/换卡仍聚焦swap且不提交反馈', openingCalls.length === beforeSwap + 1 && openingCalls.at(-1).replaces === reducedId && d.activeElement.dataset.focus === 'swap' && feedbackCalls.length === 0);
+-      w.showStation(0);
+-      for (const [index, key] of [[0, ' '], [1, 'Enter']]) {
+-        const input = stationInput(index);
+-        input.focus();
+-        input.dispatchEvent(new w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+-        check(`lane/已选项用${key === ' ' ? '空格' : '回车'}也可确认`, at(index + 1) && onlyStation(index + 1) && d.activeElement === stations[index + 1].querySelector('.station-q'));
+-      }
++      motion(false);
++
++      w.resetForm(false);
++      const enter = d.getElementById('b10');
++      enter.focus();
++      enter.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
++      await pause(60);
++      check('lane/已选项用回车也可确认并前进', at(1) && d.activeElement === d.getElementById('elow'));
++
+       for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 35.2]]) {
+         frame.style.width = `${width}px`; root.style.fontSize = `${font}px`;
+-        w.showStation(0);
++        const labelPrefix = `lane/${width}px/${Math.round(font / 16 * 100)}%`;
++        w.resetForm(false);
+         for (let index = 0; index < 3; index++) {
+-          await pause(0);
+-          const question = stations[index].querySelector('.station-q');
+-          const options = [...stations[index].querySelectorAll('input')].map(input => input.labels[0]);
++          await pause(30);
++          const field = fields[index], question = field.querySelector('.f-q');
++          const options = [...field.querySelectorAll('input')].map(input => input.labels[0]);
+           const boxes = options.map(node => node.getBoundingClientRect());
+-          const label = `lane/${width}px/${Math.round(font / 16 * 100)}%/第${index + 1}站`;
+-          check(`${label}单站无横滚且问题选项不裁切`, onlyStation(index) && root.scrollWidth === root.clientWidth && [question, ...options].every(node => visible(node) && node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
+-          check(`${label}选项及返回热区≥44且选项不重叠`, boxes.every((r, i) => r.width >= 44 && r.height >= 44 && boxes.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)) && collection().every(node => { const r = node.getBoundingClientRect(); return r.width >= 44 && r.height >= 44; }));
+-          const animated = [d.body, ...d.body.querySelectorAll('*')].filter(node => visible(node)).filter(node => [null, '::before', '::after'].some(pseudo => { const s = w.getComputedStyle(node, pseudo); return s.animationName !== 'none' || s.transitionDuration.split(',').some(value => parseFloat(value) > .001); }));
+-          check(`${label}减少动态包含伪元素且所有动画瞬时`, animated.length === 0, animated.map(node => node.className).join(','));
+-          if (index < 2) clickStation(index);
++          const label = `${labelPrefix}/第${index + 1}格`;
++          check(`${label}单格无横滚且问题选项不裁切`, at(index) && activeField() === index && root.scrollWidth === root.clientWidth && [question, ...options].every(node => visible(node) && node.scrollWidth <= node.clientWidth && node.scrollHeight <= node.clientHeight));
++          check(`${label}选项热区≥44且不重叠`, boxes.every((r, i) => r.width >= 44 && r.height >= 44 && boxes.slice(i + 1).every(s => r.right <= s.left || s.right <= r.left || r.bottom <= s.top || s.bottom <= r.top)));
++          pick(field.querySelector('input').id);
++          await pause(30);
+         }
++        check(`${labelPrefix}三格填完不横滚且主按钮可点`, lane().phase === 'READY' && root.scrollWidth === root.clientWidth && !d.getElementById('issue').disabled);
+       }
++      frame.style.width = '390px'; root.style.fontSize = '';
+ 
+       const html = await (await native('/')).text();
+       probe = d.createElement('iframe');
+@@ -986,10 +1001,10 @@ export default async function run(group = 'state') {
+         await p.ensureSession();
+         return p;
+       };
+-      const idleProbe = p => p.eval('laneState.station') === 0 && p.eval('laneState.confirmed.every(v => !v)') && !p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.lane.is-active:not([hidden])').length === 1 && p.laneProbeCalls.length === 0 && !p.laneProbeErrors.length && p.document.activeElement === p.document.body;
++      const idleProbe = p => p.eval('formState.step') === 0 && p.eval('formState.values.every(value => value === null)') && !p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.field.is-active:not([hidden])').length === 1 && p.laneProbeCalls.length === 0 && !p.laneProbeErrors.length && p.document.activeElement === p.document.body;
+       for (const saved of [{ budget: 3, energy: 'low', scene: null }, { budget: 5, energy: 'steady', scene: 'waiting' }, { budget: 10, energy: 'high', scene: 'desk' }, { budget: 15, energy: 'low', scene: 'outside' }, { budget: 15, energy: 'steady', scene: 'home' }]) {
+         const p = await loadProbe(JSON.stringify(saved));
+-        check(`lane/合法预选${JSON.stringify(saved)}回访仍停首站不自动出票`, idleProbe(p) && Object.entries(saved).every(([key, value]) => p.conditions()[key] === value));
++        check(`lane/合法上次条件${JSON.stringify(saved)}不自动填入或出票`, idleProbe(p) && p.document.querySelectorAll('#lane-form input:checked').length === 0 && p.conditions().budget === 10 && p.conditions().energy === 'steady' && p.conditions().scene === null);
+       }
+       for (const raw of ['{bad', 'null', '[]', '"bad"', '{}', '{"budget":0,"energy":"low","scene":null}', '{"budget":16,"energy":"low","scene":null}', '{"budget":3.5,"energy":"low","scene":null}', '{"budget":"10","energy":"steady","scene":null}', '{"budget":10,"energy":"toString","scene":null}', '{"budget":10,"energy":"steady","scene":"__proto__"}', '{"budget":10,"energy":"steady","scene":[]}', '{"budget":10,"energy":["steady"],"scene":null}', '{"budget":10,"energy":"steady","scene":["desk"]}', '{"budget":10,"energy":"steady","scene":"<svg onload=alert(1)>"}']) {
+         const p = await loadProbe(raw);
+@@ -998,21 +1013,22 @@ export default async function run(group = 'state') {
+       const walkProbe = async p => {
+         const originalMatch = p.matchMedia.bind(p);
+         p.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: true } : originalMatch(query);
+-        for (let index = 0; index < 3; index++) {
+-          const input = stationInput(index, p.document);
++        for (const id of ['b10', 'esteady', 'snone']) {
++          const input = p.document.getElementById(id);
+           input.focus(); input.click();
+-          if (index < 2) await waitFor(() => p.eval('laneState.station') === index + 1, '存储拒绝后仍能换站', 1000);
++          await waitFor(() => p.eval('formState.step') > ['b10', 'esteady', 'snone'].indexOf(id) || p.eval('formState.phase') === 'READY', '存储拒绝后仍能填格', 1000);
+         }
+-        await waitFor(() => !p.eval('state.busy') && p.eval('laneState.phase') === 'TICKET', '存储拒绝后真实出票');
++        p.document.getElementById('issue').click();
++        await waitFor(() => !p.eval('state.busy') && p.eval('formState.phase') === 'TICKET', '存储拒绝后真实出票');
+       };
+       w.localStorage.removeItem('whynot-guide');
+       let p = await loadProbe(null, '<script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})<\/script>');
+-      check('lane/存储读取拒绝仍初始化首站', idleProbe(p));
++      check('lane/存储读取拒绝仍初始化空票', idleProbe(p));
+       await walkProbe(p);
+-      check('lane/存储读取拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && !p.laneProbeErrors.length);
++      check('lane/存储读取拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && !p.laneProbeErrors.length);
+       p = await loadProbe(null, '<script>Storage.prototype.setItem=function(){throw new DOMException("test","QuotaExceededError")}<\/script>');
+       await walkProbe(p);
+-      check('lane/存储写入拒绝真实逐站出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
++      check('lane/存储写入拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
+     } finally {
+       gate.resolve();
+       probe?.remove();
+@@ -1027,6 +1043,7 @@ export default async function run(group = 'state') {
+       await setEnv('MODEL_ENDPOINT', null);
+     }
+   }
++
+   if (group === 'ix') {
+     const until = async fn => { for (let i = 0; i < 800 && !fn(); i++) await pause(10); };
+     const ixOf = () => w.eval('state.ix');
+@@ -1073,7 +1090,7 @@ export default async function run(group = 'state') {
+       if (path.endsWith('/feedback')) feedbackCalls.push(JSON.parse(init.body));
+       return native(url, init);
+     };
+-    check('V4.1由三站原生单选入口替代出票按钮', !d.getElementById('ask') && d.querySelectorAll('form#lane-form section.lane').length === 3 && d.querySelector('.lane.is-active .station-q').getAttribute('tabindex') === '-1');
++    check('P0由三格票面与出票按钮替代三站', !d.getElementById('ask') && d.querySelectorAll('form#lane-form .field').length === 3 && d.querySelectorAll('form#lane-form .field.is-active').length === 1 && !!d.getElementById('issue'));
+     try {
+       await enterLaneThroughUI({ waitForTicket: false });
+       check('互动开场在结果与通道体现出票忙碌', d.getElementById('result').getAttribute('aria-busy') === 'true' && d.documentElement.dataset.laneState === 'ISSUING' && d.getElementById('status').textContent.includes('正在开启互动') && state().busy);
+@@ -1095,7 +1112,7 @@ export default async function run(group = 'state') {
+     select('budget', '15'); select('energy', 'high');
+     openingFailure = null;
+     click('.notice .retry'); await until(() => !state().busy);
+-    check('互动开场重试保留UUID和失败条件快照', JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedOpening) && state().card.budget === 5 && state().card.energy === 'low');
++    check('互动开场重试保留UUID和失败条件快照', JSON.stringify(openingCalls.at(-1)) === JSON.stringify(failedOpening) && state().card.budget === failedOpening.budget && state().card.energy === failedOpening.energy);
+     openingFailure = 'STORAGE_UNAVAILABLE';
+     await enterLaneThroughUI();
+     check('互动503明确原因并提供普通推荐降级', d.querySelector('.notice').textContent.includes('互动存储') && [...d.querySelectorAll('.notice button')].some(n => n.textContent === '看一条普通建议'));
+diff --git a/web/app.js b/web/app.js
+index ef89ffc..7f6ac85 100644
+--- a/web/app.js
++++ b/web/app.js
+@@ -109,22 +109,32 @@ const status = document.getElementById('status');
+ const feedbackStatus = document.getElementById('feedback-status');
+ const guide = document.getElementById('guide');
+ const laneForm = document.getElementById('lane-form');
+-const lanes = [...laneForm.querySelectorAll('.lane')];
+-const laneCollection = document.getElementById('lane-collection');
+ const laneStatus = document.getElementById('lane-status');
+-const laneState = { phase: 'IDLE', station: 0, confirmed: [false, false, false], epoch: 0, input: null };
+-const LANE_KEY = 'whynot-lane';
+-const SVG_CHECK = '<svg class="stamp-mini" viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="20"/><circle cx="22" cy="22" r="16"/><text x="22" y="29" text-anchor="middle">检</text></svg>';
++const formState = { phase: 'IDLE', step: 0, values: [null, null, null], touched: [false, false, false], epoch: 0 };
++const LAST_KEY = 'whynot-lane';
++const FIELD_NAMES = ['时间', '精力', '场景'];
++const fieldNodes = [...laneForm.querySelectorAll('.field')];
++const progressItems = [...document.querySelectorAll('.progress li')];
++const bandNum = document.getElementById('band-num');
++const bandTime = document.getElementById('band-time');
++const issueButton = document.getElementById('issue');
++const issueHint = document.getElementById('issue-hint');
++const resetButton = document.getElementById('reset-form');
++const lastButton = document.getElementById('last-conditions');
+ const settingsToggle = document.getElementById('settings-toggle');
+ const about = document.getElementById('about');
+ const localSettings = document.documentElement.dataset.localSettings === '1';
+ const SVG_BROKEN_48 = '<svg viewBox="0 0 48 48" aria-hidden="true"><path d="M27 6 H6 V42 H42 V14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M31 10 H42" stroke="var(--wn-alert)" stroke-width="2" stroke-linecap="round"/></svg>';
+ const SVG_STAMP = '<svg class="ticket-stamp" viewBox="0 0 80 80" aria-hidden="true" focusable="false"><circle cx="40" cy="40" r="36"/><circle cx="40" cy="40" r="26"/><defs><path id="stamp-arc" d="M9 40a31 31 0 0 1 62 0"/></defs><text class="stamp-ring"><textPath href="#stamp-arc" startOffset="50%">WHYNOT</textPath></text><text class="stamp-center" x="40" y="37">此<tspan x="40" y="56">刻</tspan></text></svg>';
++function checkedInput(name) {
++  return document.querySelector(`input[name="${name}"]:checked`);
++}
+ function conditions() {
++  const budget = checkedInput('budget'), energy = checkedInput('energy'), scene = checkedInput('scene');
+   return {
+-    budget: Number(document.querySelector('input[name="budget"]:checked').value),
+-    energy: document.querySelector('input[name="energy"]:checked').value,
+-    scene: document.querySelector('input[name="scene"]:checked').value || null,
++    budget: budget ? Number(budget.value) : 10,
++    energy: energy ? energy.value : 'steady',
++    scene: scene ? scene.value || null : null,
+   };
+ }
+ function sameConditions(a, b) {
+@@ -154,154 +164,244 @@ function reveal(node) {
+   if (top < 0 || top >= innerHeight) node.scrollIntoView({ block: 'start', behavior: 'instant' });
+ }
+ function conditionLabels(snapshot = conditions()) {
+-  return [`${snapshot.budget} 分钟`, ENERGY_LABELS[snapshot.energy], SCENE_LABELS[snapshot.scene] || '先不选'];
++  return [`${snapshot.budget} 分钟`, ENERGY_LABELS[snapshot.energy], SCENE_LABELS[snapshot.scene] || '跳过'];
++}
++function fieldText(index, value = formState.values[index]) {
++  if (value === null || value === undefined) return '—';
++  if (index === 0) return `${value} 分钟`;
++  if (index === 1) return ENERGY_LABELS[value] || value;
++  return SCENE_LABELS[value] || '跳过';
+ }
+-function lanePhase(phase) {
+-  laneState.phase = phase;
++function endClock(minutes) {
++  const date = new Date(Date.now() + minutes * 60000);
++  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
++}
++function setPhase(phase) {
++  formState.phase = phase;
+   document.documentElement.dataset.laneState = phase;
++  document.body.dataset.phase = phase;
++}
++function syncRadios() {
++  for (const input of laneForm.querySelectorAll('input[type="radio"]')) {
++    const index = input.name === 'budget' ? 0 : input.name === 'energy' ? 1 : 2;
++    input.checked = formState.values[index] !== null && String(formState.values[index]) === input.value;
++  }
+ }
+-function updateCollection() {
+-  const labels = conditionLabels();
+-  [...laneCollection.children].forEach((button, index) => {
+-    const confirmed = laneState.confirmed[index];
+-    button.classList.toggle('is-collected', confirmed);
+-    button.disabled = state.busy || !confirmed;
+-    button.querySelector('.collect-value').textContent = confirmed ? labels[index] : `第 ${index + 1} 站`;
+-    button.setAttribute('aria-label', confirmed ? `第 ${index + 1} 站，已选 ${labels[index]}，返回修改` : `第 ${index + 1} 站，等待确认`);
+-    if (index === laneState.station && laneState.phase !== 'TICKET') button.setAttribute('aria-current', 'step');
+-    else button.removeAttribute('aria-current');
+-    document.querySelectorAll('.station-marks i')[index].classList.toggle('is-collected', confirmed);
++function renderForm() {
++  const locked = formState.phase === 'ISSUING' || formState.phase === 'TICKET';
++  fieldNodes.forEach((node, index) => {
++    const done = formState.values[index] !== null;
++    const active = !locked && !laneForm.hidden && formState.step === index;
++    node.classList.toggle('is-active', active);
++    node.classList.toggle('is-done', done);
++    node.querySelector('.f-val').textContent = done ? fieldText(index) : '—';
++    node.querySelector('.f-edit').hidden = !done || locked;
++    const body = node.querySelector('.f-body');
++    body.inert = !active;
++    body.setAttribute('aria-hidden', String(!active));
+   });
+-  laneCollection.hidden = laneState.phase === 'TICKET';
+-}
+-function showStation(index, moveFocus = true, keepAnnouncement = false) {
+-  if (state.busy || index < 0 || index > 2 || !laneState.confirmed.slice(0, index).every(Boolean)) return;
+-  laneState.epoch++;
+-  laneState.input = null;
+-  laneState.station = index;
+-  laneState.confirmed.fill(false, index);
+-  lanePhase(`AT_STATION_${index + 1}`);
+-  laneForm.hidden = false;
+-  result.hidden = true;
+-  clearShare();
+-  feedbackStatus.textContent = '';
+-  status.textContent = '';
+-  if (!keepAnnouncement) laneStatus.textContent = '';
+-  lanes.forEach((lane, number) => {
+-    lane.hidden = number !== index;
+-    lane.className = number === index ? 'lane is-active station-in' : 'lane';
+-    lane.querySelector('.station-ticket').className = 'station-ticket';
+-    lane.querySelector('.stub-seal').replaceChildren();
++  progressItems.forEach((item, index) => {
++    const done = formState.values[index] !== null;
++    item.classList.toggle('is-on', !locked && formState.step === index);
++    item.classList.toggle('is-done', done);
++    item.querySelector('b').textContent = done ? (index === 0 ? `${formState.values[0]}′` : fieldText(index)) : '—';
+   });
+-  const note = lanes[index].querySelector('.picked-note');
+-  note.textContent = index ? `已选 · ${conditionLabels().slice(0, index).join(' · ')}。点下方票根可返回修改。` : '选中就前往下一站，也可以回来改。';
+-  updateCollection();
++  const budget = formState.values[0];
++  bandNum.textContent = budget === null ? '—' : `+${budget}′`;
++  bandTime.textContent = budget === null ? '' : endClock(Number(budget));
++  const missing = formState.values.filter(value => value === null).length;
++  issueButton.disabled = state.busy || locked || missing > 0;
++  issueHint.textContent = missing ? (formState.touched.some(Boolean) ? `还差 ${missing} 步` : '三步填完就能出票') : '三格齐了，出票';
++  document.getElementById('board').dataset.phase = formState.phase;
++}
++function focusField(index) {
++  const field = fieldNodes[index];
++  const input = field?.querySelector('input:checked') || field?.querySelector('input');
++  if (input) focus(input);
++}
++function activateField(index, moveFocus = true) {
++  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET'].includes(formState.phase)) return;
++  if (index < 0 || index > 2) return;
++  formState.epoch++;
++  formState.step = index;
++  setPhase(`AT_FIELD_${index + 1}`);
++  renderForm();
+   if (moveFocus) {
+-    focus(lanes[index].querySelector('.station-q'));
+-    reveal(lanes[index]);
++    requestAnimationFrame(() => focusField(index));
++    reveal(fieldNodes[index]);
+   }
+ }
+-function rememberConditions(snapshot) {
+-  try { localStorage.setItem(LANE_KEY, JSON.stringify(snapshot)); } catch {}
++function announcePick(index) {
++  const next = formState.values.findIndex(value => value === null);
++  laneStatus.textContent = next === -1
++    ? `已记下 ${fieldText(index)}，三格齐了，可以出票`
++    : `已记下 ${fieldText(index)}，下一步：${FIELD_NAMES[next]}`;
++}
++function fillField(input) {
++  const field = input.closest('.field');
++  if (!field) return;
++  const index = Number(field.dataset.step);
++  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET'].includes(formState.phase) || index !== formState.step) { syncRadios(); return; }
++  if (formState.values[index] === input.value) return;
++  formState.epoch++;
++  formState.values[index] = input.value;
++  formState.touched[index] = true;
++  syncRadios();
++  const next = formState.values.findIndex(value => value === null);
++  formState.step = next === -1 ? 3 : next;
++  setPhase(next === -1 ? 'READY' : `AT_FIELD_${next + 1}`);
++  renderForm();
++  announcePick(index);
++  requestAnimationFrame(() => {
++    if (next === -1) focus(issueButton);
++    else focusField(next);
++  });
+ }
+-function completeLane(snapshot) {
+-  laneState.epoch++;
+-  laneState.confirmed.fill(true);
+-  lanePhase('TICKET');
++function rememberConditions(snapshot) {
++  try { localStorage.setItem(LAST_KEY, JSON.stringify(snapshot)); } catch {}
++}
++function completeTicket(snapshot) {
++  const current = conditions();
++  formState.values = [String(current.budget), current.energy, current.scene || ''];
++  formState.touched.fill(true);
++  formState.step = 3;
++  setPhase('TICKET');
+   laneForm.hidden = true;
+   result.hidden = false;
+   rememberConditions(snapshot);
+-  updateCollection();
++  renderForm();
+ }
+-function failLane() {
+-  laneState.confirmed = [true, true, false];
+-  showStation(2);
++function failTicket() {
++  formState.step = 2;
++  laneForm.hidden = false;
+   result.hidden = false;
+-  result.querySelector('.notice')?.classList.add('lane-banner');
++  setPhase('AT_FIELD_3');
++  renderForm();
++  const banner = result.querySelector('.notice');
++  banner?.classList.add('lane-banner');
++  requestAnimationFrame(() => {
++    const retry = result.querySelector('.lane-banner .retry');
++    if (retry) focus(retry);
++    else focusField(2);
++  });
++}
++function resetForm(announce = true) {
++  if (state.busy) return;
++  formState.epoch++;
++  formState.values = [null, null, null];
++  formState.touched = [false, false, false];
++  formState.step = 0;
++  laneForm.hidden = false;
++  result.hidden = true;
++  status.textContent = '';
++  feedbackStatus.textContent = '';
++  clearShare();
++  syncRadios();
++  setPhase('AT_FIELD_1');
++  renderForm();
++  if (announce) laneStatus.textContent = '已清空，重新开始';
++  requestAnimationFrame(() => focusField(0));
++}
++function validSaved(snapshot) {
++  return snapshot && [3, 5, 10, 15].includes(snapshot.budget)
++    && typeof snapshot.energy === 'string' && Object.hasOwn(ENERGY_LABELS, snapshot.energy)
++    && (snapshot.scene === null || (typeof snapshot.scene === 'string' && Object.hasOwn(SCENE_LABELS, snapshot.scene)));
++}
++function useLastConditions() {
++  if (state.busy) return;
++  let saved = null;
++  try { saved = JSON.parse(localStorage.getItem(LAST_KEY)); } catch {}
++  if (!validSaved(saved)) {
++    laneStatus.textContent = '还没有上次的条件，先填一次';
++    focusField(0);
++    return;
++  }
++  formState.epoch++;
++  formState.values = [String(saved.budget), saved.energy, saved.scene || ''];
++  formState.touched = [true, true, true];
++  formState.step = 3;
++  syncRadios();
++  laneForm.hidden = false;
++  result.hidden = true;
++  setPhase('READY');
++  renderForm();
++  laneStatus.textContent = `已用上次的条件：${conditionLabels(saved).join('，')}`;
++  requestAnimationFrame(() => focus(issueButton));
++}
++function openField(index) {
++  if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET'].includes(formState.phase)) return;
++  activateField(index);
++}
++function initForm() {
++  laneForm.addEventListener('submit', event => event.preventDefault());
++  for (const input of laneForm.querySelectorAll('input[type="radio"]')) {
++    input.addEventListener('change', () => fillField(input));
++    input.addEventListener('keydown', event => {
++      if (event.key !== 'Enter') return;
++      event.preventDefault();
++      input.checked = true;
++      fillField(input);
++    });
++  }
++  fieldNodes.forEach((node, index) => {
++    node.querySelector('.f-edit').addEventListener('click', event => {
++      event.stopPropagation();
++      openField(index);
++    });
++    node.querySelector('.f-line').addEventListener('click', () => openField(index));
++  });
++  issueButton.addEventListener('click', () => {
++    if (issueButton.disabled || state.busy) return;
++    if (formState.values.some(value => value === null)) return;
++    startInteraction(snapshotFromForm(), { source: 'primary', replaces: state.ix?.id });
++  });
++  resetButton.addEventListener('click', () => resetForm());
++  lastButton.addEventListener('click', useLastConditions);
++  setPhase('AT_FIELD_1');
++  renderForm();
++}
++function snapshotFromForm() {
++  return {
++    budget: Number(formState.values[0]),
++    energy: formState.values[1],
++    scene: formState.values[2] || null,
++  };
++}
++function returnToForm(index) {
++  if (state.busy) return;
++  formState.epoch++;
++  formState.step = index;
++  laneForm.hidden = false;
++  result.hidden = true;
++  clearShare();
++  feedbackStatus.textContent = '';
++  status.textContent = '';
++  setPhase(`AT_FIELD_${index + 1}`);
++  renderForm();
++  laneStatus.textContent = `返回${FIELD_NAMES[index]}修改`;
++  requestAnimationFrame(() => focusField(index));
++}
++function routeBand() {
++  const budget = state.conditions?.budget;
++  const band = el('div', 'route-band');
++  band.setAttribute('aria-hidden', 'true');
++  band.innerHTML = `<span class="rb-from">现在</span><span class="rail" aria-hidden="true"></span><span class="rb-to">现在 <b>+${budget ?? 0}′</b><span class="rb-time">${budget ? endClock(budget) : ''}</span></span>`;
++  return band;
+ }
+ function ticketContext() {
+   const context = el('div', 'ticket-context');
+   context.setAttribute('role', 'group');
+-  context.setAttribute('aria-label', '本次条件，点选可返回对应站修改');
++  context.setAttribute('aria-label', '本次条件，点选可返回修改');
+   conditionLabels(state.conditions).forEach((label, index) => {
+     const button = el('button', 'context-key', label);
+     button.type = 'button';
+     button.dataset.station = index;
+-    button.setAttribute('aria-label', `${label}，返回第 ${index + 1} 站修改`);
+-    button.addEventListener('click', () => showStation(index));
++    button.setAttribute('aria-label', `${label}，返回修改${FIELD_NAMES[index]}`);
++    button.addEventListener('click', () => returnToForm(index));
+     context.append(button);
+   });
+   return context;
+ }
+-async function selectStation(input) {
+-  const lane = input.closest('.lane');
+-  if (state.busy || laneForm.hidden || lane?.hidden || !input.checked || Number(lane.dataset.station) !== laneState.station) return;
+-  if (laneState.phase === 'STAMPING' && laneState.input === input) return;
+-  const epoch = ++laneState.epoch, index = laneState.station;
+-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+-  const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+-  const current = () => epoch === laneState.epoch;
+-  const ticket = lane.querySelector('.station-ticket');
+-  laneState.input = input;
+-  laneState.confirmed[index] = false;
+-  lane.classList.remove('station-out');
+-  ticket.className = 'station-ticket';
+-  ticket.querySelector('.stub-seal').innerHTML = SVG_CHECK;
+-  void ticket.offsetWidth;
+-  ticket.classList.add('stamping');
+-  lanePhase('STAMPING');
+-  updateCollection();
+-  if (!reduced) await wait(120);
+-  if (!current()) return;
+-  ticket.classList.add('torn');
+-  if (!reduced) await wait(360);
+-  if (!current()) return;
+-  const stub = ticket.querySelector('.stub');
+-  const from = stub.getBoundingClientRect();
+-  const to = laneCollection.children[index].querySelector('.collect-dot').getBoundingClientRect();
+-  stub.style.setProperty('--stub-x', `${to.x - from.x}px`);
+-  stub.style.setProperty('--stub-y', `${to.y - from.y}px`);
+-  ticket.classList.add('collecting');
+-  if (!reduced) await wait(200);
+-  if (!current()) return;
+-  laneState.confirmed[index] = true;
+-  laneStatus.textContent = `已选 ${conditionLabels()[index]}，票根已撕下`;
+-  updateCollection();
+-  lane.classList.add('station-out');
+-  if (!reduced) await wait(200);
+-  if (!current()) return;
+-  if (index < 2) showStation(index + 1, true, true);
+-  else {
+-    rememberConditions(conditions());
+-    await startInteraction(conditions(), { replaces: state.ix?.id });
+-  }
+-}
+-function initLane() {
+-  try {
+-    const saved = JSON.parse(localStorage.getItem(LANE_KEY));
+-    if (saved && [3, 5, 10, 15].includes(saved.budget) && typeof saved.energy === 'string' && Object.hasOwn(ENERGY_LABELS, saved.energy)
+-      && (saved.scene === null || (typeof saved.scene === 'string' && Object.hasOwn(SCENE_LABELS, saved.scene)))) {
+-      for (const input of laneForm.querySelectorAll('input')) input.checked = String(saved[input.name] ?? '') === input.value;
+-    }
+-  } catch {}
+-  laneForm.addEventListener('submit', event => event.preventDefault());
+-  laneForm.addEventListener('keydown', event => {
+-    if (![' ', 'Enter'].includes(event.key) || !event.target.matches('input[type="radio"]')) return;
+-    event.preventDefault();
+-    if (event.repeat || state.busy) return;
+-    event.target.checked = true;
+-    selectStation(event.target);
+-  });
+-  for (const name of ['click', 'change']) laneForm.addEventListener(name, event => {
+-    if (event.target.matches('input[type="radio"]')) selectStation(event.target);
+-  });
+-  laneCollection.addEventListener('click', event => {
+-    const button = event.target.closest('button[data-return]');
+-    if (button && !button.disabled) showStation(Number(button.dataset.return));
+-  });
+-  showStation(0, false);
+-  lanePhase('IDLE');
+-}
+ function renderLoading(text = '正在找建议') {
+   const card = el('article', 'skeleton');
+   card.setAttribute('aria-hidden', 'true');
+@@ -504,7 +604,9 @@ function buildCard() {
+     article.classList.add('ticket-done');
+     article.insertAdjacentHTML('beforeend', SVG_STAMP);
+   }
+-  article.append(ticketContext(), head, body, sep, stub);
++  const perf = el('div', 'perf');
++  perf.setAttribute('aria-hidden', 'true');
++  article.append(perf, routeBand(), ticketContext(), head, body, sep, stub);
+   if (card.completed) article.append(completedRow());
+   else {
+     const actions = el('div', 'card-actions');
+@@ -558,13 +660,14 @@ function setBusy(busy, busyText = '正在找建议') {
+   result.setAttribute('aria-label', busy ? `出票中，${busyText}` : '建议结果');
+   laneForm.inert = busy;
+   for (const fieldset of laneForm.querySelectorAll('fieldset')) fieldset.disabled = busy;
++  for (const input of laneForm.querySelectorAll('input[type="radio"]')) input.disabled = busy;
+   if (busy) {
+-    laneState.epoch++;
+-    lanePhase('ISSUING');
++    formState.epoch++;
++    setPhase('ISSUING');
+     laneForm.hidden = true;
+     result.hidden = false;
+   }
+-  updateCollection();
++  renderForm();
+ }
+ function exitCard() {
+   const old = result.querySelector('.card');
+@@ -607,7 +710,7 @@ async function ask(snapshot = conditions(), source = 'primary') {
+     result.replaceChildren();
+     dismissGuide();
+     setBusy(false);
+-    completeLane(snapshot);
++    completeTicket(snapshot);
+     renderCard();
+     status.textContent = '';
+     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
+@@ -621,7 +724,7 @@ async function ask(snapshot = conditions(), source = 'primary') {
+     status.textContent = '';
+     result.replaceChildren(renderNotice(error, snapshot));
+     if (state.card) renderCard();
+-    failLane();
++    failTicket();
+   } finally {
+     clearTimeout(timer);
+     setBusy(false);
+@@ -742,7 +845,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
+     setBusy(false);
+     result.replaceChildren();
+     dismissGuide();
+-    completeLane(snapshot);
++    completeTicket(snapshot);
+     renderCard();
+     status.textContent = '';
+     if (document.activeElement === result && source === 'primary') focus(result.querySelector('h2'));
+@@ -774,7 +877,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
+     }
+     result.replaceChildren(renderNotice(error, snapshot, noticeOpts));
+     if (state.card) renderCard();
+-    failLane();
++    failTicket();
+   } finally {
+     clearTimeout(timer);
+     setBusy(false);
+@@ -989,9 +1092,20 @@ function buildInteractionCard() {
+   const first = el('div', 'first');
+   first.id = 'card-first';
+   first.append(el('span', 'first-label', ix.mode === 'photo' ? '第一步' : '开场'), el('p', 'first-text', card.first_step));
+-  article.append(ticketContext(), meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
++  const head = el('div', 'ticket-head');
++  head.setAttribute('aria-hidden', 'true');
++  head.append(el('span', 'ticket-code', 'WHYNOT · 此刻线 · 站台 03'), el('span', 'ticket-valid', `WN-${passCode(String(ix.id || ''))}`));
++  const perf = el('div', 'perf');
++  perf.setAttribute('aria-hidden', 'true');
++  article.append(perf, routeBand(), ticketContext(), head, meta, title, el('hr', 'card-sep'), first, el('p', 'detail', card.detail));
+   if (ix.messages.length) article.append(turnLog(ix));
+   if (ix.candidate) article.append(candidateBlock(ix));
++  const sep = el('div', 'ticket-sep');
++  sep.setAttribute('aria-hidden', 'true');
++  const stub = el('div', 'ticket-stub');
++  stub.setAttribute('aria-hidden', 'true');
++  stub.append(el('div', 'ticket-bar'), el('span', 'ticket-code', `WN-${passCode(String(ix.id || ''))}`), el('span', 'ticket-void', '此刻作废'));
++  article.append(sep, stub);
+   if (ix.status === 'open' || ix.status === 'awaiting_image') {
+     if (ix.mode === 'photo' && ix.status === 'awaiting_image') article.append(photoArea(ix));
+     if (ix.mode !== 'photo' || ix.pendingImage || ix.word) article.append(turnForm(ix));
+@@ -1382,7 +1496,7 @@ function applyTheme(theme) {
+   document.querySelectorAll('input[name="theme"]').forEach(input => { input.checked = input.value === theme; });
+   document.querySelectorAll('meta[name="theme-color"]').forEach(meta => {
+     const dark = theme === 'dark' || (theme === 'system' && meta.media.includes('dark'));
+-    meta.content = dark ? '#101827' : '#eaf0f8';
++    meta.content = dark ? '#0d1526' : '#cfe0f2';
+   });
+ }
+ about.addEventListener('change', event => {
+@@ -1514,6 +1628,6 @@ for (const event of ['offline', 'online']) window.addEventListener(event, () =>
+     settingsToggle.setAttribute('aria-label', '设置，AI 模型、主题设置与记忆管理');
+   }
+   applyTheme(document.documentElement.dataset.theme || 'system');
+-  initLane();
++  initForm();
+   ensureSession().catch(() => {});
+ })();
+diff --git a/web/index.html b/web/index.html
+index bf983d4..b62c65c 100644
+--- a/web/index.html
++++ b/web/index.html
+@@ -4,17 +4,42 @@
+   <meta charset="utf-8">
+   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+   <title>WhyNot · 此刻</title>
+-  <meta name="description" content="选好时间和精力，WhyNot 给你一件现在就能开始的小事。">
+-  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#eaf0f8">
+-  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#101827">
++  <meta name="description" content="填一张票，三步出门。WhyNot 给你一件现在就能开始的小事。">
++  <meta name="theme-color" media="(prefers-color-scheme: light)" content="#cfe0f2">
++  <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0d1526">
+   <meta name="color-scheme" content="light dark">
+   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+   <link rel="manifest" href="/manifest.webmanifest">
+   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#101827':'#eaf0f8')}}catch{}</script>
++  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#0d1526':'#cfe0f2')}}catch{}</script>
+   <link rel="stylesheet" href="/style.css">
+ </head>
+ <body>
++  <div class="stage" aria-hidden="true">
++    <div class="st-sky"></div>
++    <div class="st-city"></div>
++    <div class="st-shed">
++      <i class="st-brace a"></i><i class="st-brace b"></i><i class="st-brace c"></i>
++      <i class="st-glass"></i>
++    </div>
++    <div class="st-catenary"></div>
++    <div class="st-signal"></div>
++    <div class="st-track"></div>
++    <div class="st-train">
++      <i class="st-headlight"></i>
++      <i class="st-win w1"></i><i class="st-win w2"></i><i class="st-win w3"></i><i class="st-win w4"></i>
++      <i class="st-door"></i>
++    </div>
++    <div class="st-cone"></div>
++    <div class="st-reflect"></div>
++    <div class="st-platform"></div>
++    <div class="st-yellow"></div>
++    <div class="st-machine"><i></i></div>
++    <div class="st-pillar a"></div><div class="st-pillar b"></div>
++    <div class="st-dust"></div>
++    <div class="st-veil"></div>
++  </div>
++
+   <header class="masthead">
+     <div class="masthead-left">
+       <svg class="mark" viewBox="0 0 20 20" aria-hidden="true">
+@@ -30,82 +55,126 @@
+   </header>
+ 
+   <main class="page">
+-    <div class="guide" id="guide">
+-      <p>一屏一问 · 选完撕根</p>
+-      <p>三根集齐，出一张现在</p>
+-      <p>不合适随时换一张</p>
+-    </div>
++    <div class="board" id="board">
++      <div class="board-copy">
++        <div class="guide" id="guide">
++          <p>一次只问一件事</p>
++          <p>答完一格，收成一行</p>
++          <p>三格齐了，出一张现在</p>
++        </div>
++        <p class="eyebrow"><i>01</i>此刻通道</p>
++        <h1 class="board-title">填一张票，<span>三步出门</span></h1>
++        <p class="board-lead">一次只问一件事。选完，答案就印在票上——上一格收成一行，下一格才展开。</p>
+ 
+-    <form id="lane-form" aria-label="三站选择，选中后自动前往下一站">
+-      <section class="lane is-active" data-station="0" role="group" aria-labelledby="station-q-1">
+-        <p class="station-label">第 1 站 · 共 3 站</p>
+-        <div class="station-ticket">
+-          <fieldset class="station-body">
+-            <legend class="station-q" id="station-q-1" tabindex="-1">你有多少时间？</legend>
+-            <div class="chips station-opts">
+-              <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
+-              <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
+-              <input type="radio" name="budget" id="b10" value="10" checked><label for="b10">10 分钟</label>
+-              <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
+-            </div>
+-          </fieldset>
+-          <span class="stub" aria-hidden="true"><span class="stub-code">01<br>时间</span><span class="stub-seal"></span></span>
++        <ol class="progress" aria-label="填写进度">
++          <li data-field="0"><i>01</i><span>时间</span><b>—</b></li>
++          <li data-field="1"><i>02</i><span>精力</span><b>—</b></li>
++          <li data-field="2"><i>03</i><span>场景</span><b>—</b></li>
++        </ol>
++
++        <div class="board-actions">
++          <button class="ghost" id="last-conditions" type="button">用上次的条件</button>
++          <button class="ghost" id="reset-form" type="button">重填</button>
+         </div>
+-        <p class="picked-note">选中就前往下一站，也可以回来改。</p>
+-      </section>
+-      <section class="lane" data-station="1" role="group" aria-labelledby="station-q-2" hidden>
+-        <p class="station-label">第 2 站 · 共 3 站</p>
+-        <div class="station-ticket">
+-          <fieldset class="station-body">
+-            <legend class="station-q" id="station-q-2" tabindex="-1">现在的精力如何？</legend>
+-            <div class="chips station-opts">
+-              <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
+-              <input type="radio" name="energy" id="esteady" value="steady" checked><label for="esteady">还可以</label>
+-              <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
++        <p class="board-note">月台铺满整个视口，票是页面上唯一的实体。黄线永远在票的下方——那是你站在站台边的证据。</p>
++      </div>
++
++      <div class="ticket-col">
++        <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false" hidden></section>
++
++        <form id="lane-form" class="sheet" aria-label="填一张此刻的车票">
++          <div class="perf" aria-hidden="true"></div>
++          <div class="thead"><span>WHYNOT · 此刻线 · 站台 03</span><b><span class="punch" aria-hidden="true"></span>WN-0417</b></div>
++          <div class="band">
++            <span class="rb-from">现在</span>
++            <span class="rail" aria-hidden="true"></span>
++            <span class="rb-to">现在 <b id="band-num">—</b><span class="rb-time" id="band-time"></span></span>
++          </div>
++
++          <div class="fields">
++            <div class="field is-active" data-step="0">
++              <div class="f-line">
++                <span class="f-no">01</span><span class="f-name">时间</span>
++                <span class="f-val">—</span>
++                <button class="f-edit" type="button" hidden>改</button>
++              </div>
++              <div class="f-body">
++                <div class="f-inner">
++                  <p class="f-q" id="q-0">你有多少时间？</p>
++                  <div class="opts" role="radiogroup" aria-labelledby="q-0">
++                    <input type="radio" name="budget" id="b3" value="3"><label for="b3">3 分钟</label>
++                    <input type="radio" name="budget" id="b5" value="5"><label for="b5">5 分钟</label>
++                    <input type="radio" name="budget" id="b10" value="10"><label for="b10">10 分钟</label>
++                    <input type="radio" name="budget" id="b15" value="15"><label for="b15">15 分钟</label>
++                  </div>
++                </div>
++              </div>
+             </div>
+-          </fieldset>
+-          <span class="stub" aria-hidden="true"><span class="stub-code">02<br>精力</span><span class="stub-seal"></span></span>
+-        </div>
+-        <p class="picked-note"></p>
+-      </section>
+-      <section class="lane" data-station="2" role="group" aria-labelledby="station-q-3" hidden>
+-        <p class="station-label">第 3 站 · 共 3 站</p>
+-        <div class="station-ticket">
+-          <fieldset class="station-body">
+-            <legend class="station-q" id="station-q-3" tabindex="-1">你在哪儿？</legend>
+-            <div class="chips station-opts">
+-              <input type="radio" name="scene" id="snone" value="" checked><label for="snone">先不选</label>
+-              <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭／排队</label>
+-              <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">在桌前</label>
+-              <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">在路上</label>
+-              <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家／宿舍</label>
++
++            <div class="field" data-step="1">
++              <div class="f-line">
++                <span class="f-no">02</span><span class="f-name">精力</span>
++                <span class="f-val">—</span>
++                <button class="f-edit" type="button" hidden>改</button>
++              </div>
++              <div class="f-body">
++                <div class="f-inner">
++                  <p class="f-q" id="q-1">现在的精力如何？</p>
++                  <div class="opts" role="radiogroup" aria-labelledby="q-1">
++                    <input type="radio" name="energy" id="elow" value="low"><label for="elow">有点累</label>
++                    <input type="radio" name="energy" id="esteady" value="steady"><label for="esteady">还可以</label>
++                    <input type="radio" name="energy" id="ehigh" value="high"><label for="ehigh">精神好</label>
++                  </div>
++                </div>
++              </div>
+             </div>
+-          </fieldset>
+-          <span class="stub" aria-hidden="true"><span class="stub-code">03<br>场景</span><span class="stub-seal"></span></span>
+-        </div>
+-        <p class="picked-note"></p>
+-      </section>
+-    </form>
+-    <div id="lane-collection" class="collection-strip" role="group" aria-label="已收集的票根，点已完成站可返回修改">
+-      <button type="button" class="collection-item" data-return="0" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 1 站</span></button>
+-      <button type="button" class="collection-item" data-return="1" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 2 站</span></button>
+-      <button type="button" class="collection-item" data-return="2" disabled><i class="collect-dot" aria-hidden="true"></i><span class="collect-value">第 3 站</span></button>
++
++            <div class="field" data-step="2">
++              <div class="f-line">
++                <span class="f-no">03</span><span class="f-name">场景</span>
++                <span class="f-val">—</span>
++                <button class="f-edit" type="button" hidden>改</button>
++              </div>
++              <div class="f-body">
++                <div class="f-inner">
++                  <p class="f-q" id="q-2">你在哪儿？</p>
++                  <div class="opts opts-5" role="radiogroup" aria-labelledby="q-2">
++                    <input type="radio" name="scene" id="snone" value=""><label for="snone">跳过</label>
++                    <input type="radio" name="scene" id="swaiting" value="waiting"><label for="swaiting">等饭</label>
++                    <input type="radio" name="scene" id="sdesk" value="desk"><label for="sdesk">桌前</label>
++                    <input type="radio" name="scene" id="soutside" value="outside"><label for="soutside">路上</label>
++                    <input type="radio" name="scene" id="shome" value="home"><label for="shome">在家</label>
++                  </div>
++                </div>
++              </div>
++            </div>
++          </div>
++
++          <div class="micro" aria-hidden="true">WHYNOT · THIS PASS · 0417 · NOT TRANSFERABLE · 03 · WHYNOT · THIS PASS · 0417 · NOT TRANSFERABLE · 03 · WHYNOT · THIS PASS · 0417</div>
++          <div class="tear" aria-hidden="true"><span class="notch"></span><span class="notch r"></span></div>
++          <div class="sheet-foot">
++            <button class="issue" id="issue" type="button" disabled>出一张现在</button>
++            <small id="issue-hint">三步填完就能出票</small>
++          </div>
++        </form>
++
++        <div id="lane-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
++        <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
++        <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
++        <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
++        <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
++      </div>
+     </div>
+-    <div id="lane-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+-    <div id="status" class="sr-only" role="status" aria-atomic="true"></div>
+-    <section id="result" tabindex="-1" aria-label="建议结果" aria-busy="false" hidden></section>
+-    <p id="feedback-status" class="share-note" role="status" aria-atomic="true"></p>
+-    <p id="share-status" class="share-note" role="status" aria-atomic="true"></p>
+-    <textarea id="share-text" class="share-text" aria-label="可复制的分享文字" rows="5" readonly hidden></textarea>
+ 
+     <noscript>
+-      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。</p>
++      <p class="noscript">这个页面需要打开 JavaScript 才能给出建议。三组默认值：10 分钟 / 还可以 / 跳过。</p>
+     </noscript>
+ 
+     <footer class="foot">
+       <span>随时可以停下</span>
+       <button type="button" class="settings" id="settings-toggle" aria-expanded="false" aria-controls="about" aria-label="关于与数据，主题设置与记忆管理">关于与数据</button>
+     </footer>
++
+     <section class="about" id="about" aria-labelledby="about-title" hidden>
+       <h2 id="about-title">关于与数据</h2>
+       <p>一个在刷视频之前，<br>帮你选件小事的工具。<br>什么都不做，也是一个选项。</p>
+diff --git a/web/style.css b/web/style.css
+index 675c043..4ee59fd 100644
+--- a/web/style.css
++++ b/web/style.css
+@@ -1,786 +1,438 @@
+-:root{color-scheme:light;--wn-paper:#eaf0f8;--wn-paper-2:#dce2ee;--wn-sheet:#fbf8f0;--wn-well:#e7e0ce;--wn-ink:#1b2334;--wn-ink-2:#525a6e;--wn-accent:#d95f0e;--wn-accent-press:#c43a15;--wn-accent-soft:#fbe3d3;--wn-on-accent:#221204;--wn-line:#c6bca4;--wn-hairline:rgba(27,35,52,.10);--wn-time:#525a6e;--wn-time-soft:#e7e0ce;--wn-alert:#c43a15;--wn-alert-soft:#fbe3d3;--wn-focus:#1b2334;--wn-bone:#e7e0ce;--wn-shadow:0 4px 8px rgba(0,0,0,.14);--wn-page-ink:var(--wn-ink);--wn-page-muted:var(--wn-ink-2);--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-mono:ui-monospace,Consolas,monospace;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-s9:4rem;--wn-t1:700 2rem/1.25;--wn-t2:600 1.375rem/1.364;--wn-t3:500 1.1875rem/1.579;--wn-t4:400 1rem/1.625;--wn-t5:400 0.875rem/1.571;--wn-t6:500 0.75rem/1.5;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms}
+-:root{--wn-dark-paper:#101827;--wn-dark-paper-2:#1b2334;--wn-dark-sheet:#f6f2e8;--wn-dark-well:#e7e0ce;--wn-dark-ink:#1b2334;--wn-dark-ink-2:#575e72;--wn-dark-accent:#ff8a50;--wn-dark-accent-press:#c43a15;--wn-dark-accent-soft:#fbdfc9;--wn-dark-on-accent:#221204;--wn-dark-line:#d4c9ae;--wn-dark-hairline:rgba(246,242,232,.12);--wn-dark-time:#575e72;--wn-dark-time-soft:#e7e0ce;--wn-dark-alert:#c43a15;--wn-dark-alert-soft:#fbdfc9;--wn-dark-focus:#1b2334;--wn-dark-bone:#ddd3b8;--wn-dark-shadow:none}
++:root{color-scheme:light;--wn-paper:#eaf0f8;--wn-paper-2:#dce2ee;--wn-sheet:#fbf8f0;--wn-well:#e7e0ce;--wn-ink:#1b2334;--wn-ink-2:#525a6e;--wn-accent:#d95f0e;--wn-accent-press:#c43a15;--wn-accent-soft:#fbe3d3;--wn-on-accent:#221204;--wn-line:#c6bca4;--wn-hairline:rgba(27,35,52,.10);--wn-time:#525a6e;--wn-time-soft:#e7e0ce;--wn-alert:#c43a15;--wn-alert-soft:#fbe3d3;--wn-focus:#1b2334;--wn-bone:#e7e0ce;--wn-shadow:0 4px 8px rgba(0,0,0,.14);--wn-page-ink:var(--wn-ink);--wn-page-muted:var(--wn-ink-2);--wn-font:"PingFang SC","Hiragino Sans GB","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;--wn-mono:ui-monospace,Consolas,monospace;--wn-r1:6px;--wn-r2:14px;--wn-r3:22px;--wn-rpill:999px;--wn-s1:0.25rem;--wn-s2:0.5rem;--wn-s3:0.75rem;--wn-s4:1rem;--wn-s5:1.25rem;--wn-s6:1.5rem;--wn-s7:2rem;--wn-s8:3rem;--wn-m1:120ms;--wn-m2:180ms;--wn-m3:240ms;--wn-m4:1600ms;
++--m-quick:120ms cubic-bezier(.2,0,.2,1);--m-soft:220ms cubic-bezier(.33,1,.68,1);--m-ticket:380ms cubic-bezier(.16,1,.3,1);
++--stage-sky-1:#cfe0f2;--stage-sky-2:#f6f1e2;--stage-shed:#e3e0d6;--stage-shed-2:#c8d3e2;--stage-city:rgba(90,112,150,.25);--stage-train:#3a4a68;--stage-train-2:#22304a;--stage-platform:#cfc8b8;--stage-platform-2:#b3ac9d;--stage-yellow:#e0b33a;--stage-glow:rgba(255,196,128,.55);--stage-line:rgba(27,35,52,.16);--on-stage:#1b2334;--on-stage-dim:rgba(27,35,52,.66);--stage-veil:linear-gradient(90deg,rgba(244,240,230,.94) 0%,rgba(244,240,230,.80) 30%,rgba(244,240,230,.24) 60%,rgba(244,240,230,0) 84%,rgba(244,240,230,.30) 100%),linear-gradient(180deg,rgba(244,240,230,.28),rgba(244,240,230,0) 30%,rgba(244,240,230,.36));--stage-shadow:drop-shadow(0 30px 44px rgba(27,35,52,.30))}
++:root{--wn-dark-paper:#101827;--wn-dark-paper-2:#1b2334;--wn-dark-sheet:#f6f2e8;--wn-dark-well:#e7e0ce;--wn-dark-ink:#1b2334;--wn-dark-ink-2:#575e72;--wn-dark-accent:#ff8a50;--wn-dark-accent-press:#c43a15;--wn-dark-accent-soft:#fbdfc9;--wn-dark-on-accent:#221204;--wn-dark-line:#d4c9ae;--wn-dark-hairline:rgba(246,242,232,.12);--wn-dark-time:#575e72;--wn-dark-time-soft:#e7e0ce;--wn-dark-alert:#c43a15;--wn-dark-alert-soft:#fbdfc9;--wn-dark-focus:#1b2334;--wn-dark-bone:#ddd3b8;--wn-dark-shadow:none;--stage-dark-sky-1:#0d1526;--stage-dark-sky-2:#1b2740;--stage-dark-shed:#0a1220;--stage-dark-shed-2:#111b2c;--stage-dark-city:rgba(224,176,138,.32);--stage-dark-train:#18233a;--stage-dark-train-2:#0f1728;--stage-dark-platform:#141d2e;--stage-dark-platform-2:#0d1522;--stage-dark-glow:rgba(255,217,160,.55);--stage-dark-line:rgba(246,242,232,.18);--on-stage-dark:#f6f2e8;--on-stage-dark-dim:rgba(246,242,232,.66);--stage-dark-veil:linear-gradient(90deg,rgba(8,13,23,.94) 0%,rgba(8,13,23,.82) 30%,rgba(8,13,23,.34) 58%,rgba(8,13,23,.06) 82%,rgba(8,13,23,.42) 100%),linear-gradient(180deg,rgba(8,13,23,.52),rgba(8,13,23,0) 30%,rgba(8,13,23,.55))}
+ @media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow);--wn-page-ink:#f6f2e8;--wn-page-muted:#a7b1c9}
++:root:not([data-theme="light"]){color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow);--wn-page-ink:#f6f2e8;--wn-page-muted:#a7b1c9;
++--stage-sky-1:var(--stage-dark-sky-1);--stage-sky-2:var(--stage-dark-sky-2);--stage-shed:var(--stage-dark-shed);--stage-shed-2:var(--stage-dark-shed-2);--stage-city:var(--stage-dark-city);--stage-train:var(--stage-dark-train);--stage-train-2:var(--stage-dark-train-2);--stage-platform:var(--stage-dark-platform);--stage-platform-2:var(--stage-dark-platform-2);--stage-glow:var(--stage-dark-glow);--stage-line:var(--stage-dark-line);--on-stage:var(--on-stage-dark);--on-stage-dim:var(--on-stage-dark-dim);--stage-veil:var(--stage-dark-veil);--stage-shadow:drop-shadow(0 34px 60px rgba(0,0,0,.55))}
+ }
+-:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow);--wn-page-ink:#f6f2e8;--wn-page-muted:#a7b1c9}
++:root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow);--wn-page-ink:#f6f2e8;--wn-page-muted:#a7b1c9;
++--stage-sky-1:var(--stage-dark-sky-1);--stage-sky-2:var(--stage-dark-sky-2);--stage-shed:var(--stage-dark-shed);--stage-shed-2:var(--stage-dark-shed-2);--stage-city:var(--stage-dark-city);--stage-train:var(--stage-dark-train);--stage-train-2:var(--stage-dark-train-2);--stage-platform:var(--stage-dark-platform);--stage-platform-2:var(--stage-dark-platform-2);--stage-glow:var(--stage-dark-glow);--stage-line:var(--stage-dark-line);--on-stage:var(--on-stage-dark);--on-stage-dim:var(--on-stage-dark-dim);--stage-veil:var(--stage-dark-veil);--stage-shadow:drop-shadow(0 34px 60px rgba(0,0,0,.55))}
+ *{box-sizing:border-box}
+ [hidden]{display:none !important}
++html{scrollbar-width:thin;scrollbar-color:var(--wn-line) var(--wn-paper)}
++html::-webkit-scrollbar{width:10px}
++html::-webkit-scrollbar-track{background:var(--wn-paper)}
++html::-webkit-scrollbar-thumb{background:var(--wn-line);border-radius:var(--wn-rpill);border:2px solid var(--wn-paper)}
+ .sr-only{position:absolute;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+ button,label,.card,.notice{overflow-wrap:anywhere}
+ button{line-height:1.5}
+-#result{position:relative;scroll-margin-top:var(--wn-s4)}
++#result{position:relative;scroll-margin-top:var(--wn-s4);width:100%}
+ .share-note:empty{margin:0}
+ .card{container-type:inline-size}
+ :focus-visible{outline:2px solid var(--wn-page-ink);outline-offset:2px}
+ .card,.skeleton,.notice{color:var(--wn-ink);--wn-hairline:rgba(27,35,52,.10)}
+-.card :focus-visible,.notice :focus-visible,.share-text:focus-visible{outline-color:var(--wn-ink)}
+-body{margin:0;background:var(--wn-paper);color:var(--wn-page-ink);font-family:var(--wn-font);font-size:1rem;line-height:1.625;-webkit-font-smoothing:antialiased}
+-.masthead{display:flex;align-items:center;justify-content:space-between;max-width:480px;margin:0 auto;min-height:56px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 var(--wn-s5);border-bottom:1px solid var(--wn-hairline)}
+-.masthead .brand-name{color:var(--wn-page-ink)}
++.card :focus-visible,.notice :focus-visible,.share-text:focus-visible,.ticket-col :focus-visible{outline-color:var(--wn-ink)}
++body{margin:0;min-height:100svh;background:var(--wn-paper);color:var(--wn-page-ink);font-family:var(--wn-font);font-size:1rem;line-height:1.625;-webkit-font-smoothing:antialiased}
++
++/* ---------- 月台：纯 CSS 分层场景 ---------- */
++.stage{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,var(--stage-sky-1),var(--stage-sky-2) 62%)}
++.st-sky{position:absolute;inset:0;background:radial-gradient(ellipse 58% 44% at 76% 30%,var(--stage-glow),transparent 68%),radial-gradient(ellipse 46% 34% at 16% 12%,rgba(255,255,255,.20),transparent 70%)}
++.st-city{position:absolute;left:0;right:0;top:34%;height:10%;background:repeating-linear-gradient(90deg,var(--stage-city) 0 2px,transparent 2px 48px),repeating-linear-gradient(90deg,var(--stage-city) 0 1px,transparent 1px 17px);opacity:.5;mask:linear-gradient(180deg,transparent,#000 30%,transparent)}
++.st-shed{position:absolute;left:0;right:0;top:0;height:30%;background:linear-gradient(180deg,var(--stage-shed),var(--stage-shed-2));box-shadow:0 12px 40px rgba(0,0,0,.18)}
++.st-shed::before{content:"";position:absolute;left:0;right:0;bottom:0;height:7px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.28))}
++.st-shed::after{content:"";position:absolute;left:0;right:0;top:58%;height:1px;background:rgba(255,255,255,.22)}
++.st-brace{position:absolute;top:0;width:2px;height:26vh;background:linear-gradient(180deg,rgba(0,0,0,.20),rgba(0,0,0,.05));transform-origin:top center}
++.st-brace.a{left:18%;transform:rotate(24deg)}
++.st-brace.b{left:46%;transform:rotate(24deg)}
++.st-brace.c{left:74%;transform:rotate(24deg)}
++.st-glass{position:absolute;left:6%;right:6%;top:24%;height:34%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.16) 18%,transparent 34%,rgba(255,255,255,.10) 62%,transparent 80%);opacity:.7}
++.st-catenary{position:absolute;left:0;right:0;top:31%;height:12%;background:
++  radial-gradient(ellipse 50% 60% at 40% 0%,transparent 68%,rgba(0,0,0,.22) 69%,transparent 71%),
++  linear-gradient(180deg,transparent 46%,rgba(0,0,0,.22) 47%,transparent 48%);
++  opacity:.55}
++.st-signal{position:absolute;right:16%;top:33%;width:8px;height:8px;border-radius:50%;background:#ffcf8a;box-shadow:0 0 16px 6px rgba(255,207,138,.35)}
++.st-track{position:absolute;left:0;right:0;top:65%;height:4px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.32));box-shadow:0 5px 0 rgba(0,0,0,.16),0 14px 0 rgba(0,0,0,.10)}
++.st-train{position:absolute;right:-8%;top:47%;width:56%;height:17%;min-height:96px;border-radius:26px 0 0 6px;background:linear-gradient(180deg,var(--stage-train),var(--stage-train-2));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -14px 0 rgba(0,0,0,.34),0 22px 40px rgba(0,0,0,.28)}
++.st-train::before{content:"";position:absolute;left:0;top:12%;bottom:16%;width:9%;border-radius:26px 0 0 6px;background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
++.st-train::after{content:"";position:absolute;left:4%;right:2%;bottom:-10px;height:14px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(7px)}
++.st-headlight{position:absolute;left:4%;top:52%;width:11px;height:11px;border-radius:50%;background:#fff2d4;box-shadow:0 0 18px 8px var(--stage-glow),0 0 50px 20px rgba(255,217,160,.20)}
++.st-win{position:absolute;top:26%;width:8%;height:30%;border-radius:3px;background:linear-gradient(180deg,#ffe6b8,#ffc987);box-shadow:0 0 14px rgba(255,217,164,.28)}
++.st-win.w1{left:15%}.st-win.w2{left:28%}.st-win.w3{left:41%}.st-win.w4{left:54%}
++.st-door{position:absolute;left:67%;top:20%;width:9%;height:56%;border-radius:3px;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.16));box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),inset 0 0 0 4px rgba(0,0,0,.18)}
++.st-cone{position:absolute;left:33%;top:53%;width:35%;height:24%;background:radial-gradient(ellipse 70% 80% at 100% 22%,var(--stage-glow),transparent 68%);filter:blur(16px);opacity:.55;mix-blend-mode:screen;clip-path:polygon(100% 16%,0 100%,100% 82%)}
++.st-reflect{position:absolute;right:-4%;top:64%;width:52%;height:9%;background:linear-gradient(180deg,rgba(255,217,160,.18),transparent 70%);filter:blur(9px);opacity:.65}
++.st-platform{position:absolute;left:0;right:0;bottom:0;height:35%;background:
++  radial-gradient(ellipse 50% 30% at 64% 0%,rgba(255,217,160,.14),transparent 70%),
++  radial-gradient(ellipse 40% 26% at 82% 0%,rgba(255,217,160,.10),transparent 72%),
++  linear-gradient(180deg,var(--stage-platform),var(--stage-platform-2))}
++.st-platform::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35) 46%,transparent 82%)}
++.st-platform::after{content:"";position:absolute;inset:12% 8% auto;height:34%;background:linear-gradient(180deg,rgba(255,255,255,.10),transparent);filter:blur(10px);opacity:.5}
++.st-yellow{position:absolute;left:0;right:0;bottom:24%;height:4px;background:var(--stage-yellow);box-shadow:0 0 12px rgba(224,179,58,.45),0 2px 0 rgba(0,0,0,.28)}
++.st-machine{position:absolute;left:52%;bottom:27%;width:112px;height:96px;border-radius:4px;background:linear-gradient(180deg,rgba(40,54,78,.92),rgba(18,26,42,.96));box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 18px 30px rgba(0,0,0,.35)}
++.st-machine::before{content:"";position:absolute;left:14%;right:14%;top:16%;height:34%;border-radius:2px;background:linear-gradient(180deg,rgba(255,231,190,.55),rgba(255,207,138,.18));box-shadow:0 0 18px rgba(255,214,160,.24)}
++.st-machine i{position:absolute;left:18%;right:18%;bottom:14%;height:10px;border-radius:2px;background:#0a0f1a;box-shadow:inset 0 2px 4px rgba(0,0,0,.7),0 0 10px rgba(255,214,160,.20)}
++.st-pillar{position:absolute;top:0;bottom:0;width:10px;background:rgba(5,9,16,.72);filter:blur(.6px)}
++.st-pillar.a{left:0}.st-pillar.b{right:0}
++.st-dust{position:absolute;left:48%;top:56%;width:26%;height:20%;background-image:
++  radial-gradient(circle 1.4px at 12% 34%,rgba(255,236,200,.7),transparent 60%),
++  radial-gradient(circle 1px at 28% 62%,rgba(255,236,200,.55),transparent 60%),
++  radial-gradient(circle 1.6px at 44% 26%,rgba(255,236,200,.6),transparent 60%),
++  radial-gradient(circle 1px at 58% 48%,rgba(255,236,200,.5),transparent 60%),
++  radial-gradient(circle 1.3px at 72% 70%,rgba(255,236,200,.6),transparent 60%),
++  radial-gradient(circle 1px at 86% 38%,rgba(255,236,200,.5),transparent 60%),
++  radial-gradient(circle 1.2px at 22% 82%,rgba(255,236,200,.45),transparent 60%),
++  radial-gradient(circle 1px at 66% 18%,rgba(255,236,200,.5),transparent 60%);
++  opacity:.55}
++.st-veil{position:absolute;inset:0;background:var(--stage-veil)}
++
++/* ---------- 页头与版心 ---------- */
++.masthead{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;max-width:none;min-height:64px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 clamp(20px,4vw,56px);border-bottom:1px solid var(--stage-line);color:var(--on-stage)}
++.masthead .brand-name,.masthead .mark{color:var(--on-stage)}
+ .masthead-left{display:flex;align-items:center;gap:var(--wn-s2)}
+-.mark{display:block;width:20px;height:20px;color:var(--wn-page-ink)}
+-.brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:0.04em}
+-.masthead-date{color:var(--wn-page-muted);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
+-.page{max-width:480px;margin:0 auto;padding:var(--wn-s3) var(--wn-s5) calc(var(--wn-s7) + env(safe-area-inset-bottom,0px))}
++.mark{display:block;width:20px;height:20px}
++.brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:.04em}
++.masthead-date{color:var(--on-stage-dim);font-size:.75rem;font-weight:500;letter-spacing:.04em}
++.station-marks{display:inline-flex;flex:none;align-items:center;gap:var(--wn-s2);margin-inline-start:auto;color:var(--on-stage-dim)}
++.station-marks>i{display:block;width:4px;height:4px;border-radius:50%;background:currentColor}
++.station-marks>i.is-collected{background:var(--wn-accent)}
++.page{position:relative;z-index:2;max-width:1180px;margin:0 auto;min-height:calc(100svh - 64px);padding:clamp(18px,3.4vh,40px) clamp(20px,4vw,48px) 20px;display:flex;flex-direction:column}
++.board{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:clamp(36px,5vw,76px);align-items:center;flex:1;width:100%;min-width:0}
++.board-copy{min-width:0;color:var(--on-stage)}
++.guide{margin:0 0 var(--wn-s4);color:var(--on-stage-dim);font-size:.75rem;font-weight:500;line-height:1.833}
+ [data-guided="1"] .guide{display:none}
+-.guide{margin:0 0 var(--wn-s4)}
+-.guide p{margin:0;color:var(--wn-page-muted);font-size:0.75rem;font-weight:500;line-height:1.833}
+-fieldset{min-width:0;border:0;padding:0;margin:var(--wn-s6) 0 0}
+-fieldset:first-of-type{margin-top:0}
+-legend{padding:0;margin-bottom:var(--wn-s2);font-size:1rem;font-weight:600;line-height:1.625}
+-.chips{display:flex;flex-wrap:wrap;gap:var(--wn-s2)}
+-.chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+-.chips label{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 var(--wn-s4);border:1px solid var(--wn-line);border-radius:var(--wn-rpill);background:var(--wn-sheet);color:var(--wn-ink);font-size:1rem;font-weight:400;cursor:pointer;user-select:none;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
+-@media (hover:hover){
+-.chips label:hover{background:var(--wn-well)}
+-}
+-.chips input:checked + label{background:var(--wn-well);border-color:var(--wn-ink-2);color:var(--wn-ink);font-weight:600}
+-.chips input:focus-visible + label{outline:2px solid var(--wn-focus);outline-offset:2px}
+-
+-#lane-form {
+-  position: relative;
+-  min-width: 0;
+-  margin: var(--wn-s6) 0 0;
+-  /* A rotating stub may leave the ticket, but must not widen the page. */
+-  overflow-x: clip;
+-  overflow-y: visible;
+-  overflow-clip-margin: var(--wn-s3);
+-}
+-
+-.lane {
+-  position: relative;
+-  container: lane / inline-size;
+-  min-width: 0;
+-}
+-
+-.lane:not(.is-active) {
+-  display: none;
+-}
+-
+-.lane.is-active {
+-  display: block;
+-}
+-
+-.station-label {
+-  margin: 0 0 var(--wn-s3);
+-  color: var(--wn-page-muted);
+-  font-family: var(--wn-mono);
+-  font-size: 0.75rem;
+-  font-weight: 500;
+-  letter-spacing: 0.08em;
+-  font-variant-numeric: tabular-nums;
+-}
+-
+-.station-ticket {
+-  --stub-width: 88px;
+-  --station-padding: var(--wn-s6);
+-  position: relative;
+-  display: grid;
+-  grid-template-columns: minmax(0, 1fr) var(--stub-width);
+-  align-items: stretch;
+-  min-width: 0;
+-  color: var(--wn-ink);
+-  isolation: isolate;
+-}
+-
+-.station-body,
+-.stub {
+-  position: relative;
+-  min-width: 0;
+-  background: var(--wn-sheet);
+-  box-shadow: var(--wn-shadow);
+-}
+-
+-.station-body {
+-  display: flow-root;
+-  margin: 0;
+-  padding: var(--wn-s7) var(--station-padding);
+-  border: 1px solid var(--wn-line);
+-  border-right-style: dashed;
+-  border-radius: var(--wn-r1) 0 0 var(--wn-r1);
+-}
+-
+-/* Float the legend into the paper instead of cutting through its top edge. */
+-.station-q {
+-  float: left;
+-  width: 100%;
+-  margin: 0 0 var(--wn-s6);
+-  padding: 0;
+-  color: var(--wn-ink);
+-  font-size: clamp(1.75rem, 7cqi, 2rem);
+-  font-weight: 700;
+-  line-height: 1.35;
+-  letter-spacing: 0.01em;
+-  overflow-wrap: anywhere;
+-}
+-
+-.station-ticket :focus-visible {
+-  outline-color: var(--wn-focus);
+-}
+-
+-.station-opts {
+-  position: relative;
+-  clear: both;
+-  display: grid;
+-  grid-template-columns: minmax(0, 1fr);
+-  gap: var(--wn-s3);
+-  width: 100%;
+-}
+-
+-.station-opts label {
+-  width: 100%;
+-  min-width: 0;
+-  min-height: 52px;
+-  padding: var(--wn-s2) var(--wn-s4);
+-  border-color: var(--wn-ink-2);
+-  background: var(--wn-sheet);
+-  text-align: center;
+-  white-space: normal;
+-  line-height: 1.625;
+-  transition-duration: 120ms;
+-}
+-
+-.station-opts input:checked + label {
+-  border-color: var(--wn-accent);
+-  background: var(--wn-accent);
+-  color: var(--wn-on-accent);
+-  font-weight: 600;
+-}
+-
+-.station-opts input:disabled + label {
+-  cursor: default;
+-}
+-
+-/* Separate paper surfaces let the right stub actually leave the ticket. */
+-.stub {
+-  z-index: 1;
+-  display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  justify-content: center;
+-  gap: var(--wn-s6);
+-  padding: var(--wn-s6) var(--wn-s2);
+-  border: 1px solid var(--wn-line);
+-  border-left: 0;
+-  border-radius: 0 var(--wn-r1) var(--wn-r1) 0;
+-  pointer-events: none;
+-  transform-origin: 100% 0;
+-  transition: transform 360ms cubic-bezier(0.22, 0.61, 0.36, 1);
+-}
+-
+-.station-body::before,
+-.stub::before {
+-  content: '';
+-  position: absolute;
+-  top: -1px;
+-  right: -1px;
+-  left: -1px;
+-  height: 8px;
+-  background: radial-gradient(circle 4px at 8px 0, var(--wn-paper) 4px, transparent 4.5px) 0 0 / 16px 8px repeat-x;
+-  pointer-events: none;
+-}
+-
+-.station-body::after,
+-.stub::after {
+-  content: '';
+-  position: absolute;
+-  z-index: 2;
+-  top: -1px;
+-  bottom: -1px;
+-  width: 12px;
+-  background:
+-    radial-gradient(circle 6px at 50% 0, var(--wn-paper) 5.5px, transparent 6px) top / 12px 12px no-repeat,
+-    radial-gradient(circle 6px at 50% 100%, var(--wn-paper) 5.5px, transparent 6px) bottom / 12px 12px no-repeat;
+-  pointer-events: none;
+-}
+-
+-.station-body::after {
+-  right: -6px;
+-}
+-
+-.stub::after {
+-  left: -6px;
+-}
+-
+-.stub-code {
+-  max-width: 100%;
+-  color: var(--wn-ink-2);
+-  font-family: var(--wn-mono);
+-  font-size: 0.625rem;
+-  line-height: 1.6;
+-  letter-spacing: 0.06em;
+-  text-align: center;
+-  overflow-wrap: anywhere;
+-}
+-
+-.stub-seal {
+-  display: grid;
+-  flex: none;
+-  place-items: center;
+-  width: 44px;
+-  height: 44px;
+-  color: var(--wn-alert);
+-}
+-
+-.stamp-mini {
+-  display: block;
+-  width: 44px;
+-  height: 44px;
+-  overflow: visible;
+-  transform: rotate(-8deg);
+-}
+-
+-.stamp-mini circle {
+-  fill: none;
+-  stroke: currentColor;
+-  stroke-width: 1.4;
+-}
+-
+-.stamp-mini text {
+-  fill: currentColor;
+-  font-family: var(--wn-font);
+-  font-size: 22px;
+-  font-weight: 700;
+-  text-anchor: middle;
+-}
+-
+-.station-ticket.stamping .stamp-mini {
+-  animation: laneStamp 240ms ease-out both;
+-}
+-
+-.station-ticket.torn .stub {
+-  transform: rotate(-12deg) translateY(8px);
+-}
+-.station-ticket.torn .station-body {
+-  border-right-color: transparent;
+-  mask: linear-gradient(var(--wn-ink) 0 0) left / calc(100% - 3px) 100% no-repeat, repeating-linear-gradient(135deg, var(--wn-ink) 0 3px, transparent 3px 6px) right / 3px 100% repeat-y;
+-}
+-
+-.station-ticket.collecting .stub {
+-  opacity: 0;
+-  transform: translate(var(--stub-x, 0px), var(--stub-y, 0px)) scale(0.12);
+-  transition: transform 200ms cubic-bezier(0.4, 0, 1, 1), opacity 200ms ease-in;
+-}
+-
+-.lane.station-in {
+-  animation: laneIn 200ms ease-out both;
+-}
+-
+-.lane.station-out {
+-  pointer-events: none;
+-  animation: laneOut 200ms ease-in both;
+-}
+-
+-@keyframes laneStamp {
+-  from { opacity: 0; transform: rotate(-8deg) scale(1.18); }
+-  to { opacity: 1; transform: rotate(-8deg) scale(1); }
+-}
+-
+-@keyframes laneIn {
+-  from { opacity: 0; transform: translateY(8px); }
+-  to { opacity: 1; transform: translateY(0); }
+-}
+-
+-@keyframes laneOut {
+-  from { opacity: 1; transform: translateY(0); }
+-  to { opacity: 0; transform: translateY(-8px); }
+-}
+-
+-.picked-note {
+-  display: flex;
+-  flex-wrap: wrap;
+-  align-items: center;
+-  gap: var(--wn-s1) var(--wn-s2);
+-  margin: var(--wn-s3) 0 0;
+-  color: var(--wn-page-muted);
+-  font-family: var(--wn-mono);
+-  font-size: 0.75rem;
+-  overflow-wrap: anywhere;
+-}
+-
+-.picked-note:empty {
+-  display: none;
+-}
+-
+-.picked-note button {
+-  min-width: 44px;
+-  min-height: 44px;
+-  max-width: 100%;
+-  padding: var(--wn-s1);
+-  border: 0;
+-  background: transparent;
+-  color: var(--wn-page-ink);
+-  font: inherit;
+-  text-decoration: underline;
+-  text-underline-offset: 3px;
+-  cursor: pointer;
+-}
+-
+-.collection-strip {
+-  display: grid;
+-  grid-template-columns: repeat(3, minmax(44px, 1fr));
+-  gap: var(--wn-s2);
+-  margin: var(--wn-s6) 0 0;
+-  padding: var(--wn-s2) 0;
+-  border-top: 1px solid var(--wn-hairline);
+-}
+-
+-.collection-item {
+-  display: flex;
+-  flex-direction: column;
+-  align-items: center;
+-  justify-content: flex-start;
+-  gap: var(--wn-s2);
+-  min-width: 44px;
+-  min-height: 64px;
+-  padding: var(--wn-s2) var(--wn-s1);
+-  border: 1px solid transparent;
+-  border-radius: var(--wn-r1);
+-  background: transparent;
+-  color: var(--wn-page-muted);
+-  font-family: inherit;
+-  font-size: 0.75rem;
+-  line-height: 1.5;
+-  text-align: center;
+-  cursor: default;
+-}
+-
+-.collection-item.is-collected {
+-  color: var(--wn-page-ink);
+-  cursor: pointer;
+-}
+-
+-.collection-item:not(.is-collected),
+-.collection-item:disabled,
+-.collection-item[aria-disabled="true"] {
+-  cursor: default;
+-  pointer-events: none;
+-}
+-
+-.collection-item[aria-current="step"] {
+-  border-color: var(--wn-page-muted);
+-}
+-
+-.collect-dot {
+-  display: block;
+-  flex: none;
+-  width: 8px;
+-  height: 8px;
+-  border: 1px solid var(--wn-page-muted);
+-  border-radius: 50%;
+-  background: transparent;
+-  transition: background 200ms ease, border-color 200ms ease;
+-}
+-
+-.is-collected > .collect-dot {
+-  border-color: var(--wn-accent);
+-  background: var(--wn-accent);
+-}
+-
+-.collect-value {
+-  min-width: 0;
+-  max-width: 100%;
+-  white-space: normal;
+-  overflow-wrap: anywhere;
+-}
+-
+-.station-marks {
+-  display: inline-flex;
+-  flex: none;
+-  align-items: center;
+-  gap: var(--wn-s2);
+-  margin-inline-start: auto;
+-  color: var(--wn-page-muted);
+-}
+-
+-.station-marks > i {
+-  display: block;
+-  width: 4px;
+-  height: 4px;
+-  border-radius: 50%;
+-  background: currentColor;
+-}
+-
+-.station-marks > i.is-collected {
+-  background: var(--wn-accent);
+-}
+-
+-.ticket-context {
+-  display: flex;
+-  flex: 1 0 100%;
+-  flex-wrap: wrap;
+-  align-items: center;
+-  gap: var(--wn-s1) var(--wn-s2);
+-  min-width: 0;
+-}
+-
+-.context-key {
+-  min-width: 44px;
+-  min-height: 44px;
+-  max-width: 100%;
+-  padding: var(--wn-s2) var(--wn-s3);
+-  border: 1px solid var(--wn-line);
+-  border-radius: var(--wn-rpill);
+-  background: transparent;
+-  color: var(--wn-ink);
+-  font-family: inherit;
+-  font-size: 0.75rem;
+-  line-height: 1.5;
+-  white-space: normal;
+-  cursor: pointer;
+-}
+-
+-@media (hover: hover) {
+-  .collection-item.is-collected:not(:disabled):not([aria-disabled="true"]):hover {
+-    background: var(--wn-paper-2);
+-  }
+-
+-  .context-key:hover {
+-    background: var(--wn-well);
+-  }
+-}
+-
+-.notice.lane-banner {
+-  position: relative;
+-  inset: auto;
+-  z-index: auto;
+-  margin-top: var(--wn-s4);
+-  background: var(--wn-sheet);
+-}
+-
+-:root:not([data-lane-state="TICKET"]):not([data-lane-state="ISSUING"]) #result .card {
+-  display: none;
+-}
+-
+-@container lane (max-width: 24em) {
+-  .station-ticket {
+-    --stub-width: 64px;
+-    --station-padding: var(--wn-s4);
+-  }
+-}
+-
+-/* At narrow widths / enlarged text, put the stub above, never over options. */
+-@container lane (max-width: 19em) {
+-  .station-ticket {
+-    grid-template-columns: minmax(0, 1fr);
+-  }
+-
+-  .station-body {
+-    grid-column: 1;
+-    grid-row: 2;
+-    padding-block: var(--wn-s6);
+-    border-top: 0;
+-    border-right-style: solid;
+-    border-radius: 0 0 var(--wn-r1) var(--wn-r1);
+-  }
+-
+-  .stub {
+-    grid-column: 1;
+-    grid-row: 1;
+-    flex-direction: row;
+-    justify-content: space-between;
+-    gap: var(--wn-s3);
+-    min-height: 64px;
+-    padding: var(--wn-s2) var(--station-padding);
+-    border-left: 1px solid var(--wn-line);
+-    border-bottom-style: dashed;
+-    border-radius: var(--wn-r1) var(--wn-r1) 0 0;
+-  }
+-
+-  .station-ticket.torn .station-body {
+-    border-right-color: var(--wn-line);
+-    mask: linear-gradient(var(--wn-ink) 0 0) bottom / 100% calc(100% - 3px) no-repeat, repeating-linear-gradient(135deg, var(--wn-ink) 0 3px, transparent 3px 6px) top / 100% 3px repeat-x;
+-  }
+-
+-  .station-body::before {
+-    display: none;
+-  }
+-
+-  .station-body::after,
+-  .stub::after {
+-    right: -1px;
+-    left: -1px;
+-    width: auto;
+-    height: 12px;
+-    background:
+-      radial-gradient(circle 6px at 0 50%, var(--wn-paper) 5.5px, transparent 6px) left / 12px 12px no-repeat,
+-      radial-gradient(circle 6px at 100% 50%, var(--wn-paper) 5.5px, transparent 6px) right / 12px 12px no-repeat;
+-  }
+-
+-  .station-body::after {
+-    top: -6px;
+-    bottom: auto;
+-  }
+-
+-  .stub::after {
+-    top: auto;
+-    bottom: -6px;
+-  }
+-}
++.guide p{margin:0}
++.eyebrow{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;color:var(--on-stage-dim);font-family:var(--wn-mono);font-size:.75rem;letter-spacing:.18em}
++.eyebrow i{font-style:normal;color:#ff8a50}
++:root[data-theme="light"] .eyebrow i{color:#b8480c}
++.board-title{margin:0;max-width:16em;color:var(--on-stage);font-size:clamp(38px,4.2vw,58px);font-weight:600;line-height:1.12;letter-spacing:-.02em}
++.board-title span{display:block;color:var(--on-stage)}
++.board-lead{margin:22px 0 0;max-width:32em;color:var(--on-stage-dim);font-size:16px;line-height:1.8}
++.progress{list-style:none;margin:34px 0 0;padding:0;max-width:420px}
++.progress li{display:grid;grid-template-columns:46px 84px 1fr;align-items:baseline;gap:12px;padding:14px 0;border-top:1px solid var(--stage-line);color:var(--on-stage-dim)}
++.progress li i{font:11px/1 var(--wn-mono);font-style:normal;letter-spacing:.14em}
++.progress li span{font-size:14px;letter-spacing:.08em}
++.progress li b{font:500 15px/1 var(--wn-mono);color:var(--on-stage);letter-spacing:.02em;font-weight:500}
++.progress li.is-on{color:var(--on-stage)}
++.progress li.is-on i,.progress li.is-done b{color:#ff8a50}
++:root[data-theme="light"] .progress li.is-on i,:root[data-theme="light"] .progress li.is-done b{color:#b8480c}
++.board-actions{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:28px}
++.ghost{min-height:40px;padding:0 16px;border:1px solid var(--stage-line);border-radius:var(--wn-r1);background:rgba(255,255,255,.06);color:var(--on-stage);font:inherit;font-size:13px;letter-spacing:.02em;cursor:pointer;transition:background var(--m-quick),border-color var(--m-quick)}
++@media (hover:hover){.ghost:hover{background:rgba(255,255,255,.14);border-color:var(--on-stage-dim)}}
++.ghost:active{transform:translateY(1px)}
++.board-note{margin:24px 0 0;max-width:30em;color:var(--on-stage-dim);font-size:12px;line-height:1.85}
++.ticket-col{display:flex;flex-direction:column;align-items:stretch;min-width:0;width:100%}
++
++/* ---------- 票：填写态 ---------- */
++.sheet{position:relative;width:100%;margin:0;padding:0;color:var(--wn-ink);background-color:#fbf8f0;background-image:linear-gradient(168deg,#fdfaf3,#fbf8f0 46%,#f8f3e6);border:0;border-radius:2px;filter:var(--stage-shadow);
++  -webkit-mask-image:radial-gradient(circle 4px at 8px 0,transparent 3.6px,#000 4.2px),radial-gradient(circle 4px at 8px 100%,transparent 3.6px,#000 4.2px);
++  -webkit-mask-size:16px 100%,16px 100%;-webkit-mask-repeat:repeat-x,repeat-x;-webkit-mask-composite:source-in;
++  mask-image:radial-gradient(circle 4px at 8px 0,transparent 3.6px,#000 4.2px),radial-gradient(circle 4px at 8px 100%,transparent 3.6px,#000 4.2px);
++  mask-size:16px 100%,16px 100%;mask-repeat:repeat-x,repeat-x;mask-composite:intersect}
++.sheet::after{content:"";position:absolute;inset:8px;border-radius:1px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(27,35,52,.28),inset 0 0 0 3px rgba(251,248,240,.92),inset 0 0 0 4px rgba(27,35,52,.13)}
++.perf{height:8px;flex:none}
++.thead{height:44px;display:flex;align-items:center;justify-content:space-between;gap:10px;padding:0 20px;color:#5a5f70;font:11px/1 var(--wn-mono);letter-spacing:.08em}
++.thead b{display:inline-flex;align-items:center;gap:6px;color:#1b2334;font-weight:500;letter-spacing:.14em}
++.punch{width:3.5px;height:3.5px;flex:none;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(27,35,52,.66),rgba(27,35,52,.3));box-shadow:inset 0 .5px .5px rgba(0,0,0,.35)}
++.band{position:relative;height:64px;display:flex;align-items:center;gap:10px;padding:0 20px}
++.band::before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.03;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='18' height='12'%3E%3Cpath d='M0 6 Q4.5 0 9 6 T18 6' fill='none' stroke='%23b8480c' stroke-width='1'/%3E%3C/svg%3E") 0 0/18px 12px repeat}
++.rb-from{color:#5a5f70;font-size:11px;letter-spacing:.04em;white-space:nowrap}
++.rail{position:relative;flex:1;height:1px;background:repeating-linear-gradient(90deg,#bdb3a0 0 5px,transparent 5px 10px)}
++.rail::after{content:"";position:absolute;right:0;top:-4px;border:4px solid transparent;border-right:0;border-left:6px solid #bdb3a0}
++.rb-to{display:flex;align-items:baseline;gap:6px;color:#5a5f70;font-size:11px;white-space:nowrap}
++.rb-to b{font:600 22px/1 var(--wn-mono);color:var(--wn-ink);letter-spacing:-.01em;font-variant-numeric:tabular-nums}
++.rb-time{color:#8a8271;font:500 11px/1 var(--wn-mono);letter-spacing:.04em;font-variant-numeric:tabular-nums}
++.fields{display:flex;flex-direction:column;padding:0 24px;border-top:1px dashed #d9d0bc}
++.field{border-top:1px dashed #d9d0bc;padding:13px 0}
++.field:first-child{border-top:0}
++.f-line{display:grid;grid-template-columns:26px 52px 1fr auto;align-items:center;gap:8px;min-height:26px;cursor:pointer}
++.f-no{color:#b8480c;font:10px/1 var(--wn-mono);letter-spacing:.1em}
++.f-name{color:#5a5f70;font-size:11px;letter-spacing:.14em}
++.f-val{color:var(--wn-ink);font:500 13px/1.4 var(--wn-mono);text-align:right;letter-spacing:.02em;font-variant-numeric:tabular-nums}
++.f-edit{min-width:44px;min-height:28px;padding:4px 2px;border:0;background:none;color:#5a5f70;font:inherit;font-size:11px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
++.f-body{display:grid;grid-template-rows:0fr;opacity:0;overflow:hidden;transition:grid-template-rows var(--m-soft),opacity 180ms ease}
++.field.is-active .f-body{grid-template-rows:1fr;opacity:1}
++.f-inner{min-height:0;overflow:hidden}
++.f-q{margin:10px 0 12px;color:#1b2334;font-size:19px;font-weight:600;letter-spacing:.01em;line-height:1.35}
++.opts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding-bottom:2px}
++.opts-5{grid-template-columns:repeat(3,minmax(0,1fr))}
++.opts input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
++.opts label{display:flex;align-items:center;justify-content:center;height:48px;padding:0 6px;border:1px solid rgba(27,35,52,.18);border-radius:6px;background:#f4efe3;color:#1b2334;font-size:14px;font-weight:500;text-align:center;cursor:pointer;user-select:none;transition:background var(--m-quick),border-color var(--m-quick),color var(--m-quick)}
++@media (hover:hover){.opts label:hover{background:#ede6d6;border-color:rgba(27,35,52,.30)}}
++.opts input:checked+label{background:#1b2334;border-color:#1b2334;color:#fffdf7;font-weight:600}
++.opts input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
++.micro{height:6px;flex:none;overflow:hidden;padding:0 20px;color:var(--wn-ink);font:6px/6px var(--wn-mono);letter-spacing:.02em;opacity:.26;white-space:nowrap;pointer-events:none;user-select:none}
++.tear{position:relative;height:6px;flex:none;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 4.5L3 1.5L6 4.5' fill='none' stroke='%231b2334' stroke-opacity='.42' stroke-width='1'/%3E%3C/svg%3E") repeat-x 0 0/6px 6px;box-shadow:0 -1px 0 rgba(255,255,255,.7)}
++.notch{position:absolute;left:2px;top:50%;width:10px;height:10px;margin-top:-5px;border:1px solid rgba(27,35,52,.42);border-right-color:transparent;border-top-color:transparent;border-bottom-color:transparent;border-radius:50%}
++.notch.r{left:auto;right:2px;border-left-color:transparent;border-right-color:rgba(27,35,52,.42)}
++.sheet-foot{padding:16px 24px 22px;display:grid;gap:8px}
++.issue{width:100%;height:48px;border:0;border-radius:6px;background:#b8480c;color:#fffdf7;font:inherit;font-size:17px;font-weight:600;letter-spacing:.02em;cursor:pointer;transition:background var(--m-quick),transform var(--m-quick)}
++.issue:hover{background:#a53f0a}
++.issue:active{transform:translateY(1px)}
++.issue:disabled{background:transparent;border:1px dashed #c6bca4;color:#8a8271;cursor:default}
++.sheet-foot small{color:#5a5f70;font-size:11px;letter-spacing:.02em}
++.ticket-note{margin:0 0 8px;color:#5a5f70;font-size:11px;line-height:1;letter-spacing:.02em;text-align:left}
++.share-note{margin:var(--wn-s2) 0 0;color:var(--on-stage-dim);font-size:.75rem}
++.share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
+ 
+-.card{position:relative;overflow:hidden;margin-top:var(--wn-s6);padding:var(--wn-s5);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);box-shadow:var(--wn-shadow);animation:rise 260ms ease-out;scroll-margin-top:var(--wn-s4)}
+-.card::before,.skeleton::before{content:'';position:absolute;top:0;left:0;right:0;height:8px;background:radial-gradient(circle 4px at 8px 0,var(--wn-paper) 4px,transparent 4.5px) 0 0/16px 8px repeat-x}
++/* ---------- 票：结果态 ---------- */
++.card{position:relative;overflow:hidden;width:100%;margin:0;padding:0;background-color:#fbf8f0;background-image:linear-gradient(168deg,#fdfaf3,#fbf8f0 46%,#f8f3e6);color:#1b2334;border:0;border-radius:2px;box-shadow:0 26px 46px -26px rgba(8,14,26,.55);animation:rise 260ms ease-out;scroll-margin-top:var(--wn-s4)}
++.card .perf{background:radial-gradient(circle 4px at 8px 0,transparent 3.6px,#fbf8f0 4.2px) 0 0/16px 8px repeat-x}
++.card::after{content:"";position:absolute;inset:8px;border-radius:1px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(27,35,52,.22),inset 0 0 0 3px rgba(251,248,240,.90),inset 0 0 0 4px rgba(27,35,52,.10)}
+ .card-out{pointer-events:none;animation:out 160ms ease-in forwards}
+-@keyframes out{
+-to{opacity:0;transform:translateY(8px)}
+-}
+-@keyframes rise{
+-from{opacity:0;transform:translateY(-12px)}
+-to{opacity:1;transform:none}
+-}
+-.card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);min-height:20px;color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
++.card-refresh:not(.card-out){animation:none}
++@keyframes out{to{opacity:0;transform:translateY(8px)}}
++@keyframes rise{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
++.route-band{height:64px;display:flex;align-items:center;gap:10px;padding:0 20px}
++.route-band .rb-to b{font-size:22px}
++.ticket-context{display:flex;flex:0 0 auto;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;margin:0;padding:6px 20px 0}
++.context-key{min-width:44px;min-height:36px;max-width:100%;padding:4px 10px;border:1px solid #d9d0bc;border-radius:var(--wn-rpill);background:transparent;color:#1b2334;font-family:inherit;font-size:11px;line-height:1.5;white-space:normal;cursor:pointer}
++@media (hover:hover){.context-key:hover{background:#ede6d6}}
++.ticket-head{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:40px;margin:0 20px;padding:6px 0;border-bottom:1px dashed #d9d0bc}
++.ticket-head .ticket-code{flex:1}
++.ticket-code{min-width:0;color:#5a5f70;font-family:var(--wn-mono);font-size:11px;font-weight:500;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
++.ticket-valid{flex:none;color:#8a8271;font-size:11px;font-weight:500;letter-spacing:.04em}
++.ticket-body{padding:12px 96px 0 24px}
++.card h2{margin:8px 0 0;font-size:1.25rem;font-weight:700;line-height:1.4;letter-spacing:.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
++.card-meta{display:flex;flex-wrap:wrap;align-items:center;gap:12px;min-height:20px;color:#5a5f70;font-size:.75rem;font-weight:500;letter-spacing:.04em}
+ .card-meta .cat{white-space:nowrap}
+-.category-icon{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:var(--wn-ink-2)}
+-.preference-mark{display:inline-flex;flex:none;width:12px;height:12px;color:var(--wn-ink)}
++.category-icon{flex:none;width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;color:#5a5f70}
++.preference-mark{display:inline-flex;flex:none;width:12px;height:12px;color:#1b2334}
+ .preference-mark svg{fill:none;stroke:currentColor;stroke-width:1;stroke-linecap:round;stroke-linejoin:round}
+ .compact-feedback{display:none}
+ .feedback-in{animation:feedbackIn 120ms ease-out}
+-@keyframes feedbackIn{
+-from{opacity:0}
+-to{opacity:1}
+-}
+-.gauge{display:flex;align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s3);min-height:20px}
++@keyframes feedbackIn{from{opacity:0}to{opacity:1}}
++.gauge{display:flex;align-items:center;gap:8px;margin-top:12px;min-height:20px}
+ .g-dot,.g-ring{flex:none}
+-.g-dot circle{fill:var(--wn-accent)}
+-.gauge-label{font-family:var(--wn-mono);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;color:var(--wn-ink-2)}
+-.g-line{flex:1;height:2px;min-width:24px}
+-.g-line line{stroke:var(--wn-line);stroke-width:2;vector-effect:non-scaling-stroke}
+-.g-ring circle{fill:none;stroke:var(--wn-ink-2);stroke-width:1.5}
++.g-dot circle{fill:#b8480c}
++.gauge-label{color:#5a5f70;font-family:var(--wn-mono);font-size:.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
++.g-line{flex:1;min-width:24px;height:2px}
++.g-line line{stroke:#d9d0bc;stroke-width:2;vector-effect:non-scaling-stroke}
++.g-ring circle{fill:none;stroke:#8a8271;stroke-width:1.5}
+ .ticket-done .g-line line{stroke-dasharray:none}
+-.ticket-done .ticket-head .ticket-code{color:var(--wn-accent)}
++.ticket-done .ticket-head .ticket-code{color:#d95f0e}
+ .ticket-done{mask-image:radial-gradient(circle 5px at calc(100% - 48px) 14px,transparent 4.5px,#000 5px)}
+-.card-refresh:not(.card-out){animation:none}
+-.ticket-stamp{position:absolute;top:116px;right:12px;width:64px;height:64px;color:var(--wn-accent);transform:rotate(-8deg);pointer-events:none;overflow:visible}
++.ticket-stamp{position:absolute;top:112px;right:14px;width:64px;height:64px;color:#d95f0e;transform:rotate(-8deg);pointer-events:none;overflow:visible}
+ .ticket-stamp circle{fill:none;stroke:currentColor;stroke-width:1.5}
+ .ticket-stamp text{fill:currentColor;text-anchor:middle}
+ .stamp-ring{font-family:var(--wn-mono);font-size:8px;letter-spacing:2px}
+ .stamp-center{font-family:var(--wn-font);font-size:18px;font-weight:700}
+ .stamp-in{animation:stampIn 300ms ease-out}
+-@keyframes stampIn{
+-from{opacity:0;transform:rotate(-8deg) scale(1.06)}
+-to{opacity:1;transform:rotate(-8deg) scale(1)}
+-}
+-.ticket-done .ticket-stub{top:188px}
+-.card h2{margin:var(--wn-s3) 0 0;font-size:1.25rem;font-weight:700;line-height:1.4;letter-spacing:0.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+-.ticket-head{display:flex;align-items:center;justify-content:space-between;gap:var(--wn-s2);min-height:28px;margin-bottom:var(--wn-s2);padding-bottom:var(--wn-s2);border-bottom:1px solid var(--wn-hairline)}
+-.ticket-head .ticket-code{flex:1}
+-.ticket-code{min-width:0;font-family:var(--wn-mono);font-size:0.75rem;font-weight:500;letter-spacing:0.08em;color:var(--wn-ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+-.ticket-valid{flex:none;font-size:0.75rem;font-weight:500;color:var(--wn-ink-2)}
+-.ticket-body{padding-right:80px}
+-.ticket-stub{position:absolute;top:108px;right:20px;bottom:80px;width:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--wn-s2)}
+-.ticket-bar{width:100%;height:36px;background:repeating-linear-gradient(90deg,var(--wn-ink) 0 2px,transparent 2px 5px,var(--wn-ink) 5px 6px,transparent 6px 9px,var(--wn-ink) 9px 11px,transparent 11px 14px)}
+-.ticket-void{font-size:11px;color:var(--wn-ink-2);white-space:nowrap}
+-.ticket-sep{position:absolute;top:0;bottom:0;right:88px;width:0;border-left:1px dashed var(--wn-line)}
+-.ticket-sep::before,.ticket-sep::after{content:'';position:absolute;left:-6px;width:12px;height:12px;border-radius:50%;background:var(--wn-paper)}
+-.ticket-sep::before{top:-6px}
+-.ticket-sep::after{bottom:-6px}
+-.first{position:relative;margin:var(--wn-s3) 0 0;padding-left:var(--wn-s3)}
+-.first::before{content:'';position:absolute;left:0;top:calc(-1 * var(--wn-s3));bottom:0;width:3px;background:var(--wn-accent)}
+-.first-label{display:block;margin-bottom:var(--wn-s1);color:var(--wn-ink-2);font-size:0.75rem;font-weight:500;letter-spacing:0.04em}
++@keyframes stampIn{from{opacity:0;transform:rotate(-8deg) scale(1.06)}to{opacity:1;transform:rotate(-8deg) scale(1)}}
++.first{position:relative;margin:12px 0 0;padding-left:12px}
++.first::before{content:"";position:absolute;left:0;top:-12px;bottom:0;width:3px;background:#d95f0e}
++.first-label{display:block;margin-bottom:4px;color:#5a5f70;font-size:.75rem;font-weight:500;letter-spacing:.04em}
+ .first-text{margin:0;font-size:1.0625rem;font-weight:600;line-height:1.6}
+-.detail{margin:var(--wn-s3) 0 0;color:var(--wn-ink-2);font-size:0.875rem;line-height:1.571}
+-.card-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
+-.card-actions button{flex:1 1 0;min-width:44px;min-height:44px;padding:var(--wn-s1) 2px;border-radius:var(--wn-r2);font-family:inherit;font-size:0.875rem;cursor:pointer}
+-.feedback{display:grid;grid-column:1 / 4;grid-template-columns:subgrid;min-width:0;gap:var(--wn-s2)}
++.detail{margin:12px 0 0;color:#5a5f70;font-size:.875rem;line-height:1.571}
++.ticket-sep{position:relative;height:6px;margin:14px 20px 0;border:0;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 4.5L3 1.5L6 4.5' fill='none' stroke='%231b2334' stroke-opacity='.42' stroke-width='1'/%3E%3C/svg%3E") repeat-x 0 0/6px 6px}
++.ticket-stub{position:static;display:flex;flex-direction:row;align-items:center;gap:12px;width:auto;height:auto;min-height:56px;margin:0 20px;padding:10px 0 6px;border-top:1px dashed #d9d0bc}
++.ticket-bar{flex:none;width:120px;height:24px;background:repeating-linear-gradient(90deg,#1b2334 0 1px,transparent 1px 2px,#1b2334 2px 4.5px,transparent 4.5px 6px)}
++.ticket-void{color:#8a8271;font:10px/1.5 var(--wn-mono);letter-spacing:.08em;white-space:nowrap}
++.ticket-done .ticket-stub{top:auto}
++.card-actions{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));align-items:stretch;gap:8px;margin:16px 20px 20px;min-height:44px}
++.card-actions button{flex:1 1 0;min-width:44px;min-height:44px;padding:2px;border-radius:var(--wn-r1);font-family:inherit;font-size:.875rem;cursor:pointer}
++.feedback{display:grid;grid-column:1/4;grid-template-columns:subgrid;min-width:0;gap:8px}
+ .card-actions.changed{grid-template-columns:repeat(3,minmax(0,1fr))}
+-.card-actions.changed .feedback,.card-actions.changed .swap{grid-column:1 / -1}
+-.feedback button{flex:1;border:1px solid var(--wn-line);background:var(--wn-sheet);color:var(--wn-ink-2);font-weight:400;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
+-@media (hover:hover){
+-.feedback button:hover{background:var(--wn-well)}
+-}
+-.feedback button:active{background:var(--wn-well);color:var(--wn-ink);font-weight:600}
+-.feedback button[aria-pressed="true"]{border-color:var(--wn-ink-2);background:var(--wn-well);color:var(--wn-ink);font-weight:600}
+-.feedback button[aria-disabled="true"]{opacity:0.7;cursor:default}
+-.swap{flex:1;border:1px solid var(--wn-ink-2);background:transparent;color:var(--wn-ink);font-weight:600;transition:background var(--wn-m2) ease}
+-@media (hover:hover){
+-.swap:hover{background:var(--wn-well)}
+-}
+-.swap:active{background:var(--wn-well)}
+-.swap:disabled{opacity:0.7;cursor:default}
+-.done-row{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s4);min-height:44px;background:var(--wn-sheet)}
+-.done-state{color:var(--wn-ink-2);font-size:0.75rem;font-weight:500}
++.card-actions.changed .feedback,.card-actions.changed .swap{grid-column:1/-1}
++.feedback button{flex:1;border:1px solid #d9d0bc;background:#fbf8f0;color:#5a5f70;font-weight:400;transition:background var(--wn-m2) ease,border-color var(--wn-m2) ease,color var(--wn-m2) ease}
++@media (hover:hover){.feedback button:hover{background:#ede6d6}}
++.feedback button:active{background:#ede6d6;color:#1b2334;font-weight:600}
++.feedback button[aria-pressed="true"]{border-color:#525a6e;background:#ede6d6;color:#1b2334;font-weight:600}
++.feedback button[aria-disabled="true"]{opacity:.7;cursor:default}
++.swap{flex:1;border:1px solid #525a6e;background:transparent;color:#1b2334;font-weight:600;transition:background var(--wn-m2) ease}
++@media (hover:hover){.swap:hover{background:#ede6d6}}
++.swap:active{background:#ede6d6}
++.swap:disabled{opacity:.7;cursor:default}
++.done-row{position:relative;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));align-items:center;gap:8px;margin:16px 20px 20px;min-height:44px}
++.done-state{color:#5a5f70;font-size:.75rem;font-weight:500}
+ .done-row .textbtn{min-width:0}
+-.textbtn{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:400;cursor:pointer}
+-.share-note{margin:var(--wn-s2) 0 0;color:var(--wn-page-muted);font-size:0.75rem}
+-.share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
+-.skeleton{position:relative;margin-top:var(--wn-s6);padding:var(--wn-s5);min-height:269px;background:var(--wn-sheet);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2)}.sk-text{margin:0 0 var(--wn-s3);color:var(--wn-ink-2);font-size:0.875rem}
++.textbtn{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:#1b2334;font-family:inherit;font-size:.875rem;font-weight:400;cursor:pointer}
++.textbtn[aria-disabled="true"]{opacity:.7;cursor:default}
++
++/* ---------- 互动卡：沿用 V3 语义，改成票内排版 ---------- */
++.ix-card .badge{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 8px;border-radius:var(--wn-r1);background:#e7e0ce;color:#525a6e;font-size:.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
++.ix-card .card-sep{margin:14px 0 0;border:0;border-top:1px solid #e3dccb}
++.ix-card>.card-meta,.ix-card>h2,.ix-card>.card-sep,.ix-card>.first,.ix-card>.detail,.ix-card>.turn-log,.ix-card>.candidate,.ix-card>.turn-area,.ix-card>.ix-actions,.ix-card>.photo-area,.ix-card>.ix-closed{margin-left:24px;margin-right:24px}
++.ix-card>h2{margin-top:8px}
++.ix-card>.ix-actions,.ix-card>.ix-closed{margin-bottom:20px}
++.ix-card>.turn-area{margin-bottom:4px}
++.ix-card .first::before{top:-14px}
++.mode{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 8px;border-radius:var(--wn-r1);font-size:.75rem;font-weight:600;white-space:nowrap}
++.mode-chat{background:#fbe3d3;color:#1b2334}
++.mode-discuss{background:#e7e0ce;color:#525a6e}
++.mode-photo{background:#e4e9f4;color:#44588c}
++.turn-log{display:flex;flex-direction:column;gap:8px;margin-top:16px;max-height:22rem;overflow-y:auto;padding:2px 8px 2px 0;scrollbar-width:thin;scrollbar-color:#c6bca4 #e7e0ce}
++.turn-log::-webkit-scrollbar{width:8px}
++.turn-log::-webkit-scrollbar-track{background:#e7e0ce;border-radius:var(--wn-rpill)}
++.turn-log::-webkit-scrollbar-thumb{background:#c6bca4;border-radius:var(--wn-rpill)}
++.msg{max-width:88%;padding:8px 12px;border:1px solid rgba(27,35,52,.10);border-radius:var(--wn-r2);font-size:.9375rem;line-height:1.571;animation:rise var(--wn-m2) ease-out}
++.msg-user{align-self:flex-end;background:#fbe3d3;border-bottom-right-radius:var(--wn-r1)}
++.msg-ai{align-self:flex-start;background:#e7e0ce;border-bottom-left-radius:var(--wn-r1)}
++.msg-text{margin:0}
++.msg-pending{opacity:.75}
++.msg-wait{display:block;margin-top:4px;color:#525a6e;font-size:.75rem}
++.msg-wait::after{content:'…';animation:soak var(--wn-m4) ease-in-out infinite}
++@keyframes soak{50%{opacity:.35}}
++.msg-failed{border-color:#c43a15;background:#fbe3d3}
++.msg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:4px}
++.msg-error{color:#c43a15;font-size:.75rem}
++.msg-retry{color:#1b2334;font-weight:600}
++.msg-img{display:block;max-width:160px;max-height:160px;border:1px solid rgba(27,35,52,.10);border-radius:var(--wn-r1)}
++.word-card{margin-top:8px;padding:12px;background:#fbf8f0;border:1px solid #d9d0bc;border-radius:var(--wn-r1)}
++.word-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px}
++.word-en{font-size:1.375rem;font-weight:600;color:#1b2334;letter-spacing:.01em}
++.word-ipa{color:#525a6e;font-size:.875rem}
++.word-meaning{margin:4px 0 0;font-weight:500}
++.word-practice{margin:8px 0 0;padding-left:8px;border-left:2px solid #525a6e;color:#525a6e;font-size:.875rem}
++.turn-area{margin-top:16px}
++.turn-form{display:flex;gap:8px}
++.turn-input{flex:1;min-width:0;min-height:48px;padding:0 12px;border:1px solid #c6bca4;border-radius:var(--wn-r2);background:#fbf8f0;color:#1b2334;font:inherit}
++.turn-input::placeholder{color:#8a8271}
++.turn-input:disabled{opacity:.6}
++.turn-send{flex:none;min-width:64px;min-height:48px;padding:0 16px;border:0;border-radius:var(--wn-r2);background:#b8480c;color:#fffdf7;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m1) ease}
++.turn-send:active{background:#a53f0a}
++.turn-send:disabled{opacity:.35;cursor:default}
++.turn-foot{display:flex;justify-content:space-between;gap:8px;margin-top:4px;min-height:1.125rem}
++.turn-hint{color:#c43a15;font-size:.75rem}
++.turn-count{color:#525a6e;font-size:.75rem;font-variant-numeric:tabular-nums}
++.ix-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px}
++.ix-actions .swap,.ix-closed .swap{flex:none;min-height:44px;padding:0 16px;border:1px solid #d95f0e;border-radius:var(--wn-r2);background:transparent;color:#1b2334;font-family:inherit;font-size:.875rem;font-weight:600;cursor:pointer}
++.ix-end{color:#525a6e}
++.ix-closed{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin-top:16px}
++.ix-closed .done-state{display:flex;align-items:center;gap:6px}
++.ix-closed .done-state svg{display:block;flex:none;width:16px;height:16px}
++.ix-closed .done-spacer{flex:1}
++.photo-area{margin-top:16px}
++.photo-pick{width:100%;min-height:56px;border:1px dashed #b8480c;border-radius:var(--wn-r2);background:#fbe3d3;color:#1b2334;font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m2) ease}
++@media (hover:hover){.photo-pick:hover{background:#fbf8f0}}
++.photo-pick:disabled{opacity:.6;cursor:default}
++.photo-hint{margin:8px 0 0;color:#525a6e;font-size:.75rem}
++.photo-error{margin:8px 0 0;color:#c43a15;font-size:.875rem}
++.candidate{margin-top:16px;padding:12px;border:1px solid #c6bca4;border-radius:var(--wn-r2);background:#fbe3d3}
++.candidate-label{display:block;color:#1b2334;font-size:.75rem;font-weight:600;letter-spacing:.04em}
++.candidate-text{margin:4px 0 0;font-weight:500}
++.candidate-input{width:100%;min-height:44px;margin-top:8px;padding:0 12px;border:1px solid #c6bca4;border-radius:var(--wn-r1);background:#fbf8f0;color:#1b2334;font:inherit}
++.candidate-keys{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
++.candidate-keys button{min-height:44px;padding:0 12px;border:1px solid #c6bca4;border-radius:var(--wn-rpill);background:#fbf8f0;color:#1b2334;font-family:inherit;font-size:.875rem;cursor:pointer;transition:background var(--wn-m2) ease}
++@media (hover:hover){.candidate-keys button:hover{background:#ede6d6}}
++.candidate-keys button:first-child{border-color:#b8480c;font-weight:600}
++.candidate-keys button[aria-disabled="true"]{opacity:.6;cursor:default}
++.candidate-note{margin:8px 0 0;color:#525a6e;font-size:.75rem}
++
++/* ---------- 加载、错误 ---------- */
++.skeleton{position:relative;margin-top:0;padding:20px;min-height:269px;background:var(--wn-sheet);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2)}
++.sk-text{margin:0 0 12px;color:var(--wn-ink-2);font-size:.875rem}
+ .sk{background:var(--wn-bone);border-radius:var(--wn-r1);animation:skIn 240ms ease-out both}
+-@keyframes skIn{
+-from{opacity:0}
+-}
++@keyframes skIn{from{opacity:0}}
+ .sk-meta{width:96px;height:20px}
+-.sk-title{height:18px;margin-top:var(--wn-s2)}
++.sk-title{height:18px;margin-top:8px}
+ .sk-title.w1{width:94%}
+ .sk-title.w2{width:76%}
+-.sk-btn{width:100%;height:44px;margin-top:var(--wn-s4)}
+-.sk-line{height:12px;margin-top:var(--wn-s3)}
++.sk-btn{width:100%;height:44px;margin-top:16px}
++.sk-line{height:12px;margin-top:12px}
+ .sk-line.w1{width:88%}
+-.sk-line.w2{width:54%;margin-top:var(--wn-s2)}
+-.notice{position:absolute;left:0;right:0;top:0;z-index:2;padding:var(--wn-s4);background:rgba(246,242,232,0.92);border:1px solid var(--wn-line);border-radius:var(--wn-r2);animation:noticeIn 200ms ease-out}
+-@keyframes noticeIn{
+-from{opacity:0}
+-}
+-.notice::before{content:'';position:absolute;left:0;top:var(--wn-s4);bottom:var(--wn-s4);width:2px;border-radius:2px;background:var(--wn-alert)}
+-.notice-inner{display:flex;align-items:flex-start;gap:var(--wn-s3)}
++.sk-line.w2{width:54%;margin-top:8px}
++.notice{position:absolute;left:0;right:0;top:0;z-index:2;padding:16px;background:rgba(246,242,232,.96);border:1px solid var(--wn-line);border-radius:var(--wn-r2);animation:noticeIn 200ms ease-out}
++.notice::before{content:"";position:absolute;left:0;top:16px;bottom:16px;width:2px;border-radius:2px;background:var(--wn-alert)}
++.notice-inner{display:flex;align-items:flex-start;gap:12px}
+ .notice-fig{flex:none;width:48px;height:48px;color:var(--wn-ink-2);display:block}
+ .notice-body{flex:1;min-width:0}
+ .notice-title{margin:0;font-size:1rem;font-weight:600;line-height:1.625}
+-.retry{min-height:44px;margin-top:var(--wn-s1);padding:0 var(--wn-s3);border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+-.foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--wn-s2);margin-top:var(--wn-s7);min-height:44px;color:var(--wn-page-muted);font-size:0.75rem}
+-.about{margin-top:var(--wn-s3);padding-top:var(--wn-s4);border-top:1px solid var(--wn-hairline);overflow-wrap:anywhere}
+-.about h2{margin:0;font-size:1.1875rem;font-weight:500}
+-.about .chips input:focus-visible + label{outline-color:var(--wn-page-ink)}
+-.about h3{margin:var(--wn-s6) 0 var(--wn-s2);font-size:1rem}
+-.about p{margin:var(--wn-s2) 0;color:var(--wn-page-muted);font-size:0.875rem}
+-.about .version{margin-top:var(--wn-s4);font-size:0.75rem}
+-#model-settings{margin-bottom:var(--wn-s6)}
+-#model-fields{display:grid;gap:var(--wn-s2);font-size:0.875rem}
+-#model-fields label{display:block;font-weight:600}
+-#model-fields input:not([type="checkbox"]),#model-fields select{width:100%;min-width:0;min-height:44px;padding:0 var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;font-size:1rem}
+-#model-fields select{margin-top:var(--wn-s2)}
++.retry{min-height:44px;margin-top:4px;padding:0 12px;border:0;background:transparent;color:var(--wn-ink);font-family:inherit;font-size:.875rem;font-weight:600;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
++.notice.lane-banner{position:relative;inset:auto;z-index:auto;margin:0 0 16px;background:#fbf8f0;color:#1b2334}
++@keyframes noticeIn{from{opacity:0}}
++:root:not([data-lane-state="TICKET"]):not([data-lane-state="ISSUING"]) #result .card{display:none}
++:root:not([data-lane-state="TICKET"]):not([data-lane-state="ISSUING"]) #result .skeleton{display:none}
++
++/* ---------- 页脚、关于、设置、记忆 ---------- */
++.foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:24px;min-height:44px;color:var(--on-stage-dim);font-size:.75rem}
++.settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--on-stage-dim);font-family:inherit;font-size:.875rem;font-weight:500;cursor:pointer}
++@media (hover:hover){.settings:hover{color:var(--on-stage)}}
++.about{max-width:720px;margin:12px 0 0;padding:24px;border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);overflow-wrap:anywhere}
++.about h2{margin:0;color:#1b2334;font-size:1.1875rem;font-weight:500}
++.about h3{margin:24px 0 8px;color:#1b2334;font-size:1rem}
++.about p{margin:8px 0;color:#525a6e;font-size:.875rem}
++.about .version{margin-top:16px;font-size:.75rem}
++.about .chips{display:flex;flex-wrap:wrap;gap:8px}
++.about .chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
++.about .chips label{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid #c6bca4;border-radius:var(--wn-rpill);background:#fbf8f0;color:#1b2334;font-size:.875rem;cursor:pointer;transition:background var(--wn-m2)}
++.about .chips input:checked+label{background:#e7e0ce;border-color:#525a6e;font-weight:600}
++.about .chips input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
++.about fieldset{min-width:0;border:0;padding:0;margin:16px 0 0}
++.about legend{padding:0;margin-bottom:8px;color:#5a5f70;font-size:.75rem;font-weight:600;letter-spacing:.08em}
++#model-settings{margin-bottom:24px}
++#model-settings h3{margin-top:24px}
++#model-fields{display:grid;gap:8px;font-size:.875rem}
++#model-fields label{display:block;color:#1b2334;font-weight:600}
++#model-fields input:not([type="checkbox"]),#model-fields select{width:100%;min-width:0;min-height:44px;padding:0 12px;border:1px solid #c6bca4;border-radius:var(--wn-r2);background:#fbf8f0;color:#1b2334;font:inherit;font-size:1rem}
++#model-fields select{margin-top:8px}
+ #model-fields p{margin:0}
+-#model-fields .model-image{display:flex;align-items:center;gap:var(--wn-s2);min-height:44px}
+-#model-fields .retry{justify-self:start;margin:0;padding-inline:0;color:var(--wn-page-ink)}
+-#model-fields:disabled .retry{opacity:0.6;cursor:default}
+-.model-actions{display:flex;flex-wrap:wrap;gap:var(--wn-s4)}
+-.textbtn[aria-disabled="true"]{opacity:0.7;cursor:default}
+-.settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--wn-page-muted);font-family:inherit;font-size:0.875rem;font-weight:500;cursor:pointer}
+-.noscript{margin:var(--wn-s4) 0 0;padding:var(--wn-s4);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);color:var(--wn-ink)}
+-@media (max-width:359px){
+-.page{padding-left:var(--wn-s4);padding-right:var(--wn-s4)}
+-.masthead{padding:0 var(--wn-s4)}
+-.brand-name{font-size:1.25rem}
+-.first-text{font-size:1.125rem}
++#model-fields .model-image{display:flex;align-items:center;gap:8px;min-height:44px}
++#model-fields .retry{justify-self:start;margin:0;padding-inline:0;color:#1b2334}
++#model-fields:disabled .retry{opacity:.6;cursor:default}
++.model-actions{display:flex;flex-wrap:wrap;gap:16px}
++.mem-head{display:flex;align-items:center;justify-content:space-between;gap:8px}
++.mem-head .textbtn,.mem-list+.textbtn{color:#1b2334}
++.mem-count{color:#5a5f70;font-size:.75rem}
++.mem-list{display:flex;flex-direction:column;gap:8px;margin:8px 0 0;padding:0;list-style:none}
++.mem-item{padding:12px;border:1px solid #d9d0bc;border-radius:var(--wn-r1);background:#fbf8f0;color:#1b2334}
++.mem-item .mem-text{margin:0;color:#1b2334;font-size:.9375rem}
++.mem-item .mem-meta{margin:4px 0 0;color:#525a6e;font-size:.75rem}
++.mem-keys{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
++.mem-keys .textbtn{color:#1b2334;font-weight:500}
++.mem-danger{color:#c43a15 !important;font-weight:600}
++.mem-input{width:100%;min-height:44px;padding:0 12px;border:1px solid #c6bca4;border-radius:var(--wn-r1);background:#fbf8f0;color:#1b2334;font:inherit}
++.mem-note{margin:8px 0 0;color:#8a8271;font-size:.75rem}
++.mem-item .mem-note{color:#525a6e}
++.mem-empty{margin:8px 0 0;color:#8a8271;font-size:.875rem}
++.noscript{margin:16px 0 0;padding:16px;background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r2);color:var(--wn-ink)}
++
++/* ---------- 响应式 ---------- */
++@media (max-width:1100px){
++  .page{min-height:auto;padding-top:28px;padding-bottom:36px}
++  .board{grid-template-columns:minmax(0,1fr);gap:36px}
++  .board-copy{max-width:640px}
++  .ticket-col{max-width:460px}
++  .progress{max-width:none}
++  .board-note{max-width:34em}
++}
++@media (max-width:767px){
++  .masthead{min-height:56px;padding:0 20px}
++  .page{padding:18px 20px 28px;min-height:calc(100svh - 56px)}
++  .board-title{font-size:clamp(34px,9vw,44px)}
++  .board-lead{font-size:15px}
++  .ticket-col{max-width:none}
++  .about{padding:20px 16px}
++}
++@media (max-width:480px){
++  .opts{grid-template-columns:minmax(0,1fr)}
++  .opts-5{grid-template-columns:repeat(2,minmax(0,1fr))}
++  .opts-5 label:first-of-type{grid-column:1/-1}
++  .f-q{font-size:17px}
++  .fields{padding:0 18px}
++  .sheet-foot{padding:14px 18px 18px}
++  .progress li{grid-template-columns:34px 66px 1fr;gap:8px}
+ }
+-@media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]) .masthead{background:var(--wn-paper-2)}
++@media (max-width:359px){
++  .page{padding-left:16px;padding-right:16px}
++  .brand-name{font-size:1.25rem}
++  .fields{padding:0 16px}
++  .sheet-foot{padding:14px 16px 18px}
++  .ticket-body{padding-left:18px}
++  .ix-card>.card-meta,.ix-card>h2,.ix-card>.card-sep,.ix-card>.first,.ix-card>.detail,.ix-card>.turn-log,.ix-card>.candidate,.ix-card>.turn-area,.ix-card>.ix-actions,.ix-card>.photo-area,.ix-card>.ix-closed{margin-left:18px;margin-right:18px}
+ }
+-:root[data-theme="dark"] .masthead{background:var(--wn-paper-2)}
+ @container (max-width:15em){
+-.card-actions,.card-actions.changed{grid-template-columns:repeat(2,minmax(0,1fr))}
+-.feedback{display:grid;grid-column:1 / -1;grid-row:1 / 3;grid-template-columns:subgrid;grid-template-rows:subgrid}
+-.card-actions .swap{grid-column:2;grid-row:2}
+-.card-actions.changed .swap{grid-column:1 / -1;grid-row:3}
+-.ticket-body{padding-right:0}
+-.gauge{display:grid;grid-template-columns:12px minmax(0,1fr) 14px}
+-.gauge-label{grid-column:1 / -1;grid-row:1}
+-.g-dot{grid-column:1;grid-row:2}
+-.g-line{grid-column:2;grid-row:2;width:100%}
+-.g-ring{grid-column:3;grid-row:2}
+-.compact-feedback{display:inline-flex;margin-left:auto}
+-.ticket-stub,.ticket-sep{display:none}
+-.ticket-head{padding-right:44px}
+-.ticket-valid{display:none}
+-.ticket-stamp{top:16px;right:16px;width:40px;height:40px}
+-.ticket-done .ticket-context{padding-right:44px}
+-.done-row{grid-template-columns:repeat(2,minmax(0,1fr))}
+-.done-state{grid-column:1 / -1}
+-}
+-:root{--wn-photo:#44588c;--wn-photo-soft:#e4e9f4;--wn-dark-photo:#a9bce6;--wn-dark-photo-soft:#232c3d}
+-@media (prefers-color-scheme:dark){
+-:root:not([data-theme="light"]){--wn-photo:var(--wn-dark-photo);--wn-photo-soft:var(--wn-dark-photo-soft)}
+-}
+-:root[data-theme="dark"]{--wn-photo:var(--wn-dark-photo);--wn-photo-soft:var(--wn-dark-photo-soft)}
+-html{scrollbar-width:thin;scrollbar-color:var(--wn-line) var(--wn-paper)}
+-html::-webkit-scrollbar{width:10px}
+-html::-webkit-scrollbar-track{background:var(--wn-paper)}
+-html::-webkit-scrollbar-thumb{background:var(--wn-line);border-radius:var(--wn-rpill);border:2px solid var(--wn-paper)}
+-html::-webkit-scrollbar-thumb:hover{background:var(--wn-ink-2)}
+-.ix-card .badge{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 var(--wn-s2);border-radius:var(--wn-r1);background:var(--wn-time-soft);color:var(--wn-time);font-size:0.75rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap}
+-.ix-card .card-sep{margin:var(--wn-s4) 0 0;border:0;border-top:1px solid var(--wn-hairline)}
+-.mode{flex:none;display:inline-flex;align-items:center;min-height:20px;padding:0 var(--wn-s2);border-radius:var(--wn-r1);font-size:0.75rem;font-weight:600;white-space:nowrap}
+-.mode-chat{background:var(--wn-accent-soft);color:var(--wn-ink)}
+-.mode-discuss{background:var(--wn-time-soft);color:var(--wn-time)}
+-.mode-photo{background:var(--wn-photo-soft);color:var(--wn-photo)}
+-.turn-log{display:flex;flex-direction:column;gap:var(--wn-s2);margin-top:var(--wn-s4);max-height:22rem;overflow-y:auto;padding:var(--wn-s1) var(--wn-s2) var(--wn-s1) 0;scrollbar-width:thin;scrollbar-color:var(--wn-line) var(--wn-well)}
+-.turn-log::-webkit-scrollbar{width:8px}
+-.turn-log::-webkit-scrollbar-track{background:var(--wn-well);border-radius:var(--wn-rpill)}
+-.turn-log::-webkit-scrollbar-thumb{background:var(--wn-line);border-radius:var(--wn-rpill)}
+-.turn-log::-webkit-scrollbar-thumb:hover{background:var(--wn-ink-2)}
+-.msg{max-width:88%;padding:var(--wn-s2) var(--wn-s3);border:1px solid var(--wn-hairline);border-radius:var(--wn-r2);font-size:0.9375rem;line-height:1.571;animation:rise var(--wn-m2) ease-out}
+-.msg-user{align-self:flex-end;background:var(--wn-accent-soft);border-bottom-right-radius:var(--wn-r1)}
+-.msg-ai{align-self:flex-start;background:var(--wn-well);border-bottom-left-radius:var(--wn-r1)}
+-.msg-text{margin:0}
+-.msg-pending{opacity:0.75}
+-.msg-wait{display:block;margin-top:var(--wn-s1);color:var(--wn-ink-2);font-size:0.75rem}
+-.msg-wait::after{content:'…';animation:soak var(--wn-m4) ease-in-out infinite}
+-@keyframes soak{
+-50%{opacity:0.35}
+-}
+-.msg-failed{border-color:var(--wn-alert);background:var(--wn-alert-soft)}
+-.msg-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s2);margin-top:var(--wn-s1)}
+-.msg-error{color:var(--wn-alert);font-size:0.75rem}
+-.msg-retry{color:var(--wn-ink);font-weight:600}
+-.msg-img{display:block;max-width:160px;max-height:160px;border:1px solid var(--wn-hairline);border-radius:var(--wn-r1)}
+-.word-card{margin-top:var(--wn-s2);padding:var(--wn-s3);background:var(--wn-sheet);border:1px solid var(--wn-line);border-radius:var(--wn-r1)}
+-.word-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--wn-s2)}
+-.word-en{font-size:1.375rem;font-weight:600;color:var(--wn-ink);letter-spacing:0.01em}
+-.word-ipa{color:var(--wn-ink-2);font-size:0.875rem}
+-.word-meaning{margin:var(--wn-s1) 0 0;font-weight:500}
+-.word-practice{margin:var(--wn-s2) 0 0;padding-left:var(--wn-s2);border-left:2px solid var(--wn-time);color:var(--wn-ink-2);font-size:0.875rem}
+-.turn-area{margin-top:var(--wn-s4)}
+-.turn-form{display:flex;gap:var(--wn-s2)}
+-.turn-input{flex:1;min-width:0;min-height:48px;padding:0 var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);font:inherit}
+-.turn-input::placeholder{color:var(--wn-ink-2)}
+-.turn-input:disabled{opacity:0.6}
+-.turn-send{flex:none;min-width:64px;min-height:48px;padding:0 var(--wn-s4);border:0;border-radius:var(--wn-r2);background:var(--wn-accent);color:var(--wn-on-accent);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m1) ease}
+-.turn-send:active{background:var(--wn-accent-press);color:#f6f2e8}
+-.turn-send:disabled{opacity:0.35;cursor:default}
+-.turn-foot{display:flex;justify-content:space-between;gap:var(--wn-s2);margin-top:var(--wn-s1);min-height:1.125rem}
+-.turn-hint{color:var(--wn-alert);font-size:0.75rem}
+-.turn-count{color:var(--wn-ink-2);font-size:0.75rem;font-variant-numeric:tabular-nums}
+-.ix-actions{display:flex;align-items:center;justify-content:space-between;gap:var(--wn-s2);margin-top:var(--wn-s3)}
+-.ix-actions .swap,.ix-closed .swap{flex:none;min-height:44px;padding:0 var(--wn-s4);border:1px solid var(--wn-accent);border-radius:var(--wn-r2);background:transparent;color:var(--wn-ink);font-family:inherit;font-size:0.875rem;font-weight:600;cursor:pointer}
+-.ix-end{color:var(--wn-ink-2)}
+-.ix-closed{display:flex;flex-wrap:wrap;align-items:center;gap:var(--wn-s3);margin-top:var(--wn-s4)}
+-.ix-closed .done-state{display:flex;align-items:center;gap:6px}
+-.ix-closed .done-state svg{display:block;flex:none;width:16px;height:16px}
+-.ix-closed .done-spacer{flex:1}
+-.photo-area{margin-top:var(--wn-s4)}
+-.photo-pick{width:100%;min-height:56px;border:1px dashed var(--wn-accent);border-radius:var(--wn-r2);background:var(--wn-accent-soft);color:var(--wn-ink);font-family:inherit;font-size:1rem;font-weight:600;cursor:pointer;transition:background var(--wn-m2) ease}
+-@media (hover:hover){
+-.photo-pick:hover{background:var(--wn-sheet)}
+-}
+-.photo-pick:disabled{opacity:0.6;cursor:default}
+-.photo-hint{margin:var(--wn-s2) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
+-.photo-error{margin:var(--wn-s2) 0 0;color:var(--wn-alert);font-size:0.875rem}
+-.candidate{margin-top:var(--wn-s4);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-accent-soft)}
+-.candidate-label{display:block;color:var(--wn-ink);font-size:0.75rem;font-weight:600;letter-spacing:0.04em}
+-.candidate-text{margin:var(--wn-s1) 0 0;font-weight:500}
+-.candidate-input{width:100%;min-height:44px;margin-top:var(--wn-s2);padding:0 var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit}
+-.candidate-keys{display:flex;flex-wrap:wrap;gap:var(--wn-s2);margin-top:var(--wn-s2)}
+-.candidate-keys button{min-height:44px;padding:0 var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-rpill);background:var(--wn-sheet);color:var(--wn-ink);font-family:inherit;font-size:0.875rem;cursor:pointer;transition:background var(--wn-m2) ease}
+-@media (hover:hover){
+-.candidate-keys button:hover{background:var(--wn-well)}
+-}
+-.candidate-keys button:first-child{border-color:var(--wn-accent);color:var(--wn-ink);font-weight:600}
+-.candidate-keys button[aria-disabled="true"]{opacity:0.6;cursor:default}
+-.candidate-note{margin:var(--wn-s2) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
+-.mem-head{display:flex;align-items:center;justify-content:space-between;gap:var(--wn-s2)}
+-.mem-head .textbtn,.mem-list + .textbtn{color:var(--wn-page-ink)}
+-.mem-count{color:var(--wn-page-muted);font-size:0.75rem}
+-.mem-list{display:flex;flex-direction:column;gap:var(--wn-s2);margin:var(--wn-s2) 0 0;padding:0;list-style:none}
+-.mem-item{--wn-hairline:rgba(27,35,52,.10);padding:var(--wn-s3);border:1px solid var(--wn-hairline);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink)}
+-.mem-item :focus-visible{outline-color:var(--wn-ink)}
+-.mem-item .mem-text{margin:0;color:var(--wn-ink);font-size:0.9375rem}
+-.mem-item .mem-meta{margin:var(--wn-s1) 0 0;color:var(--wn-ink-2);font-size:0.75rem}
+-.mem-keys{display:flex;flex-wrap:wrap;gap:var(--wn-s2);margin-top:var(--wn-s1)}
+-.mem-keys .textbtn{color:var(--wn-ink);font-weight:500}
+-.mem-danger{color:var(--wn-alert) !important;font-weight:600}
+-.mem-input{width:100%;min-height:44px;padding:0 var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit}
+-.mem-note{margin:var(--wn-s2) 0 0;color:var(--wn-page-muted);font-size:0.75rem}
+-.mem-item .mem-note{color:var(--wn-ink-2)}
+-.mem-empty{margin:var(--wn-s2) 0 0;color:var(--wn-page-muted);font-size:0.875rem}
+-@media (prefers-reduced-motion: reduce) {
+-  *, *::before, *::after {
+-    animation: none !important;
+-    transition: none !important;
+-    scroll-behavior: auto !important;
+-  }
+-
+-  .station-ticket.torn .stub,
+-  .station-ticket.collecting .stub {
+-    transform: none;
+-  }
++  .card-actions,.card-actions.changed{grid-template-columns:repeat(2,minmax(0,1fr))}
++  .feedback{display:grid;grid-column:1/-1;grid-row:1/3;grid-template-columns:subgrid;grid-template-rows:subgrid}
++  .card-actions .swap{grid-column:2;grid-row:2}
++  .card-actions.changed .swap{grid-column:1/-1;grid-row:3}
++  .ticket-body{padding-right:0}
++  .gauge{display:grid;grid-template-columns:12px minmax(0,1fr) 14px}
++  .gauge-label{grid-column:1/-1;grid-row:1}
++  .g-dot{grid-column:1;grid-row:2}
++  .g-line{grid-column:2;grid-row:2;width:100%}
++  .g-ring{grid-column:3;grid-row:2}
++  .compact-feedback{display:inline-flex;margin-left:auto}
++  .ticket-stub,.ticket-sep{display:none}
++  .ticket-head{padding-right:44px}
++  .ticket-valid{display:none}
++  .ticket-stamp{top:16px;right:16px;width:40px;height:40px}
++  .ticket-done .ticket-context{padding-right:44px}
++  .done-row{grid-template-columns:repeat(2,minmax(0,1fr))}
++  .done-state{grid-column:1/-1}
++}
++@media (prefers-reduced-motion:reduce){
++  html{scroll-behavior:auto}
++  *,*::before,*::after{animation:none !important;transition:none !important}
++  .f-body{transition:none}
+ }

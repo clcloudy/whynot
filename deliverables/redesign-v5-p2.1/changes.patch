@@ -1,0 +1,702 @@
+--- a/web/index.html
++++ b/web/index.html
+@@ -11,7 +11,7 @@
+   <link rel="icon" href="/icon.svg" type="image/svg+xml">
+   <link rel="manifest" href="/manifest.webmanifest">
+   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+-  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');d.guided=localStorage.getItem('whynot-guide')==='seen'?'1':'0';if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#0d1526':'#cfe0f2')}}catch{}</script>
++  <script>try{let d=document.documentElement.dataset,t=localStorage.getItem('whynot-theme');if(t==='light'||t==='dark'){d.theme=t;document.querySelectorAll('meta[name="theme-color"]').forEach(m=>m.content=t==='dark'?'#0d1526':'#cfe0f2')}}catch{}</script>
+   <link rel="stylesheet" href="/style.css">
+ </head>
+ <body>
+@@ -37,6 +37,7 @@
+       <div class="st-platform"></div>
+       <div class="stamp-ground"></div>
+       <div class="st-doorlight"></div>
++      <div class="st-sweep"></div>
+       <div class="st-yellow"></div>
+       <div class="st-machine"><i></i></div>
+       <div class="st-pillar a"></div><div class="st-pillar b"></div>
+@@ -62,14 +63,7 @@
+   <main class="page">
+     <div class="board" id="board">
+       <div class="board-copy">
+-        <div class="guide" id="guide">
+-          <p>一次只问一件事</p>
+-          <p>答完一格，收成一行</p>
+-          <p>三格齐了，出一张现在</p>
+-        </div>
+-        <p class="eyebrow"><i>01</i>此刻通道</p>
+         <h1 class="board-title">填一张票，<span>三步出门</span></h1>
+-        <p class="board-lead">一次只问一件事。选完，答案就印在票上——上一格收成一行，下一格才展开。</p>
+ 
+         <ol class="progress" aria-label="填写进度">
+           <li data-field="0"><i>01</i><span>时间</span><b>—</b></li>
+@@ -80,8 +74,19 @@
+         <div class="board-actions">
+           <button class="ghost" id="last-conditions" type="button">用上次的条件</button>
+           <button class="ghost" id="reset-form" type="button">重填</button>
++          <button class="ghost" id="replay-scene" type="button">重播进站</button>
+         </div>
+-        <p class="board-note">月台铺满整个视口，票是页面上唯一的实体。黄线永远在票的下方——那是你站在站台边的证据。</p>
++
++        <details class="board-more">
++          <summary>说明</summary>
++          <p class="board-lead">一次只问一件事。选完，答案就印在票上——上一格收成一行，下一格才展开。</p>
++          <div class="guide" id="guide">
++            <p>一次只问一件事</p>
++            <p>答完一格，收成一行</p>
++            <p>三格齐了，出一张现在</p>
++          </div>
++          <p class="board-note">月台铺满整个视口，票是页面上唯一的实体。黄线永远在票的下方——那是你站在站台边的证据。</p>
++        </details>
+       </div>
+ 
+       <div class="ticket-col">
+@@ -217,15 +222,6 @@
+           <input type="radio" name="theme" id="theme-dark" value="dark"><label for="theme-dark">深色</label>
+         </div>
+       </fieldset>
+-      <fieldset>
+-        <legend>月台光线</legend>
+-        <div class="chips">
+-          <input type="radio" name="stage-light" id="stage-theme" value="theme" checked><label for="stage-theme">跟随主题</label>
+-          <input type="radio" name="stage-light" id="stage-dawn" value="dawn"><label for="stage-dawn">清晨</label>
+-          <input type="radio" name="stage-light" id="stage-dusk" value="dusk"><label for="stage-dusk">黄昏</label>
+-          <input type="radio" name="stage-light" id="stage-night" value="night"><label for="stage-night">夜班</label>
+-        </div>
+-      </fieldset>
+       <h3>数据说明</h3>
+       <p>不注册。你的条件、反馈、对话和确认过的记忆保存在服务端，用来生成回应和调整建议。</p>
+       <p>对话内容和你主动上传的照片会发送给 AI 服务。只有你点「保存」确认的话才会成为记忆；跳过不会保存。</p>
+--- a/web/style.css
++++ b/web/style.css
+@@ -8,9 +8,6 @@
+ }
+ :root[data-theme="dark"]{color-scheme:dark;--wn-paper:var(--wn-dark-paper);--wn-paper-2:var(--wn-dark-paper-2);--wn-sheet:var(--wn-dark-sheet);--wn-well:var(--wn-dark-well);--wn-ink:var(--wn-dark-ink);--wn-ink-2:var(--wn-dark-ink-2);--wn-accent:var(--wn-dark-accent);--wn-accent-press:var(--wn-dark-accent-press);--wn-accent-soft:var(--wn-dark-accent-soft);--wn-on-accent:var(--wn-dark-on-accent);--wn-line:var(--wn-dark-line);--wn-hairline:var(--wn-dark-hairline);--wn-time:var(--wn-dark-time);--wn-time-soft:var(--wn-dark-time-soft);--wn-alert:var(--wn-dark-alert);--wn-alert-soft:var(--wn-dark-alert-soft);--wn-focus:var(--wn-dark-focus);--wn-bone:var(--wn-dark-bone);--wn-shadow:var(--wn-dark-shadow);--wn-page-ink:#f6f2e8;--wn-page-muted:#a7b1c9;
+ --stage-sky-1:var(--stage-dark-sky-1);--stage-sky-2:var(--stage-dark-sky-2);--stage-sky-3:var(--stage-dark-sky-3);--stage-shed:var(--stage-dark-shed);--stage-shed-2:var(--stage-dark-shed-2);--stage-city:var(--stage-dark-city);--stage-train:var(--stage-dark-train);--stage-train-2:var(--stage-dark-train-2);--stage-platform:var(--stage-dark-platform);--stage-platform-2:var(--stage-dark-platform-2);--stage-glow:var(--stage-dark-glow);--stage-line:var(--stage-dark-line);--on-stage:var(--on-stage-dark);--on-stage-dim:var(--on-stage-dark-dim);--on-stage-accent:var(--on-stage-dark-accent);--stage-veil:var(--stage-dark-veil);--stage-shadow:drop-shadow(0 34px 60px rgba(0,0,0,.55))}
+-:root[data-stage-light="dawn"]{--stage-sky-1:#cfe0f2;--stage-sky-2:#f6f1e2;--stage-sky-3:#f6f1e2;--stage-shed:#e3e0d6;--stage-shed-2:#c8d3e2;--stage-city:rgba(90,112,150,.25);--stage-train:#3a4a68;--stage-train-2:#22304a;--stage-platform:#cfc8b8;--stage-platform-2:#b3ac9d;--stage-glow:rgba(255,196,128,.55);--stage-line:rgba(27,35,52,.16);--on-stage:#1b2334;--on-stage-dim:rgba(27,35,52,.66);--on-stage-accent:#b8480c;--stage-veil:linear-gradient(90deg,rgba(244,240,230,.94) 0%,rgba(244,240,230,.80) 30%,rgba(244,240,230,.24) 60%,rgba(244,240,230,0) 84%,rgba(244,240,230,.30) 100%),linear-gradient(180deg,rgba(244,240,230,.28),rgba(244,240,230,0) 30%,rgba(244,240,230,.36));--stage-shadow:drop-shadow(0 30px 44px rgba(27,35,52,.30))}
+-:root[data-stage-light="dusk"]{--stage-sky-1:#f7c98e;--stage-sky-2:#c4735a;--stage-sky-3:#5b4a6b;--stage-shed:#7a4a45;--stage-shed-2:#5a3540;--stage-city:rgba(255,196,128,.35);--stage-train:#3b3048;--stage-train-2:#241d33;--stage-platform:#a8877a;--stage-platform-2:#7c5f5d;--stage-glow:rgba(255,170,110,.60);--stage-line:rgba(255,246,234,.22);--on-stage:#fff6ea;--on-stage-dim:rgba(255,246,234,.70);--on-stage-accent:#ffcf94;--stage-veil:linear-gradient(90deg,rgba(52,30,40,.90) 0%,rgba(52,30,40,.62) 30%,rgba(52,30,40,.14) 60%,rgba(52,30,40,0) 84%,rgba(52,30,40,.34) 100%),linear-gradient(180deg,rgba(52,30,40,.42),rgba(52,30,40,0) 28%,rgba(52,30,40,.48));--stage-shadow:drop-shadow(0 30px 44px rgba(52,30,40,.40))}
+-:root[data-stage-light="night"]{--stage-sky-1:#0d1526;--stage-sky-2:#1b2740;--stage-sky-3:#22304a;--stage-shed:#0a1220;--stage-shed-2:#111b2c;--stage-city:rgba(224,176,138,.32);--stage-train:#18233a;--stage-train-2:#0f1728;--stage-platform:#141d2e;--stage-platform-2:#0d1522;--stage-glow:rgba(255,217,160,.55);--stage-line:rgba(246,242,232,.18);--on-stage:#f6f2e8;--on-stage-dim:rgba(246,242,232,.66);--on-stage-accent:#ff8a50;--stage-veil:linear-gradient(90deg,rgba(8,13,23,.94) 0%,rgba(8,13,23,.82) 30%,rgba(8,13,23,.34) 58%,rgba(8,13,23,.06) 82%,rgba(8,13,23,.42) 100%),linear-gradient(180deg,rgba(8,13,23,.52),rgba(8,13,23,0) 30%,rgba(8,13,23,.55));--stage-shadow:drop-shadow(0 34px 60px rgba(0,0,0,.55))}
+ *{box-sizing:border-box}
+ [hidden]{display:none !important}
+ html{scrollbar-width:thin;scrollbar-color:var(--wn-line) var(--wn-paper)}
+@@ -21,7 +18,6 @@
+ button,label,.card,.notice{overflow-wrap:anywhere}
+ button{line-height:1.5}
+ #result{position:relative;scroll-margin-top:var(--wn-s4);width:100%}
+-.share-note:empty{margin:0}
+ .card{container-type:inline-size}
+ :focus-visible{outline:2px solid var(--wn-page-ink);outline-offset:2px}
+ .card,.skeleton,.notice{color:var(--wn-ink);--wn-hairline:rgba(27,35,52,.10)}
+@@ -30,7 +26,7 @@
+ 
+ /* ---------- 月台：纯 CSS 分层场景 ---------- */
+ .stage{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,var(--stage-sky-1),var(--stage-sky-2) 58%,var(--stage-sky-3))}
+-.st-world{position:absolute;inset:0;transform-origin:62% 74%;will-change:transform}
++.st-world{position:absolute;inset:0;transform:scale(1.03);transform-origin:62% 74%;will-change:transform}
+ .st-sky{position:absolute;inset:0;background:radial-gradient(ellipse 58% 44% at 76% 30%,var(--stage-glow),transparent 68%),radial-gradient(ellipse 46% 34% at 16% 12%,rgba(255,255,255,.20),transparent 70%)}
+ .st-city{position:absolute;left:0;right:0;top:34%;height:10%;background:repeating-linear-gradient(90deg,var(--stage-city) 0 2px,transparent 2px 48px),repeating-linear-gradient(90deg,var(--stage-city) 0 1px,transparent 1px 17px);opacity:.5;mask:linear-gradient(180deg,transparent,#000 30%,transparent)}
+ .st-shed{position:absolute;left:0;right:0;top:0;height:30%;background:linear-gradient(180deg,var(--stage-shed),var(--stage-shed-2));box-shadow:0 12px 40px rgba(0,0,0,.18)}
+@@ -47,20 +43,20 @@
+   opacity:.55}
+ .st-signal{position:absolute;right:16%;top:33%;width:8px;height:8px;border-radius:50%;background:#ffcf8a;box-shadow:0 0 16px 6px rgba(255,207,138,.35)}
+ .st-track{position:absolute;left:0;right:0;top:65%;height:4px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.32));box-shadow:0 5px 0 rgba(0,0,0,.16),0 14px 0 rgba(0,0,0,.10)}
+-.st-train{position:absolute;right:-8%;top:47%;width:56%;height:17%;min-height:96px;border-radius:26px 0 0 6px;background:linear-gradient(180deg,var(--stage-train),var(--stage-train-2));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -14px 0 rgba(0,0,0,.34),0 22px 40px rgba(0,0,0,.28);translate:148px 0;transition:translate 1180ms cubic-bezier(.22,.61,.24,1) 180ms;will-change:translate}
++.st-train{position:absolute;right:-8%;top:47%;width:56%;height:17%;min-height:96px;border-radius:26px 0 0 6px;background:linear-gradient(180deg,var(--stage-train),var(--stage-train-2));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -14px 0 rgba(0,0,0,.34),0 22px 40px rgba(0,0,0,.28);translate:0 0;will-change:translate}
+ .st-train::before{content:"";position:absolute;left:0;top:12%;bottom:16%;width:9%;border-radius:26px 0 0 6px;background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
+ .st-train::after{content:"";position:absolute;left:4%;right:2%;bottom:-10px;height:14px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(7px)}
+-.st-headlight{position:absolute;left:4%;top:52%;width:11px;height:11px;border-radius:50%;background:#fff2d4;opacity:.25;box-shadow:0 0 18px 8px var(--stage-glow),0 0 50px 20px rgba(255,217,160,.20);transition:opacity 420ms ease-out}
+-.st-headlight::after{content:"";position:absolute;inset:-26px;border-radius:50%;background:radial-gradient(circle,rgba(255,217,160,.50),transparent 70%);filter:blur(6px);opacity:0;transition:opacity 420ms ease-out}
++.st-headlight{position:absolute;left:4%;top:52%;width:11px;height:11px;border-radius:50%;background:#fff2d4;opacity:.95;box-shadow:0 0 18px 8px var(--stage-glow),0 0 50px 20px rgba(255,217,160,.20)}
++.st-headlight::after{content:"";position:absolute;inset:-26px;border-radius:50%;background:radial-gradient(circle,rgba(255,217,160,.50),transparent 70%);filter:blur(6px);opacity:.9}
+ .st-win{position:absolute;top:26%;width:8%;height:30%;border-radius:3px;background:linear-gradient(180deg,#ffe6b8,#ffc987);box-shadow:0 0 14px rgba(255,217,164,.28)}
+ .st-win.w1{left:15%}.st-win.w2{left:28%}.st-win.w3{left:41%}.st-win.w4{left:54%}
+ .st-door{position:absolute;left:67%;top:20%;width:9%;height:56%;border-radius:3px;background:linear-gradient(180deg,rgba(255,255,255,.22),rgba(0,0,0,.16));box-shadow:inset 0 0 0 1px rgba(255,255,255,.24),inset 0 0 0 4px rgba(0,0,0,.18);overflow:hidden}
+-.st-door i{position:absolute;inset:0 18% 0 0;background:linear-gradient(90deg,#ffe3b4,#ffbe78);box-shadow:0 0 16px rgba(255,214,160,.55);transform:scaleX(0);transform-origin:left center;transition:transform 350ms cubic-bezier(.65,0,.35,1) 1180ms}
++.st-door i{position:absolute;inset:0 18% 0 0;background:linear-gradient(90deg,#ffe3b4,#ffbe78);box-shadow:0 0 16px rgba(255,214,160,.55);transform:scaleX(1);transform-origin:left center}
+ .st-speed{position:absolute;height:1px;background:linear-gradient(90deg,transparent,rgba(255,236,200,.65),transparent);opacity:0;pointer-events:none}
+ .st-speed.a{left:36%;top:49%;width:18%}
+ .st-speed.b{left:31%;top:54%;width:22%}
+ .st-speed.c{left:40%;top:59%;width:14%}
+-.st-cone{position:absolute;left:33%;top:53%;width:35%;height:24%;background:radial-gradient(ellipse 70% 80% at 100% 22%,var(--stage-glow),transparent 68%);filter:blur(16px);opacity:0;mix-blend-mode:screen;clip-path:polygon(100% 16%,0 100%,100% 82%);transform:scaleX(.15);transform-origin:100% 55%;transition:opacity 1100ms ease-out 120ms,transform 1100ms cubic-bezier(.22,.61,.24,1) 120ms}
++.st-cone{position:absolute;left:33%;top:53%;width:35%;height:24%;background:radial-gradient(ellipse 70% 80% at 100% 22%,var(--stage-glow),transparent 68%);filter:blur(16px);opacity:.55;mix-blend-mode:screen;clip-path:polygon(100% 16%,0 100%,100% 82%);transform:scaleX(1);transform-origin:100% 55%}
+ .st-reflect{position:absolute;right:-4%;top:64%;width:52%;height:9%;background:linear-gradient(180deg,rgba(255,217,160,.18),transparent 70%);filter:blur(9px);opacity:.65}
+ .st-platform{position:absolute;left:0;right:0;bottom:0;height:35%;background:
+   radial-gradient(ellipse 50% 30% at 64% 0%,rgba(255,217,160,.14),transparent 70%),
+@@ -68,7 +64,10 @@
+   linear-gradient(180deg,var(--stage-platform),var(--stage-platform-2))}
+ .st-platform::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35) 46%,transparent 82%)}
+ .st-platform::after{content:"";position:absolute;inset:12% 8% auto;height:34%;background:linear-gradient(180deg,rgba(255,255,255,.10),transparent);filter:blur(10px);opacity:.5}
+-.st-doorlight{position:absolute;right:10%;bottom:30%;width:26%;height:9%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,205,140,.55),transparent 70%);filter:blur(14px);opacity:0;transition:opacity 600ms ease-out 1200ms}
++.st-doorlight{position:absolute;right:10%;bottom:30%;width:26%;height:9%;border-radius:50%;background:radial-gradient(ellipse,rgba(255,205,140,.55),transparent 70%);filter:blur(14px);opacity:.45}
++.st-sweep{position:absolute;left:-30%;top:66%;width:46%;height:3%;background:linear-gradient(90deg,transparent,rgba(255,217,160,.32),transparent);filter:blur(10px);opacity:0;mix-blend-mode:screen}
++.stage[data-phase="arriving"] .st-sweep{animation:lightSweep 1600ms cubic-bezier(.3,.2,.2,1) 220ms both}
++@keyframes lightSweep{0%{opacity:0;transform:translateX(-20%)}35%{opacity:.5}100%{opacity:0;transform:translateX(180%)}}
+ .stamp-ground{position:absolute;inset:0;pointer-events:none}
+ .stamp-mark{position:absolute;width:42px;height:42px;margin:-21px 0 0 -21px;display:grid;place-items:center;border:2px solid #d95f0e;border-radius:50%;color:#d95f0e;font:700 12px/1 var(--wn-font);letter-spacing:.06em;opacity:.38;transform:scaleY(-.58) rotate(var(--rot,-12deg));filter:blur(.25px);text-shadow:.3px 0 rgba(217,95,14,.24),-.3px 0 rgba(27,35,52,.10);transition:opacity .6s ease}
+ .stamp-mark::before{content:"";position:absolute;inset:3px;border:1px dashed currentColor;border-radius:50%;opacity:.75}
+@@ -90,37 +89,28 @@
+   radial-gradient(circle 1px at 86% 38%,rgba(255,236,200,.5),transparent 60%),
+   radial-gradient(circle 1.2px at 22% 82%,rgba(255,236,200,.45),transparent 60%),
+   radial-gradient(circle 1px at 66% 18%,rgba(255,236,200,.5),transparent 60%);
+-  opacity:0;transition:opacity 500ms ease-out 300ms}
++  opacity:.55}
+ .st-veil{position:absolute;inset:0;background:var(--stage-veil)}
+-.stage[data-phase="arriving"] .st-world,
+-.stage[data-phase="stopped"] .st-world{transform:scale(1.03);transition:transform 3200ms cubic-bezier(.3,.2,.2,1)}
+-.stage[data-phase="resting"] .st-world{transform:scale(1.03)}
+-.stage[data-phase="arriving"] .st-train,
+-.stage[data-phase="stopped"] .st-train,
+-.stage[data-phase="resting"] .st-train{translate:0 0}
+-.stage[data-phase="arriving"] .st-train{animation:trainSettle 420ms cubic-bezier(.45,0,.55,1) 1360ms both}
++.stage[data-phase="idle"] .st-world{transform:scale(1)}
++.stage[data-phase="arriving"] .st-world{animation:worldPush 3200ms cubic-bezier(.3,.2,.2,1) both}
++.stage[data-phase="idle"] .st-train{translate:200px 0}
++.stage[data-phase="arriving"] .st-train{animation:trainArrive 1320ms cubic-bezier(.22,.61,.24,1) 160ms both,trainSettle 420ms cubic-bezier(.45,0,.55,1) 1600ms both}
+ .stage[data-phase="arriving"] .st-speed.a{animation:speedLine 700ms linear 180ms both}
+ .stage[data-phase="arriving"] .st-speed.b{animation:speedLine 700ms linear 240ms both}
+ .stage[data-phase="arriving"] .st-speed.c{animation:speedLine 700ms linear 300ms both}
+-.stage[data-phase="arriving"] .st-headlight,
+-.stage[data-phase="stopped"] .st-headlight,
+-.stage[data-phase="resting"] .st-headlight{opacity:.95}
+-.stage[data-phase="arriving"] .st-headlight::after,
+-.stage[data-phase="stopped"] .st-headlight::after,
+-.stage[data-phase="resting"] .st-headlight::after{opacity:.9}
++.stage[data-phase="idle"] .st-headlight{opacity:.25}
++.stage[data-phase="idle"] .st-headlight::after{opacity:0}
++.stage[data-phase="arriving"] .st-headlight{animation:headOn 420ms ease-out both}
++.stage[data-phase="arriving"] .st-headlight::after{animation:headGlow 420ms ease-out both}
+ .stage[data-phase="stopped"] .st-headlight{animation:headBreathe 6s ease-in-out infinite}
+-.stage[data-phase="arriving"] .st-cone,
+-.stage[data-phase="stopped"] .st-cone,
+-.stage[data-phase="resting"] .st-cone{opacity:.55;transform:scaleX(1)}
+-.stage[data-phase="arriving"] .st-door i,
+-.stage[data-phase="stopped"] .st-door i,
+-.stage[data-phase="resting"] .st-door i{transform:scaleX(1)}
+-.stage[data-phase="arriving"] .st-doorlight,
+-.stage[data-phase="stopped"] .st-doorlight,
+-.stage[data-phase="resting"] .st-doorlight{opacity:.45}
+-.stage[data-phase="arriving"] .st-dust,
+-.stage[data-phase="stopped"] .st-dust,
+-.stage[data-phase="resting"] .st-dust{opacity:.55}
++.stage[data-phase="idle"] .st-cone{opacity:0;transform:scaleX(.15)}
++.stage[data-phase="arriving"] .st-cone{animation:coneIn 1100ms cubic-bezier(.22,.61,.24,1) 120ms both}
++.stage[data-phase="idle"] .st-door i{transform:scaleX(0)}
++.stage[data-phase="arriving"] .st-door i{animation:doorOpen 350ms cubic-bezier(.65,0,.35,1) 1180ms both}
++.stage[data-phase="idle"] .st-doorlight{opacity:0}
++.stage[data-phase="arriving"] .st-doorlight{animation:doorLight 600ms ease-out 1200ms both}
++.stage[data-phase="idle"] .st-dust{opacity:0}
++.stage[data-phase="arriving"] .st-dust{animation:dustIn 500ms ease-out 300ms both}
+ .stage[data-phase="arriving"] .st-shed{animation:shedDrift 3200ms ease-out both}
+ .stage[data-phase="stopped"] .st-shed,.stage[data-phase="resting"] .st-shed{transform:translateX(-8px)}
+ .stage[data-phase="arriving"] .st-city{animation:cityDrift 3200ms ease-out both}
+@@ -136,6 +126,14 @@
+ .stage.is-issuing .st-machine i{animation:slotGlow 720ms cubic-bezier(.4,0,.2,1)}
+ .card.ticket-in{animation:ticketIn 550ms cubic-bezier(.16,1,.3,1) both}
+ .issue.is-pressing,.issue.is-pressing:disabled{background:#a53f0a;border:0;color:#fffdf7;transform:translateY(2px);cursor:default}
++@keyframes worldPush{from{transform:scale(1)}to{transform:scale(1.03)}}
++@keyframes trainArrive{from{translate:200px 0}to{translate:0 0}}
++@keyframes headOn{from{opacity:.25}to{opacity:.95}}
++@keyframes headGlow{from{opacity:0}to{opacity:.9}}
++@keyframes coneIn{from{opacity:0;transform:scaleX(.15)}to{opacity:.55;transform:scaleX(1)}}
++@keyframes doorOpen{from{transform:scaleX(0)}to{transform:scaleX(1)}}
++@keyframes doorLight{from{opacity:0}to{opacity:.45}}
++@keyframes dustIn{from{opacity:0}to{opacity:.55}}
+ @keyframes trainSettle{0%,100%{transform:translateY(0)}30%{transform:translateY(-1.5px)}62%{transform:translateY(0)}80%{transform:translateY(-.6px)}}
+ @keyframes headBreathe{0%,100%{opacity:.95}50%{opacity:.62}}
+ @keyframes speedLine{0%{opacity:0;transform:scaleX(.3)}38%{opacity:.45}100%{opacity:0;transform:scaleX(1)}}
+@@ -160,15 +158,18 @@
+ .page{position:relative;z-index:2;max-width:1180px;margin:0 auto;min-height:calc(100svh - 64px);padding:clamp(18px,3.4vh,40px) clamp(20px,4vw,48px) 20px;display:flex;flex-direction:column}
+ .board{display:grid;grid-template-columns:minmax(0,1fr) 460px;gap:clamp(36px,5vw,76px);align-items:center;flex:1;width:100%;min-width:0}
+ .board-copy{min-width:0;color:var(--on-stage)}
+-.guide{margin:0 0 var(--wn-s4);color:var(--on-stage-dim);font-size:.75rem;font-weight:500;line-height:1.833}
+-[data-guided="1"] .guide{display:none}
++.guide{margin:10px 0 0;color:var(--on-stage-dim);font-size:.75rem;font-weight:500;line-height:1.833}
+ .guide p{margin:0}
+-.eyebrow{display:flex;align-items:baseline;gap:10px;margin:0 0 14px;color:var(--on-stage-dim);font-family:var(--wn-mono);font-size:.75rem;letter-spacing:.18em}
+-.eyebrow i{font-style:normal;color:var(--on-stage-accent)}
+ .board-title{margin:0;max-width:16em;color:var(--on-stage);font-size:clamp(38px,4.2vw,58px);font-weight:600;line-height:1.12;letter-spacing:-.02em}
+ .board-title span{display:block;color:var(--on-stage)}
+-.board-lead{margin:22px 0 0;max-width:32em;color:var(--on-stage-dim);font-size:16px;line-height:1.8}
+-.progress{list-style:none;margin:34px 0 0;padding:0;max-width:420px}
++.board-more{margin:22px 0 0;max-width:32em;color:var(--on-stage-dim);font-size:12px}
++.board-more summary{display:inline-flex;align-items:center;gap:8px;min-height:32px;color:var(--on-stage-dim);font-size:12px;letter-spacing:.04em;cursor:pointer;list-style:none}
++.board-more summary::-webkit-details-marker{display:none}
++.board-more summary::before{content:"+";color:var(--on-stage-accent);font-family:var(--wn-mono);font-size:14px}
++.board-more[open] summary::before{content:"−"}
++.board-more summary:focus-visible{outline:2px solid var(--on-stage);outline-offset:2px}
++.board-lead{margin:10px 0 0;max-width:32em;color:var(--on-stage-dim);font-size:14px;line-height:1.8}
++.progress{list-style:none;margin:30px 0 0;padding:0;max-width:420px}
+ .progress li{display:grid;grid-template-columns:46px 84px 1fr;align-items:baseline;gap:12px;padding:14px 0;border-top:1px solid var(--stage-line);color:var(--on-stage-dim)}
+ .progress li i{font:11px/1 var(--wn-mono);font-style:normal;letter-spacing:.14em}
+ .progress li span{font-size:14px;letter-spacing:.08em}
+@@ -179,7 +180,7 @@
+ .ghost{min-height:40px;padding:0 16px;border:1px solid var(--stage-line);border-radius:var(--wn-r1);background:rgba(255,255,255,.06);color:var(--on-stage);font:inherit;font-size:13px;letter-spacing:.02em;cursor:pointer;transition:background var(--m-quick),border-color var(--m-quick)}
+ @media (hover:hover){.ghost:hover{background:rgba(255,255,255,.14);border-color:var(--on-stage-dim)}}
+ .ghost:active{transform:translateY(1px)}
+-.board-note{margin:24px 0 0;max-width:30em;color:var(--on-stage-dim);font-size:12px;line-height:1.85}
++.board-note{margin:10px 0 0;max-width:30em;color:var(--on-stage-dim);font-size:12px;line-height:1.85}
+ .ticket-col{display:flex;flex-direction:column;align-items:stretch;min-width:0;width:100%}
+ 
+ /* ---------- 票：填写态 ---------- */
+@@ -219,7 +220,7 @@
+ .opts label{display:flex;align-items:center;justify-content:center;height:48px;padding:0 6px;border:1px solid rgba(27,35,52,.18);border-radius:6px;background:#f4efe3;color:#1b2334;font-size:14px;font-weight:500;text-align:center;cursor:pointer;user-select:none;transition:background var(--m-quick),border-color var(--m-quick),color var(--m-quick)}
+ @media (hover:hover){.opts label:hover{background:#ede6d6;border-color:rgba(27,35,52,.30)}}
+ .opts input:checked+label{background:#1b2334;border-color:#1b2334;color:#fffdf7;font-weight:600}
+-.opts input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
++.opts input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
+ .micro{height:6px;flex:none;overflow:hidden;padding:0 20px;color:var(--wn-ink);font:6px/6px var(--wn-mono);letter-spacing:.02em;opacity:.26;white-space:nowrap;pointer-events:none;user-select:none}
+ .tear{position:relative;height:6px;flex:none;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 4.5L3 1.5L6 4.5' fill='none' stroke='%231b2334' stroke-opacity='.42' stroke-width='1'/%3E%3C/svg%3E") repeat-x 0 0/6px 6px;box-shadow:0 -1px 0 rgba(255,255,255,.7)}
+ .notch{position:absolute;left:2px;top:50%;width:10px;height:10px;margin-top:-5px;border:1px solid rgba(27,35,52,.42);border-right-color:transparent;border-top-color:transparent;border-bottom-color:transparent;border-radius:50%}
+@@ -231,17 +232,18 @@
+ .issue:disabled{background:transparent;border:1px dashed #c6bca4;color:#8a8271;cursor:default}
+ .sheet-foot small{color:#5a5f70;font-size:11px;letter-spacing:.02em}
+ .ticket-note{margin:0 0 8px;color:#5a5f70;font-size:11px;line-height:1;letter-spacing:.02em;text-align:left}
+-.share-note{margin:var(--wn-s2) 0 0;color:var(--on-stage-dim);font-size:.75rem}
++.share-note{min-height:1.625em;margin:8px 0 0;color:var(--on-stage-dim);font-size:.75rem}
+ .share-text{display:block;width:100%;min-height:44px;margin-top:var(--wn-s2);padding:var(--wn-s3);border:1px solid var(--wn-line);border-radius:var(--wn-r1);background:var(--wn-sheet);color:var(--wn-ink);font:inherit;resize:vertical}
+ 
+ /* ---------- 票：结果态 ---------- */
+-.card{position:relative;overflow:hidden;width:100%;margin:0;padding:0;background-color:#fbf8f0;background-image:radial-gradient(circle .55px at 2px 2px,rgba(27,35,52,.04) 1px,transparent 1.2px),linear-gradient(168deg,#fdfaf3,#fbf8f0 46%,#f8f3e6);background-size:5px 5px,100% 100%;color:#1b2334;border:0;border-radius:2px;box-shadow:0 26px 46px -26px rgba(8,14,26,.55);animation:rise 260ms ease-out;scroll-margin-top:var(--wn-s4)}
++.card{position:relative;overflow:hidden;width:100%;margin:0;padding:0;background-color:#fbf8f0;background-image:radial-gradient(circle .55px at 2px 2px,rgba(27,35,52,.04) 1px,transparent 1.2px),linear-gradient(168deg,#fdfaf3,#fbf8f0 46%,#f8f3e6);background-size:5px 5px,100% 100%;color:#1b2334;border:0;border-radius:2px;box-shadow:0 26px 46px -26px rgba(8,14,26,.55);animation:cardIn 260ms ease-out;scroll-margin-top:var(--wn-s4)}
+ .card .perf{background:radial-gradient(circle 4px at 8px 0,transparent 3.6px,#fbf8f0 4.2px) 0 0/16px 8px repeat-x}
+ .card::after{content:"";position:absolute;inset:8px;border-radius:1px;pointer-events:none;box-shadow:inset 0 0 0 1px rgba(27,35,52,.22),inset 0 0 0 3px rgba(251,248,240,.90),inset 0 0 0 4px rgba(27,35,52,.10)}
+ .card-out{pointer-events:none;animation:out 160ms ease-in forwards}
+ .card-refresh:not(.card-out){animation:none}
+ @keyframes out{to{opacity:0;transform:translateY(8px)}}
+ @keyframes rise{from{opacity:0;transform:translateY(-12px)}to{opacity:1;transform:none}}
++@keyframes cardIn{from{opacity:0}to{opacity:1}}
+ .route-band{height:64px;display:flex;align-items:center;gap:10px;padding:0 20px}
+ .route-band .rb-to b{font-size:22px}
+ .ticket-context{display:flex;flex:0 0 auto;flex-wrap:wrap;align-items:center;gap:6px;min-width:0;margin:0;padding:6px 20px 0}
+@@ -406,6 +408,8 @@
+ /* ---------- 页脚、关于、设置、记忆 ---------- */
+ .foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:24px;min-height:44px;color:var(--on-stage-dim);font-size:.75rem}
+ .settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--on-stage-dim);font-family:inherit;font-size:.875rem;font-weight:500;cursor:pointer}
++.settings:focus{outline:2px solid var(--wn-page-ink);outline-offset:2px}
++.card h2:focus{outline:2px solid var(--wn-ink);outline-offset:2px}
+ @media (hover:hover){.settings:hover{color:var(--on-stage)}}
+ .about{max-width:720px;margin:12px 0 0;padding:24px;border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);overflow-wrap:anywhere}
+ .about h2{margin:0;color:#1b2334;font-size:1.1875rem;font-weight:500}
+@@ -416,7 +420,7 @@
+ .about .chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+ .about .chips label{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid #c6bca4;border-radius:var(--wn-rpill);background:#fbf8f0;color:#1b2334;font-size:.875rem;cursor:pointer;transition:background var(--wn-m2)}
+ .about .chips input:checked+label{background:#e7e0ce;border-color:#525a6e;font-weight:600}
+-.about .chips input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
++.about .chips input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
+ .about fieldset{min-width:0;border:0;padding:0;margin:16px 0 0}
+ .about legend{padding:0;margin-bottom:8px;color:#5a5f70;font-size:.75rem;font-weight:600;letter-spacing:.08em}
+ #model-settings{margin-bottom:24px}
+--- a/web/app.js
++++ b/web/app.js
+@@ -1,6 +1,5 @@
+ const API = '/functions/v1/app';
+ const SESSION_KEY = 'whynot-session';
+-const GUIDE_KEY = 'whynot-guide';
+ const CATEGORY_LABELS = { rest: '歇', observe: '看', listen: '听', tidy: '归', explore: '探' };
+ const CATEGORY_NAMES = { rest: '休息', observe: '观察', listen: '聆听', tidy: '整理', explore: '探索' };
+ const CATEGORY_SHAPES = {
+@@ -107,7 +106,6 @@
+ const result = document.getElementById('result');
+ const status = document.getElementById('status');
+ const feedbackStatus = document.getElementById('feedback-status');
+-const guide = document.getElementById('guide');
+ const laneForm = document.getElementById('lane-form');
+ const laneStatus = document.getElementById('lane-status');
+ const formState = { phase: 'IDLE', step: 0, values: [null, null, null], touched: [false, false, false], epoch: 0, pressing: false };
+@@ -121,6 +119,7 @@
+ const issueHint = document.getElementById('issue-hint');
+ const resetButton = document.getElementById('reset-form');
+ const lastButton = document.getElementById('last-conditions');
++const replayButton = document.getElementById('replay-scene');
+ const settingsToggle = document.getElementById('settings-toggle');
+ const about = document.getElementById('about');
+ const stage = document.querySelector('.stage');
+@@ -136,9 +135,8 @@
+     return;
+   }
+   stage.dataset.phase = 'idle';
+-  requestAnimationFrame(() => {
+-    if (stage) stage.dataset.phase = 'arriving';
+-  });
++  void stage.offsetWidth;
++  stage.dataset.phase = 'arriving';
+   sceneArrivalTimer = setTimeout(() => {
+     if (stage?.dataset.phase === 'arriving') stage.dataset.phase = 'stopped';
+   }, 2400);
+@@ -250,6 +248,7 @@
+   return node;
+ }
+ function focus(node) { node?.focus({ preventScroll: true }); }
++function defer(fn) { setTimeout(fn, 0); }
+ function reveal(node) {
+   const top = node.getBoundingClientRect().top;
+   if (top < 0 || top >= innerHeight) node.scrollIntoView({ block: 'start', behavior: 'instant' });
+@@ -318,7 +317,7 @@
+   setPhase(`AT_FIELD_${index + 1}`);
+   renderForm();
+   if (moveFocus) {
+-    requestAnimationFrame(() => focusField(index));
++    defer(() => focusField(index));
+     reveal(fieldNodes[index]);
+   }
+ }
+@@ -343,7 +342,7 @@
+   setPhase(next === -1 ? 'READY' : `AT_FIELD_${next + 1}`);
+   renderForm();
+   announcePick(index);
+-  requestAnimationFrame(() => {
++  defer(() => {
+     if (next === -1) focus(issueButton);
+     else focusField(next);
+   });
+@@ -375,7 +374,7 @@
+   renderForm();
+   const banner = result.querySelector('.notice');
+   banner?.classList.add('lane-banner');
+-  requestAnimationFrame(() => {
++  defer(() => {
+     const retry = result.querySelector('.lane-banner .retry');
+     if (retry) focus(retry);
+     else focusField(2);
+@@ -398,7 +397,7 @@
+   setPhase('AT_FIELD_1');
+   renderForm();
+   if (announce) laneStatus.textContent = '已清空，重新开始';
+-  requestAnimationFrame(() => focusField(0));
++  defer(() => focusField(0));
+ }
+ function validSaved(snapshot) {
+   return snapshot && [3, 5, 10, 15].includes(snapshot.budget)
+@@ -424,7 +423,7 @@
+   setPhase('READY');
+   renderForm();
+   laneStatus.textContent = `已用上次的条件：${conditionLabels(saved).join('，')}`;
+-  requestAnimationFrame(() => focus(issueButton));
++  defer(() => focus(issueButton));
+ }
+ function openField(index) {
+   if (state.busy || laneForm.hidden || ['ISSUING', 'TICKET', 'PRESSING'].includes(formState.phase)) return;
+@@ -474,6 +473,10 @@
+   });
+   resetButton.addEventListener('click', () => resetForm());
+   lastButton.addEventListener('click', useLastConditions);
++  replayButton.addEventListener('click', () => {
++    arriveScene();
++    laneStatus.textContent = '重新进站';
++  });
+   setPhase('AT_FIELD_1');
+   renderForm();
+ }
+@@ -496,7 +499,7 @@
+   setPhase(`AT_FIELD_${index + 1}`);
+   renderForm();
+   laneStatus.textContent = `返回${FIELD_NAMES[index]}修改`;
+-  requestAnimationFrame(() => focusField(index));
++  defer(() => focusField(index));
+ }
+ function routeBand() {
+   const budget = state.conditions?.budget;
+@@ -758,9 +761,14 @@
+     old.replaceWith(article);
+     if (animateFeedback) {
+       const mark = [...article.querySelectorAll('.preference-mark svg')].find(node => node.getBoundingClientRect().width > 0);
+-      mark.classList.add('feedback-in');
+-      if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
+-      else for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
++      if (mark) {
++        mark.classList.add('feedback-in');
++        if (getComputedStyle(mark).animationName === 'none') mark.classList.remove('feedback-in');
++        else {
++          for (const event of ['animationend', 'animationcancel']) mark.addEventListener(event, () => mark.classList.remove('feedback-in'), { once: true });
++          setTimeout(() => mark.classList.remove('feedback-in'), 140);
++        }
++      }
+     }
+   } else result.append(article);
+   syncConditions();
+@@ -773,10 +781,6 @@
+   }
+   syncTurnForm(state.ix);
+ }
+-function dismissGuide() {
+-  try { localStorage.setItem(GUIDE_KEY, 'seen'); } catch {}
+-  guide.hidden = true;
+-}
+ function setBusy(busy, busyText = '正在找建议') {
+   state.busy = busy;
+   result.setAttribute('aria-busy', String(busy));
+@@ -832,7 +836,6 @@
+     state.feedbackPending = false;
+     state.feedbackAttempts = {};
+     result.replaceChildren();
+-    dismissGuide();
+     setBusy(false);
+     completeTicket(snapshot);
+     renderCard();
+@@ -970,7 +973,6 @@
+     state.feedbackAttempts = {};
+     setBusy(false);
+     result.replaceChildren();
+-    dismissGuide();
+     completeTicket(snapshot);
+     renderCard();
+     status.textContent = '';
+@@ -1616,7 +1618,6 @@
+   }
+ }
+ const themeKey = 'whynot-theme';
+-const stageLightKey = 'whynot-stage';
+ function applyTheme(theme) {
+   if (theme === 'light' || theme === 'dark') document.documentElement.dataset.theme = theme;
+   else delete document.documentElement.dataset.theme;
+@@ -1626,22 +1627,7 @@
+     meta.content = dark ? '#0d1526' : '#cfe0f2';
+   });
+ }
+-function applyStageLight(mode = 'theme') {
+-  const safe = ['dawn', 'dusk', 'night'].includes(mode) ? mode : 'theme';
+-  if (safe === 'theme') delete document.documentElement.dataset.stageLight;
+-  else document.documentElement.dataset.stageLight = safe;
+-  document.querySelectorAll('input[name="stage-light"]').forEach(input => { input.checked = input.value === safe; });
+-}
+ about.addEventListener('change', event => {
+-  if (event.target.name === 'stage-light') {
+-    let mode = event.target.value;
+-    try {
+-      if (mode === 'theme') localStorage.removeItem(stageLightKey);
+-      else localStorage.setItem(stageLightKey, mode);
+-    } catch { mode = 'theme'; }
+-    applyStageLight(mode);
+-    return;
+-  }
+   if (event.target.name !== 'theme') return;
+   let theme = event.target.value;
+   try {
+@@ -1762,7 +1748,6 @@
+ (function init() {
+   const now = new Date();
+   document.getElementById('masthead-date').textContent = `${now.getMonth() + 1}月${now.getDate()}日`;
+-  guide.hidden = document.documentElement.dataset.guided === '1';
+   if (localSettings) {
+     document.getElementById('model-settings').hidden = false;
+     document.getElementById('about-title').textContent = '设置';
+@@ -1770,9 +1755,6 @@
+     settingsToggle.setAttribute('aria-label', '设置，AI 模型、主题设置与记忆管理');
+   }
+   applyTheme(document.documentElement.dataset.theme || 'system');
+-  let stageLight = 'theme';
+-  try { stageLight = localStorage.getItem(stageLightKey) || 'theme'; } catch {}
+-  applyStageLight(stageLight);
+   loadGroundMarks();
+   renderGroundMarks(false);
+   initForm();
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -275,44 +275,41 @@
+     const root = d.documentElement, css = node => node.ownerDocument.defaultView.getComputedStyle(node);
+     const html = await (await native('/')).text();
+     const beforeApp = html.replace('<script src="/app.js"></script>', '');
+-    const guideValue = w.localStorage.getItem('whynot-guide'), themeValue = w.localStorage.getItem('whynot-theme');
++    const themeValue = w.localStorage.getItem('whynot-theme');
+     const probe = d.createElement('iframe');
+     probe.hidden = true; d.body.append(probe);
+     const load = async source => {
+       const loaded = new Promise(resolve => { probe.onload = resolve; });
+       probe.srcdoc = source; await loaded; return probe.contentWindow;
+     };
+-    w.localStorage.removeItem('whynot-guide'); w.localStorage.setItem('whynot-theme', 'dark');
++    w.localStorage.setItem('whynot-theme', 'dark');
+     let p = await load(beforeApp);
+-    check('首访三行引导在外部脚本前可见且措辞准确', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一次只问一件事/答完一格，收成一行/三格齐了，出一张现在' && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    check('说明默认折叠且三行引导在外部脚本前存在', [...p.document.querySelectorAll('.guide p')].map(n => n.textContent).join('/') === '一次只问一件事/答完一格，收成一行/三格齐了，出一张现在' && !p.document.querySelector('details.board-more').open && p.document.querySelector('details.board-more summary').textContent === '说明');
+     check('首帧显式深色与页外文字同步', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.querySelector('.guide p')).color === 'rgba(246, 242, 232, 0.66)' && !p.document.querySelector('script[src="/app.js"]') && typeof p.ask !== 'function');
+     p = await load(html); await p.ensureSession();
+     const pFetch = p.fetch.bind(p);
+     p.fetch = (url, init) => String(url).endsWith('/api/recommendations') ? Promise.reject(new TypeError('test offline')) : pFetch(url, init);
+     await p.ask();
+-    check('首次出票失败不收起引导也不写seen', !p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
++    check('首次出票失败不改变折叠说明', !p.document.querySelector('details.board-more').open);
+     p.fetch = pFetch;
+     const pending = p.ask();
+     const pConditions = JSON.stringify(p.conditions());
+     p.document.getElementById('b3').click();
+     check('生成中结果播报忙碌且通道条件锁定', p.document.getElementById('result').getAttribute('aria-busy') === 'true' && p.document.documentElement.dataset.laneState === 'ISSUING' && !!p.document.getElementById('status').textContent && JSON.stringify(p.conditions()) === pConditions);
+     await pending;
+-    check('首次成功收起引导并写seen且通道让位票卡', p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === 'seen' && p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.ticket-context > button.context-key').length === 3);
++    check('首次成功出票且说明仍折叠', !p.document.querySelector('details.board-more').open && p.document.getElementById('lane-form').hidden && p.document.querySelectorAll('.ticket-context > button.context-key').length === 3);
+     p = await load(beforeApp);
+-    check('回访外部脚本前引导已隐藏且主题不闪回', p.getComputedStyle(p.document.getElementById('guide')).display === 'none' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
+-    w.localStorage.removeItem('whynot-guide');
++    check('回访外部脚本前说明仍折叠且主题不闪回', !p.document.querySelector('details.board-more').open && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)');
+     p = await load(html); await p.ensureSession();
+     p.Storage.prototype.setItem = () => { throw new p.DOMException('test', 'QuotaExceededError'); };
+     await p.ask();
+-    check('存储写拒绝仍出票并在本页收起引导', !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-guide') === null);
++    check('存储写拒绝仍出票且说明折叠', !!p.document.querySelector('.card') && !p.document.querySelector('details.board-more').open);
+     p = await load(beforeApp);
+-    check('写拒绝后刷新无法持久记住但仍可见引导', p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    check('写拒绝后刷新说明仍折叠', !p.document.querySelector('details.board-more').open);
+     p = await load(html.replace('<head>', '<head><script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
+     await p.ensureSession(); await p.ask();
+-    check('存储读拒绝保持系统主题并能出票收起引导', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && p.document.getElementById('guide').hidden);
+-    for (const [key, value] of [['whynot-guide', guideValue], ['whynot-theme', themeValue]]) {
+-      if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
+-    }
++    check('存储读拒绝保持系统主题并能出票且说明折叠', !p.document.documentElement.hasAttribute('data-theme') && !!p.document.querySelector('.card') && !p.document.querySelector('details.board-more').open);
++    if (themeValue === null) w.localStorage.removeItem('whynot-theme'); else w.localStorage.setItem('whynot-theme', themeValue);
+     const settings = d.getElementById('settings-toggle');
+     check('关于入口可见文案包含于名称', settings.textContent === '关于与数据' && settings.getAttribute('aria-label').includes(settings.textContent));
+     click('#settings-toggle');
+@@ -338,6 +335,15 @@
+     probe.style.cssText = 'position:fixed;left:-10000px;top:0;width:390px;height:844px;border:0';
+     p.resetForm(false);
+     const laneDoc = p.document, laneFetch = p.fetch.bind(p);
++    const windowFocused = () => laneDoc.hasFocus();
++    const focusRule = selector => {
++      const target = selector.replace(/\s+/g, '');
++      return [...laneDoc.styleSheets].some(sheet => [...sheet.cssRules].some(rule => rule.selectorText && rule.selectorText.replace(/\s+/g, '').includes(target)));
++    };
++    const focusPass = (selector, node, surface) => windowFocused()
++      ? (css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, surface) >= 3)
++      : focusRule(selector);
++    const focusDetail = () => windowFocused() ? '' : 'headless-no-focus; focus rule present';
+     const rules = [...d.styleSheets, ...laneDoc.styleSheets].flatMap(sheet => [...sheet.cssRules]);
+     const media = rules.filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
+     const savedMedia = media.map(rule => rule.media.mediaText);
+@@ -362,14 +368,14 @@
+         check(`${key}首格选项文字对纸面≥4.5`, css(option).color === 'rgb(27, 35, 52)' && contrast(css(option).color, background(option)) >= 4.5);
+         check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
+         stationInput(0, laneDoc).focus({ preventScroll: true });
+-        check(`${key}首站单选焦点对表面≥3`, css(option).outlineStyle === 'solid' && contrast(css(option).outlineColor, background(option)) >= 3);
++        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus + label', option, background(option)), focusDetail());
+         for (const node of [settings, d.querySelector('.card h2')]) {
+           node.focus({ preventScroll: true });
+-          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, css(node).outlineStyle === 'solid' && contrast(css(node).outlineColor, background(node)) >= 3);
++          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus' : '.card h2:focus', node, background(node)), focusDetail());
+         }
+         d.getElementById('theme-system').focus({ preventScroll: true });
+         const themeLabel = d.querySelector('label[for="theme-system"]');
+-        check(`${key}主题单选外圈对面板≥3`, css(themeLabel).outlineStyle === 'solid' && contrast(css(themeLabel).outlineColor, css(d.getElementById('about')).backgroundColor) >= 3);
++        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });
+@@ -641,7 +647,7 @@
+   }
+   if (group === 'b4') {
+     const root = d.documentElement, key = 'whynot-theme';
+-    const stored = w.localStorage.getItem(key), guided = w.localStorage.getItem('whynot-guide');
++    const stored = w.localStorage.getItem(key);
+     const media = [...d.styleSheets[0].cssRules].filter(rule => rule.media?.mediaText.includes('prefers-color-scheme'));
+     const originalMedia = media.map(rule => rule.media.mediaText);
+     const readTheme = () => d.querySelector('input[name="theme"]:checked').value;
+@@ -657,14 +663,12 @@
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = originalMedia[i]; });
++    selectTheme('light');
++    const lightScene = w.getComputedStyle(d.querySelector('.stage')).backgroundImage;
++    const lightTitle = w.getComputedStyle(d.querySelector('.board-title')).color;
+     selectTheme('dark');
++    check('深浅主题同时改变月台与纸外文字', lightScene !== w.getComputedStyle(d.querySelector('.stage')).backgroundImage && lightTitle === 'rgb(27, 35, 52)' && w.getComputedStyle(d.querySelector('.board-title')).color === 'rgb(246, 242, 232)');
+     check('显式主题写入存储', w.localStorage.getItem(key) === 'dark');
+-    click('input[name="stage-light"][value="dusk"]');
+-    check('月台光线可独立选黄昏并写入存储', root.dataset.stageLight === 'dusk' && w.localStorage.getItem('whynot-stage') === 'dusk' && w.getComputedStyle(d.querySelector('.board-title')).color === 'rgb(255, 246, 234)');
+-    selectTheme('light');
+-    check('月台光线不被主题覆盖且保持黄昏纸外文字', root.dataset.stageLight === 'dusk' && w.getComputedStyle(d.querySelector('.stage')).backgroundImage.includes('rgb(247, 201, 142)') && w.getComputedStyle(d.querySelector('.board-title')).color === 'rgb(255, 246, 234)');
+-    click('input[name="stage-light"][value="theme"]');
+-    check('跟随主题时月台回到主题光线', !root.hasAttribute('data-stage-light') && w.localStorage.getItem('whynot-stage') === null && w.getComputedStyle(d.querySelector('.board-title')).color === 'rgb(27, 35, 52)');
+     selectTheme('system');
+     check('跟随系统清除覆盖值', w.localStorage.getItem(key) === null && !root.hasAttribute('data-theme'));
+     const setItem = w.Storage.prototype.setItem;
+@@ -689,14 +693,12 @@
+     }
+     const beforeApp = html.replace('<script src="/app.js"></script>', '');
+     w.localStorage.setItem(key, 'dark');
+-    w.localStorage.setItem('whynot-guide', 'seen');
+     let p = await probePage(beforeApp);
+-    check('外部app运行前已是深色且回访引导隐藏', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && p.getComputedStyle(p.document.getElementById('guide')).display === 'none');
++    check('外部app运行前已是深色且说明折叠', p.document.documentElement.dataset.theme === 'dark' && p.getComputedStyle(p.document.body).backgroundColor === 'rgb(16, 24, 39)' && !p.document.querySelector('details.board-more').open);
+     check('外部app运行前主题meta已同步', [...p.document.querySelectorAll('meta[name="theme-color"]')].every(m => m.content === '#0d1526'));
+-    w.localStorage.removeItem('whynot-guide');
+     w.localStorage.setItem(key, 'unknown');
+     p = await probePage(beforeApp);
+-    check('无效主题忽略且首访引导无需app即可见', !p.document.documentElement.hasAttribute('data-theme') && p.getComputedStyle(p.document.getElementById('guide')).display !== 'none');
++    check('无效主题忽略且说明默认折叠', !p.document.documentElement.hasAttribute('data-theme') && !p.document.querySelector('details.board-more').open);
+     p = await probePage(html.replace('<head>', '<head><script>window.testErrors=[];addEventListener("error",e=>testErrors.push(e.message));Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})</script>'));
+     await p.ensureSession();
+     await p.ask();
+@@ -704,7 +706,6 @@
+     check('存储读取被拒仍能生成及反馈，主题跟随系统', !p.document.documentElement.hasAttribute('data-theme') && p.document.querySelector('input[name="theme"]:checked').value === 'system' && p.eval('state.card.preference') === 'like' && !p.testErrors.length);
+     probe.remove();
+     if (stored === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, stored);
+-    if (guided === null) w.localStorage.removeItem('whynot-guide'); else w.localStorage.setItem('whynot-guide', guided);
+     w.applyTheme(stored === 'light' || stored === 'dark' ? stored : 'system');
+ 
+     check('未完成卡无分享入口', !d.querySelector('[data-focus="share"]'));
+@@ -858,7 +859,7 @@
+       motionRules.forEach(rule => { rule.media.mediaText = reduced ? 'all' : 'not all'; });
+       w.matchMedia = query => query.includes('prefers-reduced-motion') ? { matches: reduced, media: query, addEventListener() {}, removeEventListener() {} } : match.call(w, query);
+     };
+-    const stored = w.localStorage.getItem('whynot-lane'), guided = w.localStorage.getItem('whynot-guide');
++    const stored = w.localStorage.getItem('whynot-lane');
+     const openingCalls = [], recommendationCalls = [], feedbackCalls = [];
+     const gate = deferred();
+     let failOpening = false, probe;
+@@ -879,6 +880,8 @@
+       };
+ 
+       w.resetForm(false);
++      await pause(140);
++      check('lane/进站编排不依赖可见帧启动', ['arriving', 'stopped', 'resting'].includes(d.querySelector('.stage').dataset.phase));
+       check('lane/初始是一张三格空票且不自动出票', !form.hidden && d.getElementById('result').hidden && lane().step === 0 && lane().phase === 'AT_FIELD_1' && lane().values.every(value => value === null) && doneValues().every(value => !value) && d.getElementById('issue').disabled && !state().card && openingCalls.length === 0);
+       check('lane/状态公开且html同步', Number.isInteger(lane().epoch) && lane().epoch >= 0 && root.dataset.laneState === lane().phase && d.body.dataset.phase === lane().phase);
+       check('lane/票面骨架完整且齿孔票头基线存在', !!form.querySelector('.perf') && !!form.querySelector('.thead') && !!form.querySelector('.band') && getComputedStyle(form).maskImage.includes('radial-gradient'));
+@@ -929,7 +932,7 @@
+       check('lane/在途DOM点击不回改条件或重入', JSON.stringify(w.conditions()) === locked && lane().phase === 'ISSUING' && openingCalls.length === 1 && recommendationCalls.length === 0 && d.getElementById('issue').disabled);
+       gate.resolve(); await settleTicket();
+       check('lane/真实API成功只留一张结果票且票面隐藏', !!state().ix && d.querySelectorAll('.card').length === 1 && visible(d.querySelector('.card')) && form.hidden && root.dataset.laneState === 'TICKET' && d.getElementById('result').getAttribute('aria-busy') === 'false' && state().card.minutes <= firstSnapshot.budget);
+-      check('lane/首次成功焦点到标题而引导才收起', d.activeElement.id === 'card-title' && d.getElementById('guide').hidden && w.localStorage.getItem('whynot-guide') === 'seen');
++      check('lane/首次成功焦点到标题且说明仍折叠', d.activeElement.id === 'card-title' && !d.querySelector('details.board-more').open);
+       checkCardSemantics();
+       check('lane/结果票有区间带与票头票根', !!d.querySelector('.card .route-band') && !!d.querySelector('.card .ticket-head') && !!d.querySelector('.card .ticket-stub') && d.querySelector('.card .route-band').textContent.includes('+15′'));
+       const contextKeys = [...d.querySelectorAll('.ticket-context > button.context-key')];
+@@ -1036,20 +1039,23 @@
+         p.document.getElementById('issue').click();
+         await waitFor(() => !p.eval('state.busy') && p.eval('formState.phase') === 'TICKET', '存储拒绝后真实出票');
+       };
+-      w.localStorage.removeItem('whynot-guide');
+       let p = await loadProbe(null, '<script>Object.defineProperty(window,"localStorage",{get(){throw new DOMException("test","SecurityError")}})<\/script>');
+       check('lane/存储读取拒绝仍初始化空票', idleProbe(p));
+       await walkProbe(p);
+-      check('lane/存储读取拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && !p.laneProbeErrors.length);
++      check('lane/存储读取拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && !p.laneProbeErrors.length);
+       p = await loadProbe(null, '<script>Storage.prototype.setItem=function(){throw new DOMException("test","QuotaExceededError")}<\/script>');
+       await walkProbe(p);
+-      check('lane/存储写入拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
++      check('lane/存储写入拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
+ 
+       const stage = d.querySelector('.stage');
+       check('lane/进站编排已停站或静息', ['stopped', 'resting'].includes(stage.dataset.phase));
+       w.restScene();
+       await pause(800);
+-      check('lane/静息后场景运行中动画为0', stage.dataset.phase === 'resting' && d.getAnimations().filter(animation => animation.playState === 'running').length === 0);
++      check('lane/静息后场景运行中动画为0', stage.dataset.phase === 'resting' && d.getAnimations().filter(animation => animation.playState === 'running' && animation.effect?.target?.closest?.('.stage')).length === 0);
++      click('#replay-scene');
++      await pause(60);
++      check('lane/重播进站可重新触发场景', ['arriving', 'stopped'].includes(stage.dataset.phase));
++      w.restScene();
+       const reducedProbe = await loadProbe(null, '<script>const _m=window.matchMedia;window.matchMedia=q=>q.includes("prefers-reduced-motion")?{matches:true,media:q,addEventListener(){},removeEventListener(){}}:_m.call(window,q);addEventListener("load",()=>{for(const s of document.styleSheets){try{for(const r of s.cssRules){if(r.media&&r.media.mediaText.includes("prefers-reduced-motion"))r.media.mediaText="all";}}catch{}}});<\/script>');
+       await pause(220);
+       check('lane/reduced-motion首帧停站且无场景动画', reducedProbe.document.querySelector('.stage').dataset.phase === 'stopped' && reducedProbe.document.getAnimations().filter(animation => animation.playState === 'running').length === 0);
+@@ -1060,7 +1066,7 @@
+       w.matchMedia = match;
+       motionRules.forEach((rule, i) => { rule.media.mediaText = savedMotion[i]; });
+       frame.style.width = '390px'; root.style.fontSize = '';
+-      for (const [key, value] of [['whynot-lane', stored], ['whynot-guide', guided]]) {
++      for (const [key, value] of [['whynot-lane', stored]]) {
+         if (value === null) w.localStorage.removeItem(key); else w.localStorage.setItem(key, value);
+       }
+       await setEnv('MODEL_API_KEY', null);

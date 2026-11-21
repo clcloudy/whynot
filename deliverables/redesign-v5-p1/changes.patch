@@ -1,0 +1,61 @@
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -1029,6 +1029,15 @@
+       p = await loadProbe(null, '<script>Storage.prototype.setItem=function(){throw new DOMException("test","QuotaExceededError")}<\/script>');
+       await walkProbe(p);
+       check('lane/存储写入拒绝真实三格出票不阻塞', p.laneProbeCalls.length === 1 && !!p.eval('state.ix') && p.document.getElementById('guide').hidden && p.localStorage.getItem('whynot-lane') === null && !p.laneProbeErrors.length);
++
++      const stage = d.querySelector('.stage');
++      check('lane/进站编排已停站或静息', ['stopped', 'resting'].includes(stage.dataset.phase));
++      w.restScene();
++      await pause(800);
++      check('lane/静息后场景运行中动画为0', stage.dataset.phase === 'resting' && d.getAnimations().filter(animation => animation.playState === 'running').length === 0);
++      const reducedProbe = await loadProbe(null, '<script>const _m=window.matchMedia;window.matchMedia=q=>q.includes("prefers-reduced-motion")?{matches:true,media:q,addEventListener(){},removeEventListener(){}}:_m.call(window,q);addEventListener("load",()=>{for(const s of document.styleSheets){try{for(const r of s.cssRules){if(r.media&&r.media.mediaText.includes("prefers-reduced-motion"))r.media.mediaText="all";}}catch{}}});<\/script>');
++      await pause(220);
++      check('lane/reduced-motion首帧停站且无场景动画', reducedProbe.document.querySelector('.stage').dataset.phase === 'stopped' && reducedProbe.document.getAnimations().filter(animation => animation.playState === 'running').length === 0);
+     } finally {
+       gate.resolve();
+       probe?.remove();
+@@ -1148,13 +1157,13 @@
+     await w.sendTurn();
+     check('发送中防双击', turnCalls === 1 && ix.messages.length === 1 && ix.sending && d.querySelector('[data-focus="send"]').disabled, JSON.stringify({ turnCalls, msgs: ix.messages.length, sending: ix.sending }));
+     gate.resolve(); await firstSend;
+-    check('第一轮回复上卡且版本推进', ix.messages.length === 2 && ix.messages[1].role === 'ai' && ix.version === 2 && d.querySelectorAll('.msg').length === 2);
++    check('第一轮回复上卡且版本推进', ix.messages.length === 2 && ix.messages[1].role === 'ai' && ix.version === 2 && d.querySelectorAll('.msg').length === 2, JSON.stringify({ msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length, ixStatus: ix.status, busy: state().busy }));
+ 
+     const bodies = [];
+     w.fetch = (url, init) => { if (String(url).endsWith('/turns')) bodies.push(JSON.parse(init.body)); return native(url, init); };
+     setDraft('第二轮的话');
+     await w.sendTurn();
+-    check('第二轮使用第一次回复的版本', bodies[0].version === 2 && ix.version === 3 && ix.messages.length === 4);
++    check('第二轮使用第一次回复的版本', bodies[0].version === 2 && ix.version === 3 && ix.messages.length === 4, JSON.stringify({ bodies, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length, sending: ix.sending }));
+ 
+     let failOnce = true;
+     const retryBodies = [];
+@@ -1171,7 +1180,7 @@
+     const failedId = retryBodies[0].request_id, failedVersion = retryBodies[0].version;
+     click(`[data-focus="retry-${failedId}"]`);
+     await until(() => !ix.sending);
+-    check('重试复用同一UUID版本与内容', retryBodies[1].request_id === failedId && retryBodies[1].version === failedVersion && retryBodies[1].text === '会失败的一句' && ix.messages.at(-1).status === 'sent');
++    check('重试复用同一UUID版本与内容', retryBodies[1].request_id === failedId && retryBodies[1].version === failedVersion && retryBodies[1].text === '会失败的一句' && ix.messages.at(-1).status === 'sent', JSON.stringify({ retryBodies, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), version: ix.version, dom: d.querySelectorAll('.msg').length }));
+ 
+     gate = deferred();
+     w.fetch = async (url, init) => { const r = await native(url, init); if (String(url).endsWith('/turns')) await gate.promise; return r; };
+@@ -1318,14 +1327,14 @@
+     check('服务端拒绝损坏图片后可重新上传', d.querySelector('.photo-error')?.textContent.includes('没能读取') && ix.messages.length === 0 && !ix.uploadBusy);
+     await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/ambiguous');
+     await w.uploadPhoto(new w.File([image], 'fixture.png', { type: 'image/png' }));
+-    check('真实上传入口歧义时先问不伪造词卡', ix.messages.length === 2 && !d.querySelector('.word-card') && !!d.querySelector('.msg-img') && ix.version === 2);
++    check('真实上传入口歧义时先问不伪造词卡', ix.messages.length === 2 && !d.querySelector('.word-card') && !!d.querySelector('.msg-img') && ix.version === 2, JSON.stringify({ msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text, hasWord: !!m.word })), version: ix.version, dom: d.querySelectorAll('.msg').length, sending: ix.sending, uploadBusy: ix.uploadBusy }));
+     await w.uploadPhoto(new w.File([image], 'fixture-again.png', { type: 'image/png' }));
+-    check('歧义时重拍推进版本并保留会话', ixOf() === ix && ix.version === 3 && d.querySelectorAll('.msg-img').length === 2 && d.querySelector('[data-focus="photo"]').textContent === '重拍或换一张');
++    check('歧义时重拍推进版本并保留会话', ixOf() === ix && ix.version === 3 && d.querySelectorAll('.msg-img').length === 2 && d.querySelector('[data-focus="photo"]').textContent === '重拍或换一张', JSON.stringify({ version: ix.version, imgs: d.querySelectorAll('.msg-img').length, label: d.querySelector('[data-focus="photo"]')?.textContent, msgs: ix.messages.length, sending: ix.sending }));
+     await contrastCheck('图片上传', ['.mode-photo', '.photo-pick', '.photo-hint']);
+     await setEnv('MODEL_ENDPOINT', 'http://127.0.0.1:8766/valid');
+     setDraft('左边的订书机');
+     await w.sendTurn();
+-    check('图片澄清续聊呈现完整词卡', d.querySelector('.word-en')?.textContent === 'stapler' && !!d.querySelector('.word-ipa') && !!d.querySelector('.word-meaning') && !!d.querySelector('.word-practice') && ix.version === 4);
++    check('图片澄清续聊呈现完整词卡', d.querySelector('.word-en')?.textContent === 'stapler' && !!d.querySelector('.word-ipa') && !!d.querySelector('.word-meaning') && !!d.querySelector('.word-practice') && ix.version === 4, JSON.stringify({ version: ix.version, word: d.querySelector('.word-en')?.textContent, msgs: ix.messages.map(m => ({ role: m.role, status: m.status, text: m.text })), dom: d.querySelectorAll('.msg').length, sending: ix.sending }));
+     await contrastCheck('图片词卡', ['.mode-photo', '.photo-pick', '.photo-hint', '.word-en', '.word-ipa', '.word-meaning', '.word-practice']);
+     for (const [width, font] of [[320, 16], [390, 16], [768, 16], [320, 32]]) {
+       frame.style.width = `${width}px`; d.documentElement.style.fontSize = `${font}px`;
