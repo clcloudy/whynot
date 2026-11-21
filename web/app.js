@@ -150,6 +150,22 @@ function restScene() {
   clearTimeout(sceneRestTimer);
   stage.dataset.phase = 'resting';
 }
+// 出一张现在时列车进站与模型请求并行，票在进站基本落定后落下。
+let issueSceneGate = null;
+function armIssueScene() {
+  if (!stage || reducedMotion()) return;
+  arriveScene();
+  issueSceneGate = new Promise(resolve => { setTimeout(resolve, 1500); });
+}
+function takeSceneGate() {
+  const gate = issueSceneGate;
+  issueSceneGate = null;
+  return gate || Promise.resolve();
+}
+// 出票失败时中止进站编排，月台直接回到停站态。
+function settleScene() {
+  if (stage?.dataset.phase === 'arriving') stage.dataset.phase = 'stopped';
+}
 function flashScene() {
   if (!stage || reducedMotion()) return;
   clearTimeout(sceneFlashTimer);
@@ -363,6 +379,7 @@ function completeTicket(snapshot) {
   renderForm();
 }
 function failTicket() {
+  settleScene();
   formState.step = 2;
   formState.pressing = false;
   state.animateTicket = false;
@@ -459,7 +476,7 @@ function initForm() {
         renderForm();
         return;
       }
-      flashScene();
+      armIssueScene();
       state.animateTicket = true;
       startInteraction(snapshot, { source: 'primary', replaces: state.ix?.id });
     };
@@ -805,6 +822,7 @@ function exitCard() {
 async function ask(snapshot = conditions(), source = 'primary') {
   if (state.busy) return;
   snapshot = { ...snapshot };
+  const sceneGate = takeSceneGate();
   if (source === 'swap') flashScene();
   clearShare();
   feedbackStatus.textContent = '';
@@ -825,6 +843,7 @@ async function ask(snapshot = conditions(), source = 'primary') {
     });
     const card = cardResult(body);
     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+    await sceneGate;
     releaseIx(state.ix);
     state.ix = null;
     state.card = card;
@@ -941,6 +960,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
   const replaces = opts.replaces ?? null;
   const requestId = opts.requestId || uuid();
   const source = opts.source || 'primary';
+  const sceneGate = takeSceneGate();
   if (source === 'swap') flashScene();
   const payload = { ...snapshot, supports: SUPPORTS, request_id: requestId, ...(replaces ? { replaces } : {}) };
   clearShare();
@@ -962,6 +982,7 @@ async function startInteraction(snapshot = conditions(), opts = {}) {
     });
     const data = interactionResult(body);
     if (data.card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
+    await sceneGate;
     releaseIx(state.ix);
     state.card = data.card;
     state.completionHeight = 0;
