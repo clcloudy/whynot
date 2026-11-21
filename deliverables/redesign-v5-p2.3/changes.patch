@@ -1,0 +1,181 @@
+--- a/web/index.html
++++ b/web/index.html
+@@ -54,12 +54,11 @@
+       </svg>
+       <span class="brand-name">WhyNot</span>
+     </div>
+-    <div class="masthead-left">
++    <div class="masthead-right">
+       <span class="masthead-date" id="masthead-date"></span>
+       <span class="station-marks" aria-hidden="true"><i></i><i></i><i></i></span>
+     </div>
+   </header>
+-
+   <main class="page">
+     <div class="board" id="board">
+       <div class="board-copy">
+--- a/web/style.css
++++ b/web/style.css
+@@ -26,7 +26,7 @@
+ 
+ /* ---------- 月台：纯 CSS 分层场景 ---------- */
+ .stage{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;background:linear-gradient(180deg,var(--stage-sky-1),var(--stage-sky-2) 58%,var(--stage-sky-3))}
+-.st-world{position:absolute;inset:0;transform:scale(1.03);transform-origin:62% 74%;will-change:transform}
++.st-world{position:absolute;inset:0;transform:scale(1.03);transform-origin:62% 74%}
+ .st-sky{position:absolute;inset:0;background:radial-gradient(ellipse 58% 44% at 76% 30%,var(--stage-glow),transparent 68%),radial-gradient(ellipse 46% 34% at 16% 12%,rgba(255,255,255,.20),transparent 70%)}
+ .st-city{position:absolute;left:0;right:0;top:34%;height:10%;background:repeating-linear-gradient(90deg,var(--stage-city) 0 2px,transparent 2px 48px),repeating-linear-gradient(90deg,var(--stage-city) 0 1px,transparent 1px 17px);opacity:.5;mask:linear-gradient(180deg,transparent,#000 30%,transparent)}
+ .st-shed{position:absolute;left:0;right:0;top:0;height:30%;background:linear-gradient(180deg,var(--stage-shed),var(--stage-shed-2));box-shadow:0 12px 40px rgba(0,0,0,.18)}
+@@ -43,7 +43,7 @@
+   opacity:.55}
+ .st-signal{position:absolute;right:16%;top:33%;width:8px;height:8px;border-radius:50%;background:#ffcf8a;box-shadow:0 0 16px 6px rgba(255,207,138,.35)}
+ .st-track{position:absolute;left:0;right:0;top:65%;height:4px;background:linear-gradient(180deg,rgba(255,255,255,.18),rgba(0,0,0,.32));box-shadow:0 5px 0 rgba(0,0,0,.16),0 14px 0 rgba(0,0,0,.10)}
+-.st-train{position:absolute;right:-8%;top:47%;width:56%;height:17%;min-height:96px;border-radius:26px 0 0 6px;background:linear-gradient(180deg,var(--stage-train),var(--stage-train-2));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -14px 0 rgba(0,0,0,.34),0 22px 40px rgba(0,0,0,.28);translate:0 0;will-change:translate}
++.st-train{position:absolute;right:-8%;top:47%;width:56%;height:17%;min-height:96px;border-radius:26px 0 0 6px;background:linear-gradient(180deg,var(--stage-train),var(--stage-train-2));box-shadow:inset 0 2px 0 rgba(255,255,255,.22),inset 0 -14px 0 rgba(0,0,0,.34),0 22px 40px rgba(0,0,0,.28);translate:0 0}
+ .st-train::before{content:"";position:absolute;left:0;top:12%;bottom:16%;width:9%;border-radius:26px 0 0 6px;background:linear-gradient(90deg,rgba(255,255,255,.14),transparent)}
+ .st-train::after{content:"";position:absolute;left:4%;right:2%;bottom:-10px;height:14px;border-radius:50%;background:rgba(0,0,0,.35);filter:blur(7px)}
+ .st-headlight{position:absolute;left:4%;top:52%;width:11px;height:11px;border-radius:50%;background:#fff2d4;opacity:.95;box-shadow:0 0 18px 8px var(--stage-glow),0 0 50px 20px rgba(255,217,160,.20)}
+@@ -92,9 +92,9 @@
+   opacity:.55}
+ .st-veil{position:absolute;inset:0;background:var(--stage-veil)}
+ .stage[data-phase="idle"] .st-world{transform:scale(1)}
+-.stage[data-phase="arriving"] .st-world{animation:worldPush 3200ms cubic-bezier(.3,.2,.2,1) both}
++.stage[data-phase="arriving"] .st-world{animation:worldPush 3200ms cubic-bezier(.3,.2,.2,1) both;will-change:transform}
+ .stage[data-phase="idle"] .st-train{translate:200px 0}
+-.stage[data-phase="arriving"] .st-train{animation:trainArrive 1320ms cubic-bezier(.22,.61,.24,1) 160ms both,trainSettle 420ms cubic-bezier(.45,0,.55,1) 1600ms both}
++.stage[data-phase="arriving"] .st-train{animation:trainArrive 1320ms cubic-bezier(.22,.61,.24,1) 160ms both,trainSettle 420ms cubic-bezier(.45,0,.55,1) 1600ms both;will-change:translate}
+ .stage[data-phase="arriving"] .st-speed.a{animation:speedLine 700ms linear 180ms both}
+ .stage[data-phase="arriving"] .st-speed.b{animation:speedLine 700ms linear 240ms both}
+ .stage[data-phase="arriving"] .st-speed.c{animation:speedLine 700ms linear 300ms both}
+@@ -148,7 +148,7 @@
+ /* ---------- 页头与版心 ---------- */
+ .masthead{position:relative;z-index:3;display:flex;align-items:center;justify-content:space-between;max-width:none;min-height:64px;flex-wrap:wrap;column-gap:var(--wn-s2);padding:0 clamp(20px,4vw,56px);border-bottom:1px solid var(--stage-line);color:var(--on-stage)}
+ .masthead .brand-name,.masthead .mark{color:var(--on-stage)}
+-.masthead-left{display:flex;align-items:center;gap:var(--wn-s2)}
++.masthead-left,.masthead-right{display:flex;align-items:center;gap:var(--wn-s2)}
+ .mark{display:block;width:20px;height:20px}
+ .brand-name{font-size:1.375rem;font-weight:600;line-height:1.364;letter-spacing:.04em}
+ .masthead-date{color:var(--on-stage-dim);font-size:.75rem;font-weight:500;letter-spacing:.04em}
+@@ -218,7 +218,7 @@
+ .opts label{display:flex;align-items:center;justify-content:center;height:48px;padding:0 6px;border:1px solid rgba(27,35,52,.18);border-radius:6px;background:#f4efe3;color:#1b2334;font-size:14px;font-weight:500;text-align:center;cursor:pointer;user-select:none;transition:background var(--m-quick),border-color var(--m-quick),color var(--m-quick)}
+ @media (hover:hover){.opts label:hover{background:#ede6d6;border-color:rgba(27,35,52,.30)}}
+ .opts input:checked+label{background:#1b2334;border-color:#1b2334;color:#fffdf7;font-weight:600}
+-.opts input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
++.opts input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
+ .micro{height:6px;flex:none;overflow:hidden;padding:0 20px;color:var(--wn-ink);font:6px/6px var(--wn-mono);letter-spacing:.02em;opacity:.26;white-space:nowrap;pointer-events:none;user-select:none}
+ .tear{position:relative;height:6px;flex:none;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 4.5L3 1.5L6 4.5' fill='none' stroke='%231b2334' stroke-opacity='.42' stroke-width='1'/%3E%3C/svg%3E") repeat-x 0 0/6px 6px;box-shadow:0 -1px 0 rgba(255,255,255,.7)}
+ .notch{position:absolute;left:2px;top:50%;width:10px;height:10px;margin-top:-5px;border:1px solid rgba(27,35,52,.42);border-right-color:transparent;border-top-color:transparent;border-bottom-color:transparent;border-radius:50%}
+@@ -406,8 +406,8 @@
+ /* ---------- 页脚、关于、设置、记忆 ---------- */
+ .foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:24px;min-height:44px;color:var(--on-stage-dim);font-size:.75rem}
+ .settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--on-stage-dim);font-family:inherit;font-size:.875rem;font-weight:500;cursor:pointer}
+-.settings:focus{outline:2px solid var(--wn-page-ink);outline-offset:2px}
+-.card h2:focus{outline:2px solid var(--wn-ink);outline-offset:2px}
++.settings:focus-visible{outline:2px solid var(--wn-page-ink);outline-offset:2px}
++.card h2:focus,.card h2:focus-visible{outline:none}
+ @media (hover:hover){.settings:hover{color:var(--on-stage)}}
+ .about{max-width:720px;margin:12px 0 0;padding:24px;border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);overflow-wrap:anywhere}
+ .about h2{margin:0;color:#1b2334;font-size:1.1875rem;font-weight:500}
+@@ -418,7 +418,7 @@
+ .about .chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
+ .about .chips label{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid #c6bca4;border-radius:var(--wn-rpill);background:#fbf8f0;color:#1b2334;font-size:.875rem;cursor:pointer;transition:background var(--wn-m2)}
+ .about .chips input:checked+label{background:#e7e0ce;border-color:#525a6e;font-weight:600}
+-.about .chips input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
++.about .chips input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
+ .about fieldset{min-width:0;border:0;padding:0;margin:16px 0 0}
+ .about legend{padding:0;margin-bottom:8px;color:#5a5f70;font-size:.75rem;font-weight:600;letter-spacing:.08em}
+ #model-settings{margin-bottom:24px}
+--- a/web/app.js
++++ b/web/app.js
+@@ -150,6 +150,22 @@
+   clearTimeout(sceneRestTimer);
+   stage.dataset.phase = 'resting';
+ }
++// 出一张现在时列车进站与模型请求并行，票在进站基本落定后落下。
++let issueSceneGate = null;
++function armIssueScene() {
++  if (!stage || reducedMotion()) return;
++  arriveScene();
++  issueSceneGate = new Promise(resolve => { setTimeout(resolve, 1500); });
++}
++function takeSceneGate() {
++  const gate = issueSceneGate;
++  issueSceneGate = null;
++  return gate || Promise.resolve();
++}
++// 出票失败时中止进站编排，月台直接回到停站态。
++function settleScene() {
++  if (stage?.dataset.phase === 'arriving') stage.dataset.phase = 'stopped';
++}
+ function flashScene() {
+   if (!stage || reducedMotion()) return;
+   clearTimeout(sceneFlashTimer);
+@@ -363,6 +379,7 @@
+   renderForm();
+ }
+ function failTicket() {
++  settleScene();
+   formState.step = 2;
+   formState.pressing = false;
+   state.animateTicket = false;
+@@ -459,7 +476,7 @@
+         renderForm();
+         return;
+       }
+-      flashScene();
++      armIssueScene();
+       state.animateTicket = true;
+       startInteraction(snapshot, { source: 'primary', replaces: state.ix?.id });
+     };
+@@ -805,6 +822,7 @@
+ async function ask(snapshot = conditions(), source = 'primary') {
+   if (state.busy) return;
+   snapshot = { ...snapshot };
++  const sceneGate = takeSceneGate();
+   if (source === 'swap') flashScene();
+   clearShare();
+   feedbackStatus.textContent = '';
+@@ -825,6 +843,7 @@
+     });
+     const card = cardResult(body);
+     if (card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
++    await sceneGate;
+     releaseIx(state.ix);
+     state.ix = null;
+     state.card = card;
+@@ -941,6 +960,7 @@
+   const replaces = opts.replaces ?? null;
+   const requestId = opts.requestId || uuid();
+   const source = opts.source || 'primary';
++  const sceneGate = takeSceneGate();
+   if (source === 'swap') flashScene();
+   const payload = { ...snapshot, supports: SUPPORTS, request_id: requestId, ...(replaces ? { replaces } : {}) };
+   clearShare();
+@@ -962,6 +982,7 @@
+     });
+     const data = interactionResult(body);
+     if (data.card.minutes > snapshot.budget) throw new RequestError('invalid_response', 0);
++    await sceneGate;
+     releaseIx(state.ix);
+     state.card = data.card;
+     state.completionHeight = 0;
+--- a/dev/acceptance-ui.mjs
++++ b/dev/acceptance-ui.mjs
+@@ -368,14 +368,14 @@
+         check(`${key}首格选项文字对纸面≥4.5`, css(option).color === 'rgb(27, 35, 52)' && contrast(css(option).color, background(option)) >= 4.5);
+         check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
+         stationInput(0, laneDoc).focus({ preventScroll: true });
+-        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus + label', option, background(option)), focusDetail());
+-        for (const node of [settings, d.querySelector('.card h2')]) {
++        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus-visible + label', option, background(option)), focusDetail());
++        for (const node of [settings, d.querySelector('.card .swap')]) {
+           node.focus({ preventScroll: true });
+-          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus' : '.card h2:focus', node, background(node)), focusDetail());
++          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus-visible' : '.card :focus-visible', node, background(node)), focusDetail());
+         }
+         d.getElementById('theme-system').focus({ preventScroll: true });
+         const themeLabel = d.querySelector('label[for="theme-system"]');
+-        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
++        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus-visible + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
+       }
+     }
+     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });

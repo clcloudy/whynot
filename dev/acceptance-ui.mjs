@@ -368,14 +368,14 @@ export default async function run(group = 'state') {
         check(`${key}首格选项文字对纸面≥4.5`, css(option).color === 'rgb(27, 35, 52)' && contrast(css(option).color, background(option)) >= 4.5);
         check(`${key}主题与换票保持中性色`, [...d.querySelectorAll('input[name="theme"]:checked + label')].every(n => css(n).backgroundColor !== css(option).backgroundColor) && css(d.querySelector('.swap')).color === 'rgb(27, 35, 52)');
         stationInput(0, laneDoc).focus({ preventScroll: true });
-        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus + label', option, background(option)), focusDetail());
-        for (const node of [settings, d.querySelector('.card h2')]) {
+        check(`${key}首站单选焦点对表面≥3`, focusPass('.opts input:focus-visible + label', option, background(option)), focusDetail());
+        for (const node of [settings, d.querySelector('.card .swap')]) {
           node.focus({ preventScroll: true });
-          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus' : '.card h2:focus', node, background(node)), focusDetail());
+          check(`${key}/${node === settings ? '页脚' : '票面'}焦点对表面≥3`, focusPass(node === settings ? '.settings:focus-visible' : '.card :focus-visible', node, background(node)), focusDetail());
         }
         d.getElementById('theme-system').focus({ preventScroll: true });
         const themeLabel = d.querySelector('label[for="theme-system"]');
-        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
+        check(`${key}主题单选外圈对面板≥3`, focusPass('.about .chips input:focus-visible + label', themeLabel, css(d.getElementById('about')).backgroundColor), focusDetail());
       }
     }
     media.forEach((rule, i) => { rule.media.mediaText = savedMedia[i]; });

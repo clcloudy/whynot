@@ -218,7 +218,7 @@ body{margin:0;min-height:100svh;background:var(--wn-paper);color:var(--wn-page-i
 .opts label{display:flex;align-items:center;justify-content:center;height:48px;padding:0 6px;border:1px solid rgba(27,35,52,.18);border-radius:6px;background:#f4efe3;color:#1b2334;font-size:14px;font-weight:500;text-align:center;cursor:pointer;user-select:none;transition:background var(--m-quick),border-color var(--m-quick),color var(--m-quick)}
 @media (hover:hover){.opts label:hover{background:#ede6d6;border-color:rgba(27,35,52,.30)}}
 .opts input:checked+label{background:#1b2334;border-color:#1b2334;color:#fffdf7;font-weight:600}
-.opts input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
+.opts input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
 .micro{height:6px;flex:none;overflow:hidden;padding:0 20px;color:var(--wn-ink);font:6px/6px var(--wn-mono);letter-spacing:.02em;opacity:.26;white-space:nowrap;pointer-events:none;user-select:none}
 .tear{position:relative;height:6px;flex:none;pointer-events:none;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6'%3E%3Cpath d='M0 4.5L3 1.5L6 4.5' fill='none' stroke='%231b2334' stroke-opacity='.42' stroke-width='1'/%3E%3C/svg%3E") repeat-x 0 0/6px 6px;box-shadow:0 -1px 0 rgba(255,255,255,.7)}
 .notch{position:absolute;left:2px;top:50%;width:10px;height:10px;margin-top:-5px;border:1px solid rgba(27,35,52,.42);border-right-color:transparent;border-top-color:transparent;border-bottom-color:transparent;border-radius:50%}
@@ -406,8 +406,8 @@ body{margin:0;min-height:100svh;background:var(--wn-paper);color:var(--wn-page-i
 /* ---------- 页脚、关于、设置、记忆 ---------- */
 .foot{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:24px;min-height:44px;color:var(--on-stage-dim);font-size:.75rem}
 .settings{min-width:44px;min-height:44px;padding:0;border:0;background:transparent;color:var(--on-stage-dim);font-family:inherit;font-size:.875rem;font-weight:500;cursor:pointer}
-.settings:focus{outline:2px solid var(--wn-page-ink);outline-offset:2px}
-.card h2:focus{outline:2px solid var(--wn-ink);outline-offset:2px}
+.settings:focus-visible{outline:2px solid var(--wn-page-ink);outline-offset:2px}
+.card h2:focus,.card h2:focus-visible{outline:none}
 @media (hover:hover){.settings:hover{color:var(--on-stage)}}
 .about{max-width:720px;margin:12px 0 0;padding:24px;border:1px solid var(--wn-line);border-radius:var(--wn-r2);background:var(--wn-sheet);color:var(--wn-ink);overflow-wrap:anywhere}
 .about h2{margin:0;color:#1b2334;font-size:1.1875rem;font-weight:500}
@@ -418,7 +418,7 @@ body{margin:0;min-height:100svh;background:var(--wn-paper);color:var(--wn-page-i
 .about .chips input{position:absolute;width:1px;height:1px;opacity:0;pointer-events:none}
 .about .chips label{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 16px;border:1px solid #c6bca4;border-radius:var(--wn-rpill);background:#fbf8f0;color:#1b2334;font-size:.875rem;cursor:pointer;transition:background var(--wn-m2)}
 .about .chips input:checked+label{background:#e7e0ce;border-color:#525a6e;font-weight:600}
-.about .chips input:focus+label{outline:2px solid #1b2334;outline-offset:2px}
+.about .chips input:focus-visible+label{outline:2px solid #1b2334;outline-offset:2px}
 .about fieldset{min-width:0;border:0;padding:0;margin:16px 0 0}
 .about legend{padding:0;margin-bottom:8px;color:#5a5f70;font-size:.75rem;font-weight:600;letter-spacing:.08em}
 #model-settings{margin-bottom:24px}
